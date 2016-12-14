@@ -87,7 +87,7 @@ if ($path) {
 
 print STDERR "[INFO] Building sequence database from '$fasta'...\n";
 my %seq_hash;
-my $progress = 0;
+my $processed = 0;
 my $seqio = Bio::SeqIO -> new( -file => $fasta, -format => 'fasta' );
 while (my $seq_obj = $seqio -> next_seq() ) {
   $seq_hash{$seq_obj->display_id()} = $seq_obj->seq(); ## key= seqname; val= seqstring
