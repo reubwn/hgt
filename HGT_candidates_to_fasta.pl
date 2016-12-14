@@ -9,6 +9,7 @@ use Bio::Seq;
 use Bio::SeqIO;
 use Getopt::Long;
 use Sort::Naturally;
+use File::Grep qw( fgrep fmap fdo );
 
 my $usage = "
 SYNOPSIS:
@@ -16,25 +17,27 @@ SYNOPSIS:
 OUTPUTS:
 
 OPTIONS:
-  -i|--in                [FILE]   : HGT_candidates.txt file [required]
-  -d|--diamond           [FILE]   : diamond/BLAST results file [required]
-  -f|--fasta             [FILE]   : protein fasta file, e.g. UniRef90.fasta [required]
-  -p|--path              [STRING] : path to dir/ containing tax files
-  -g|--groups            [FILE]   : groups file, e.g. OrthologousGroups.txt from OrthoFinder
-  -x|--prefix            [FILE]   : filename prefix for outfile [default = INFILE]
-  -v|--verbose                    : say more things [default: be quiet]
-  -h|--help                       : prints this help message
+  -i|--in              [FILE]   : HGT_candidates.txt file [required]
+  -d|--diamond         [FILE]   : diamond/BLAST results file [required]
+  -f|--fasta           [FILE]   : diamond/BLAST database fasta file, e.g. UniRef90.fasta [required]
+  -p|--path            [STRING] : path to dir/ containing tax files
+  -g|--groups          [FILE]   : groups file, e.g. OrthologousGroups.txt from OrthoFinder
+  -t|--taxid_threshold [INT]    : NCBI taxid to recurse up to; i.e., threshold taxid to define 'ingroup' [default = 33208 (Metazoa)]
+  -x|--prefix          [FILE]   : filename prefix for outfile [default = INFILE]
+  -v|--verbose                  : say more things [default: be quiet]
+  -h|--help                     : prints this help message
 
 EXAMPLES:
 
 \n";
 
 my ($in,$diamond,$fasta,$path,$groups,$prefix,$verbose,$help);
+my $taxid_threshold = 33208;
 
 GetOptions (
   'in|i=s'              => \$in,
   'fasta|f=s'            => \$fasta,
-  'diamond|d=S'      => \$diamond,
+  'diamond|d=s'      => \$diamond,
   'path|p=s'         => \$path,
   'groups|g:s'           => \$groups,
   'prefix|x:s'          => \$prefix,
@@ -43,7 +46,7 @@ GetOptions (
 );
 
 die $usage if $help;
-die $usage unless ($in && $fasta && $path);
+die $usage unless ($in && $fasta && $path && $diamond);
 
 ############################################## PARSE NODES
 
@@ -92,8 +95,29 @@ print STDERR "[INFO] Read ".commify((scalar(keys %seq_hash)))." sequences\n";
 
 ############################################## GET HGT CANDIDATE HITS
 
-if (system ("grep -Ff <(cut -f1 $in) $diamond > $in.hits") != 0 ) {
-  die "[ERROR] Grep command did not work: $!\n";
+my (%hits_name_map, %hits_hash);
+
+## get HGT candidates
+chomp ( my @keys = `cut -f1 $in` );
+my %hgt_candidates = map { $_ => 1 } @keys;
+print "[INFO] Number of HGT candidates: ".commify((scalar(keys %hgt_candidates)))."\n";
+open (my $DIAMOND, $diamond) or die $!;
+while (<$DIAMOND>) {
+  my @F = split (/\s+/, $_);
+  if ( $hgt_candidates{$F[0]} ) {
+
+    ## modify hit name based on taxid
+    my ($hit_category,$new_hit_name); ## ingroup or outgroup
+    if ( tax_walk($F[12]) eq "ingroup" ) {
+      $new_hit_name = join ("_", $F[1], "IN");
+    } elsif ( tax_walk($F[12]) eq "outgroup" ) {
+      $new_hit_name = join ("_", $F[1], "OUT");
+    } else {
+      next;
+    }
+    $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
+    push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
+  }
 }
 
 ############################################## PARSE INFILE
@@ -103,6 +127,15 @@ while (<$IN>) {
   chomp;
   next if ($_ =~ m/^\#/);
   my @F = split (/\s+/, $_);
+  my @uniref_hits = @{ $hits_hash{$F[0]} };
+
+  my $file_name = $F[0];
+  $file_name =~ s/\|/\_/;
+  open (my $FA, "<", $file_name) or die $!;
+  foreach my $hit ( @uniref_hits ) {
+    print $FA "\>$hits_name_map{$hit}\n$seq_hash{$hit}\n";
+  }
+  close $FA;
 
 }
 close $IN;
