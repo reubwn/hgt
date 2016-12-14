@@ -16,7 +16,8 @@ SYNOPSIS:
 OUTPUTS:
 
 OPTIONS:
-  -i|--in                [FILE]   : *HGT_candidates.txt file [required]
+  -i|--in                [FILE]   : HGT_candidates.txt file [required]
+  -d|--diamond           [FILE]   : diamond/BLAST results file [required]
   -f|--fasta             [FILE]   : protein fasta file, e.g. UniRef90.fasta [required]
   -p|--path              [STRING] : path to dir/ containing tax files
   -g|--groups            [FILE]   : groups file, e.g. OrthologousGroups.txt from OrthoFinder
@@ -28,11 +29,12 @@ EXAMPLES:
 
 \n";
 
-my ($in,$fasta,$path,$groups,$prefix,$verbose,$help);
+my ($in,$diamond,$fasta,$path,$groups,$prefix,$verbose,$help);
 
 GetOptions (
   'in|i=s'              => \$in,
   'fasta|f=s'            => \$fasta,
+  'diamond|d=S'      => \$diamond,
   'path|p=s'         => \$path,
   'groups|g:s'           => \$groups,
   'prefix|x:s'          => \$prefix,
@@ -87,6 +89,12 @@ while (my $seq_obj = $seqio -> next_seq() ) {
   $seq_hash{$seq_obj->display_id()} = $seq_obj->seq(); ## key= seqname; val= seqstring
 }
 print STDERR "[INFO] Read ".commify((scalar(keys %seq_hash)))." sequences\n";
+
+############################################## GET HGT CANDIDATE HITS
+
+if (system ("grep -Ff <(cut -f1 $in) $diamond > $in.hits") != 0 ) {
+  die "[ERROR] Grep command did not work: $!\n";
+}
 
 ############################################## PARSE INFILE
 
