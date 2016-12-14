@@ -10,7 +10,7 @@ Goal is to take a taxified Diamond or BLAST file, and for each hit recurse up th
 3. **Calculate AI:** Also calculate Alien Index based on best e-values to INGROUP vs OUTGROUP
 4. **Print:** General results printed to HGT_results, candidate HGT genes printed to HGT_candidates (candidates printed if evidence of HGT from _either_ bitscoresum _or_ AI)
 
-**Alien Index** is ```log((Best E-value for Metazoa) + 1e-200) - log((Best E-value for NonMetazoa) + 1e-200)``` (see Gladyshev et al., http://science.sciencemag.org/content/suppl/2008/05/29/320.5880.1210.DC1/Gladyshev.SOM.pdf)
+**Alien Index** is ```log((Best E-value for INGROUP) + 1e-200) - log((Best E-value for OUTGROUP) + 1e-200)``` (see [Gladyshev et al., 2008](http://science.sciencemag.org/content/suppl/2008/05/29/320.5880.1210.DC1/Gladyshev.SOM.pdf))
 
 Type ```diamond_to_HGT_candidates.pl -h``` to see help and options.
 
