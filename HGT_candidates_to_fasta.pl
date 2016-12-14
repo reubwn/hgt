@@ -9,7 +9,7 @@ use Bio::Seq;
 use Bio::SeqIO;
 use Getopt::Long;
 use Sort::Naturally;
-use File::Grep qw( fgrep fmap fdo );
+#use File::Grep qw( fgrep fmap fdo );
 
 my $usage = "
 SYNOPSIS:
@@ -87,9 +87,16 @@ if ($path) {
 
 print STDERR "[INFO] Building sequence database from '$fasta'...\n";
 my %seq_hash;
+my $progress = 0;
 my $seqio = Bio::SeqIO -> new( -file => $fasta, -format => 'fasta' );
 while (my $seq_obj = $seqio -> next_seq() ) {
   $seq_hash{$seq_obj->display_id()} = $seq_obj->seq(); ## key= seqname; val= seqstring
+  ## progress
+  $processed++;
+  if ($processed % 1000 == 0){
+    print STDERR "\r[INFO] Read ".commify($processed)." sequences...";
+    $| = 1;
+  }
 }
 print STDERR "[INFO] Read ".commify((scalar(keys %seq_hash)))." sequences\n";
 
