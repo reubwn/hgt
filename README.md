@@ -3,9 +3,8 @@ scripts for the analysis of HGT in genome sequence data
 
 ## diamond_to_HGT_candidates.pl
 
-Goal is to take a taxified Diamond or BLAST file, and for each hit recurse up the
-tax tree until that hit can be categorised into **INGROUP** versus **OUTGROUP**
-(e.g., Metazoan vs non-Metazoan etc.).
+Goal is to take a taxified Diamond or BLAST file, and for each hit recurse up the tax tree until that hit can be categorised into **INGROUP** versus **OUTGROUP** (e.g., Metazoan vs non-Metazoan etc.).
+
 1. **Get Query Category:** For each query, calculate the bitscoresum for ingroup vs outgroup across **all hits**; the category with the highest bitscoresum is the \"winner\"
 2. **Get Support:** Assess support for the winning query taxid from secondary hits; winning taxid is well-supported if the rest of the hits agree with the INGROUP/OUTGROUP categorisation above --support_threshold (default = 90%)
 3. **Calculate AI:** Also calculate Alien Index based on best e-values to INGROUP vs OUTGROUP
