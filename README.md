@@ -6,17 +6,12 @@ scripts for the analysis of HGT in genome sequence data
 Goal is to take a taxified Diamond or BLAST file, and for each hit recurse up the
 tax tree until that hit can be categorised into **INGROUP** versus **OUTGROUP**
 (e.g., Metazoan vs non-Metazoan etc.).
-  (a) **Get Query Category:** For each query, calculate the bitscoresum for ingroup vs outgroup
-      across **all hits**; the category with the highest bitscoresum is the \"winner\"
-  (b) **Get Support:** Assess support for the winning query taxid from secondary hits;
-      winning taxid is well-supported if the rest of the hits agree with the INGROUP/OUTGROUP
-      categorisation above --support_threshold (default = 90%)
-  (c) **Calculate AI:** Also calculate Alien Index based on best e-values to INGROUP vs OUTGROUP
-  (d) **Print:** General results printed to HGT_results, candidate HGT genes printed to
-      HGT_candidates (candidates printed if evidence of HGT from __either__ bitscoresum __or__ AI)
+1. **Get Query Category:** For each query, calculate the bitscoresum for ingroup vs outgroup across **all hits**; the category with the highest bitscoresum is the \"winner\"
+2. **Get Support:** Assess support for the winning query taxid from secondary hits; winning taxid is well-supported if the rest of the hits agree with the INGROUP/OUTGROUP categorisation above --support_threshold (default = 90%)
+3. **Calculate AI:** Also calculate Alien Index based on best e-values to INGROUP vs OUTGROUP
+4. **Print:** General results printed to HGT_results, candidate HGT genes printed to HGT_candidates (candidates printed if evidence of HGT from _either_ bitscoresum _or_ AI)
 
-  **Alien Index** = log((Best E-value for Metazoa) + 1e-200) - log((Best E-value for NonMetazoa) + 1e-200)
-  (see Gladyshev et al., http://science.sciencemag.org/content/suppl/2008/05/29/320.5880.1210.DC1/Gladyshev.SOM.pdf)
+**Alien Index** is ```log((Best E-value for Metazoa) + 1e-200) - log((Best E-value for NonMetazoa) + 1e-200)``` (see Gladyshev et al., http://science.sciencemag.org/content/suppl/2008/05/29/320.5880.1210.DC1/Gladyshev.SOM.pdf)
 
 Type ```diamond_to_HGT_candidates.pl -h``` to see help and options.
 
