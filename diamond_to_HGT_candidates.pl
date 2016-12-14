@@ -12,28 +12,14 @@ use List::Util qw(reduce sum min max);
 
 my $usage = "
 SYNOPSIS:
-  Goal is to take a taxified Diamond or BLAST file, and for each hit recurse up the
-  tax tree until that hit can be categorised into \"ingroup\" versus \"outgroup\"
-  (e.g., \"metazoan\" vs \"non-metazoan\" etc.).
-    (a) Get Query Taxid: For each query, calculate the sum of bitscores per taxid;
-        the taxid with the highest bitscoresum is the \"winner\" and assumed taxonomy of the query
-    (b) Determine Category: Assess the placement of the winning taxid in the NCBI
-        taxonomy tree: if the taxid falls within the --taxid_threshold (default = Metazoa)
-        then the query is determined to be INGROUP; if the taxid does not fall within the
-        taxid_threshold then the query is OUTGROUP
-    (c) Get Support: Assess support for the winning query taxid from secondary hits;
-        winning taxid is well-supported if the rest of the hits agree with the INGROUP/OUTGROUP
-        categorisation above --support_threshold (default = 90%)
-    (d) Print: INGROUP/OUTGROUP decisions and support values are printed to file for all
-        queries, regardless of support
+  Goal is to take a taxified Diamond or BLAST file, and for each hit recurse up the tax tree until that hit can be categorised into **INGROUP** versus **OUTGROUP** (e.g., Metazoan vs non-Metazoan etc.).
 
-    Eg: The bestsum bitscore for a given query protein is to a Pseudomonad species; thus taxid is
-    ___ and category is OUTGROUP as taxid ___ does not fall within Metazoa. The vast majority (>90\%)
-    of other hits are also to bacteria, and thus support the OUTGROUP categorisation. This gene
-    would be designated \"candidate HGT\" and would merit further investigation.
+  1. Get Query Category: For each query, calculate the bitscoresum for ingroup vs outgroup across **all hits**; the category with the highest bitscoresum is the \"winner\"
+  2. Get Support: Assess support for the winning query taxid from secondary hits; winning taxid is well-supported if the rest of the hits agree with the INGROUP/OUTGROUP categorisation above --support_threshold (default = 90%)
+  3. Calculate AI: Also calculate Alien Index based on best e-values to INGROUP vs OUTGROUP
+  4. Print: General results printed to HGT_results, candidate HGT genes printed to HGT_candidates (candidates printed if evidence of HGT from _either_ bitscoresum _or_ AI)
 
-    Alien Index = log((Best E-value for Metazoa) + 1e-200) - log((Best E-value for NonMetazoa) + 1e-200)
-    (see Gladyshev et al., http://science.sciencemag.org/content/suppl/2008/05/29/320.5880.1210.DC1/Gladyshev.SOM.pdf)
+    Alien Index = log((Best E-value for Metazoa) + 1e-200) - log((Best E-value for NonMetazoa) + 1e-200) (see Gladyshev et al., http://science.sciencemag.org/content/suppl/2008/05/29/320.5880.1210.DC1/Gladyshev.SOM.pdf)
 
 OUTPUTS:
   A \"\*.HGT_results.txt\" file with the support values for each query; a \"\*.HGT_candidates.txt\" file with queries
@@ -46,7 +32,7 @@ OPTIONS:
   -a|--names             [FILE]   : path to names.dmp
   -m|--merged            [FILE]   : path to merged.dmp
   -n|--nodesDB           [FILE]   : nodesDB.txt file from blobtools
-  -g|--gff               [FILE]   : path to augustus-formatted GFF file
+  -g|--gff               [FILE]   : path to augustus-formatted GFF file [TODO]
   -t|--taxid_threshold   [INT]    : NCBI taxid to recurse up to; i.e., threshold taxid to define 'ingroup' [default = 33208 (Metazoa)]
   -k|--taxid_skip        [INT]    : NCBI taxid to skip; hits to this taxid will not be considered in any calculations of support
   -r|--scoring           [STRING] : scoring strategy for calculating bestsum bitscore: 'sum' or 'individual' [default = 'sum']
