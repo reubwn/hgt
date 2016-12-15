@@ -171,7 +171,7 @@ while (<$IN>) {
     if ($_ =~ /^>/) {
       $_ =~ s/\>//;
       $_ =~ s/\s+//g;
-      print STDERR "$seqid-->$hits_name_map{$_}\n";
+      print STDERR "$_-->$hits_name_map{$_}\n";
       print $FA "\>$hits_name_map{$_}\n";
     } else {
       print $FA $_;
