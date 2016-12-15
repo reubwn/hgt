@@ -14,6 +14,8 @@ use Sort::Naturally;
 my $usage = "
 SYNOPSIS:
 
+1. Run 'makeblastdb -in uniref90.fasta -dbtype prot -parse_seqids' to allow for rapid sequence retrieval from large fasta DB like UniRef90
+
 OUTPUTS:
 
 OPTIONS:
@@ -85,20 +87,20 @@ if ($path) {
 
 ############################################## PARSE FASTA
 
-print STDERR "[INFO] Building sequence database from '$fasta'...\n";
-my %seq_hash;
-my $processed = 0;
-my $seqio = Bio::SeqIO -> new( -file => $fasta, -format => 'fasta' );
-while (my $seq_obj = $seqio -> next_seq() ) {
-  $seq_hash{$seq_obj->display_id()} = $seq_obj->seq(); ## key= seqname; val= seqstring
-  ## progress
-  $processed++;
-  if ($processed % 1000 == 0){
-    print STDERR "\r[INFO] Read ".commify($processed)." sequences...";
-    $| = 1;
-  }
-}
-print STDERR "[INFO] Read ".commify((scalar(keys %seq_hash)))." sequences\n";
+# print STDERR "[INFO] Building sequence database from '$fasta'...\n";
+# my %seq_hash;
+# my $processed = 0;
+# my $seqio = Bio::SeqIO -> new( -file => $fasta, -format => 'fasta' );
+# while (my $seq_obj = $seqio -> next_seq() ) {
+#   $seq_hash{$seq_obj->display_id()} = $seq_obj->seq(); ## key= seqname; val= seqstring
+#   ## progress
+#   $processed++;
+#   if ($processed % 1000 == 0){
+#     print STDERR "\r[INFO] Read ".commify($processed)." sequences...";
+#     $| = 1;
+#   }
+# }
+# print STDERR "[INFO] Read ".commify((scalar(keys %seq_hash)))." sequences\n";
 
 ############################################## GET HGT CANDIDATE HITS
 
@@ -135,14 +137,18 @@ while (<$IN>) {
   next if ($_ =~ m/^\#/);
   my @F = split (/\s+/, $_);
   my @uniref_hits = @{ $hits_hash{$F[0]} };
+  my $blastdbcmd_query_string = join (",", @{ $hits_hash{$F[0]} });
 
   my $file_name = $F[0];
   $file_name =~ s/\|/\_/;
-  open (my $FA, "<", $file_name) or die $!;
-  foreach my $hit ( @uniref_hits ) {
-    print $FA "\>$hits_name_map{$hit}\n$seq_hash{$hit}\n";
+  #open (my $FA, "<", $file_name) or die $!;
+  if ( system ("blastdbcmd -db $fasta -dbtype prot -outfmt \%f -entry $blastdbcmd_query_string > $file_name") !=0 ) {
+    die "[ERROR] blastdbcmd command did not work\n";
   }
-  close $FA;
+  # foreach my $hit ( @uniref_hits ) {
+  #   print $FA "\>$hits_name_map{$hit}\n$seq_hash{$hit}\n";
+  # }
+  #close $FA;
 
 }
 close $IN;
