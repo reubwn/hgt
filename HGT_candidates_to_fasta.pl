@@ -165,10 +165,11 @@ while (<$IN>) {
   while (<$CMD>) {
     if ($_ =~ /^>/) {
       chomp;
-      my @a = split(/>/, $_);
+      my @a = split(/\>/, $_);
+      print STDERR "$a[1] --> $hits_name_map{$a[1]}\n";
       print $FA "\>$hits_name_map{$a[1]}\n";
     } else {
-      print $_;
+      print $FA $_;
     }
   }
   close $CMD;
