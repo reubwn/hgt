@@ -67,7 +67,7 @@ if ($path) {
     $rank_hash{$F[0]} = $F[2]; ## key= taxid; value= rank
   }
   close $NODES;
-  print STDERR ""
+  print STDERR "[INFO] Done $path/nodes.dmp\n";
   open (my $NAMES, "$path/names.dmp") or die "[ERROR] names.dmp not found in $path: $!\n";
   while (<$NAMES>) {
     chomp;
@@ -76,6 +76,7 @@ if ($path) {
     $names_hash{$F[0]} = $F[1] if ($F[3] eq "scientific name"); ## key= taxid; value= species name
   }
   close $NAMES;
+  print STDERR "[INFO] Done $path/names.dmp\n";
   if (-e "$path/merged.dmp") {
     open (my $MERGED, "$path/merged.dmp") or die "[ERROR] merged.dmp not found in $path: $!\n";
     while (<$MERGED>) {
@@ -85,6 +86,8 @@ if ($path) {
       $nodes_hash{$F[0]} = $F[1]; ## key= old taxid; value= new taxid
       ## this will behave as if old taxid is a child of the new one, which is OK I guess
     }
+    close $MERGED;
+    print STDERR "[INFO] Done $path/merged.dmp\n";
   }
 } else { die "[ERROR] Path '$path' not found\n" }
 
