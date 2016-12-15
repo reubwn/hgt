@@ -117,20 +117,31 @@ while (<$DIAMOND>) {
 
     ## modify hit name based on taxid
     my ($hit_category,$new_hit_name); ## ingroup or outgroup
-    if ( tax_walk($F[12]) eq "ingroup" ) {
+    if ($F[12] !~ /\d+/) {
+      ## invalid taxid (not a number)
+      next;
+    } elsif (check_taxid_has_parent($F[12]) == 1) {
+      ## taxid doesn't have a parent
+      next;
+    } elsif ( tax_walk($F[12]) eq "unassigned" ) {
+      ## taxid is unassigned
+      next;
+    } elsif ( tax_walk($F[12]) eq "ingroup" ) {
       $new_hit_name = join ("_", $F[1], "IN");
     } elsif ( tax_walk($F[12]) eq "outgroup" ) {
       $new_hit_name = join ("_", $F[1], "OUT");
-    } else {
-      next;
     }
+
     $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
     push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
+    
   }
 }
+close $DIAMOND;
 
 ############################################## PARSE INFILE
 
+my $processed = 0;
 open (my $IN, $in) or die $!;
 while (<$IN>) {
   chomp;
@@ -149,7 +160,10 @@ while (<$IN>) {
   #   print $FA "\>$hits_name_map{$hit}\n$seq_hash{$hit}\n";
   # }
   #close $FA;
-
+  if ($processed % 1000 == 0){
+     print STDERR "\r[INFO] Read ".commify($processed)." sequences...";
+     $| = 1;
+  }
 }
 close $IN;
 
