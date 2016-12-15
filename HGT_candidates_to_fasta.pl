@@ -169,10 +169,10 @@ while (<$IN>) {
   print $FA "\>$F[0]\n$seq_hash{$F[0]}\n";
   while (<$CMD>) {
     if ($_ =~ /^>/) {
-      (my $seqid = $_) =~ s/\>//;
-      chomp $seqid;
-      print STDERR "$seqid-->$hits_name_map{$seqid}\n";
-      print $FA "\>$hits_name_map{$seqid}\n";
+      $_ =~ s/\>//;
+      $_ =~ s/\s+//g;
+      print STDERR "$seqid-->$hits_name_map{$_}\n";
+      print $FA "\>$hits_name_map{$_}\n";
     } else {
       print $FA $_;
     }
