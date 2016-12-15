@@ -146,10 +146,10 @@ while (<$DIAMOND>) {
   }
 }
 close $DIAMOND;
-
-foreach (keys %hits_name_map) {
-  print STDERR "$_\t$hits_name_map{$_}\n";
-}
+#
+# foreach (keys %hits_name_map) {
+#   print STDERR "$_\t$hits_name_map{$_}\n";
+# }
 
 ############################################## PARSE INFILE
 
@@ -170,9 +170,9 @@ while (<$IN>) {
   while (<$CMD>) {
     if ($_ =~ /^>/) {
       chomp;
-      my @a = split(/\>/, $_);
-      print STDERR "$a[1] --> $hits_name_map{$a[1]}\n";
-      print $FA "\>$hits_name_map{$a[1]}\n";
+      (my $seqid = $_) =~ s/\>//;
+      print STDERR "$seqid --> $hits_name_map{$seqid}\n";
+      print $FA "\>$hits_name_map{$seqid}\n";
     } else {
       print $FA $_;
     }
