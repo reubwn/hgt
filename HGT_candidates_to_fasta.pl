@@ -67,6 +67,7 @@ if ($path) {
     $rank_hash{$F[0]} = $F[2]; ## key= taxid; value= rank
   }
   close $NODES;
+  print STDERR ""
   open (my $NAMES, "$path/names.dmp") or die "[ERROR] names.dmp not found in $path: $!\n";
   while (<$NAMES>) {
     chomp;
@@ -96,11 +97,11 @@ my $seqio = Bio::SeqIO -> new( -file => $fasta, -format => 'fasta' );
 while (my $seq_obj = $seqio -> next_seq() ) {
   $seq_hash{$seq_obj->display_id()} = $seq_obj->seq(); ## key= seqname; val= seqstring
   ## progress
-  $processed++;
-  if ($processed % 1000 == 0){
-    print STDERR "\r[INFO] Read ".commify($processed)." sequences...";
-    $| = 1;
-  }
+  # $processed++;
+  # if ($processed % 1000 == 0){
+  #   print STDERR "\r[INFO] Read ".commify($processed)." sequences...";
+  #   $| = 1;
+  # }
 }
 print STDERR "[INFO] Read ".commify((scalar(keys %seq_hash)))." sequences\n";
 
@@ -154,9 +155,8 @@ while (<$IN>) {
   my $blastdbcmd_query_string = join (",", @{ $hits_hash{$F[0]} });
 
   ## make filename based on query name:
-  my $file_name = $F[0];
-  $file_name =~ s/\|/\_/;
-  open (my $FA, "<", $file_name) or die $!;
+  (my $file_name = $F[0]) =~ s/\|/\_/;
+  open (my $FA, ">", $file_name) or die $!;
   open (my $CMD, "blastdbcmd -db $uniref90 -dbtype prot -outfmt \%f -entry $blastdbcmd_query_string |") or die $!;
   print $FA "\>$F[0]\n$seq_hash{$F[0]}\n";
   while (<$CMD>) {
