@@ -21,7 +21,8 @@ OUTPUTS:
 OPTIONS:
   -i|--in              [FILE]   : HGT_candidates.txt file [required]
   -d|--diamond         [FILE]   : diamond/BLAST results file [required]
-  -f|--fasta           [FILE]   : diamond/BLAST database fasta file, e.g. UniRef90.fasta [required]
+  -u|--uniref90        [FILE]   : diamond/BLAST database fasta file, e.g. UniRef90.fasta [required]
+  -f|--fasta           [FILE]   : fasta file of query proteins [required]
   -p|--path            [STRING] : path to dir/ containing tax files
   -g|--groups          [FILE]   : groups file, e.g. OrthologousGroups.txt from OrthoFinder
   -t|--taxid_threshold [INT]    : NCBI taxid to recurse up to; i.e., threshold taxid to define 'ingroup' [default = 33208 (Metazoa)]
@@ -33,12 +34,13 @@ EXAMPLES:
 
 \n";
 
-my ($in,$diamond,$fasta,$path,$groups,$prefix,$verbose,$help);
+my ($in,$diamond,$uniref90,$fasta,$path,$groups,$prefix,$verbose,$help);
 my $taxid_threshold = 33208;
 
 GetOptions (
   'in|i=s'              => \$in,
   'fasta|f=s'            => \$fasta,
+  'uniref90|u=s'  => \$uniref90,
   'diamond|d=s'      => \$diamond,
   'path|p=s'         => \$path,
   'groups|g:s'           => \$groups,
@@ -48,7 +50,7 @@ GetOptions (
 );
 
 die $usage if $help;
-die $usage unless ($in && $fasta && $path && $diamond);
+die $usage unless ($in && $uniref90 && $fasta && $path && $diamond);
 
 ############################################## PARSE NODES
 
@@ -87,20 +89,20 @@ if ($path) {
 
 ############################################## PARSE FASTA
 
-# print STDERR "[INFO] Building sequence database from '$fasta'...\n";
-# my %seq_hash;
-# my $processed = 0;
-# my $seqio = Bio::SeqIO -> new( -file => $fasta, -format => 'fasta' );
-# while (my $seq_obj = $seqio -> next_seq() ) {
-#   $seq_hash{$seq_obj->display_id()} = $seq_obj->seq(); ## key= seqname; val= seqstring
-#   ## progress
-#   $processed++;
-#   if ($processed % 1000 == 0){
-#     print STDERR "\r[INFO] Read ".commify($processed)." sequences...";
-#     $| = 1;
-#   }
-# }
-# print STDERR "[INFO] Read ".commify((scalar(keys %seq_hash)))." sequences\n";
+print STDERR "[INFO] Building sequence database from '$fasta'...\n";
+my %seq_hash;
+my $processed = 0;
+my $seqio = Bio::SeqIO -> new( -file => $fasta, -format => 'fasta' );
+while (my $seq_obj = $seqio -> next_seq() ) {
+  $seq_hash{$seq_obj->display_id()} = $seq_obj->seq(); ## key= seqname; val= seqstring
+  ## progress
+  $processed++;
+  if ($processed % 1000 == 0){
+    print STDERR "\r[INFO] Read ".commify($processed)." sequences...";
+    $| = 1;
+  }
+}
+print STDERR "[INFO] Read ".commify((scalar(keys %seq_hash)))." sequences\n";
 
 ############################################## GET HGT CANDIDATE HITS
 
@@ -134,7 +136,7 @@ while (<$DIAMOND>) {
 
     $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
     push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
-    
+
   }
 }
 close $DIAMOND;
@@ -147,21 +149,34 @@ while (<$IN>) {
   chomp;
   next if ($_ =~ m/^\#/);
   my @F = split (/\s+/, $_);
-  my @uniref_hits = @{ $hits_hash{$F[0]} };
+
+  ## make query string for blastdbcmd
   my $blastdbcmd_query_string = join (",", @{ $hits_hash{$F[0]} });
 
+  ## make filename based on query name:
   my $file_name = $F[0];
   $file_name =~ s/\|/\_/;
-  #open (my $FA, "<", $file_name) or die $!;
-  if ( system ("blastdbcmd -db $fasta -dbtype prot -outfmt \%f -entry $blastdbcmd_query_string > $file_name") !=0 ) {
-    die "[ERROR] blastdbcmd command did not work\n";
+  open (my $FA, "<", $file_name) or die $!;
+  open (my $CMD, "blastdbcmd -db $uniref90 -dbtype prot -outfmt \%f -entry $blastdbcmd_query_string |") or die $!;
+  print $FA "\>$F[0]\n$seq_hash{$F[0]}\n";
+  while (<$CMD>) {
+    if ($_ =~ /^>/) {
+      chomp;
+      my @h = split(/>/, $_);
+      print $FA "\>$hits_name_map{$a[1]}\n";
+    } else {
+      print $_;
+    }
   }
-  # foreach my $hit ( @uniref_hits ) {
-  #   print $FA "\>$hits_name_map{$hit}\n$seq_hash{$hit}\n";
+  close $CMD;
+  close $FA;
+  # if ( system ("blastdbcmd -db $fasta -dbtype prot -outfmt \%f -entry $blastdbcmd_query_string > $file_name") !=0 ) {
+  #   die "[ERROR] blastdbcmd command did not work\n";
   # }
-  #close $FA;
-  if ($processed % 1000 == 0){
-     print STDERR "\r[INFO] Read ".commify($processed)." sequences...";
+
+  ## progress
+  if ($processed % 10 == 0){
+     print STDERR "\r[INFO] Processed ".commify($processed)." queries...";
      $| = 1;
   }
 }
