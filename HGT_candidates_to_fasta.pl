@@ -143,7 +143,7 @@ close $DIAMOND;
 
 ############################################## PARSE INFILE
 
-my $processed = 0;
+$processed = 0;
 open (my $IN, $in) or die $!;
 while (<$IN>) {
   chomp;
@@ -162,7 +162,7 @@ while (<$IN>) {
   while (<$CMD>) {
     if ($_ =~ /^>/) {
       chomp;
-      my @h = split(/>/, $_);
+      my @a = split(/>/, $_);
       print $FA "\>$hits_name_map{$a[1]}\n";
     } else {
       print $_;
