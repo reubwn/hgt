@@ -38,15 +38,15 @@ my ($in,$diamond,$uniref90,$fasta,$path,$groups,$prefix,$verbose,$help);
 my $taxid_threshold = 33208;
 
 GetOptions (
-  'in|i=s'              => \$in,
-  'fasta|f=s'            => \$fasta,
-  'uniref90|u=s'  => \$uniref90,
-  'diamond|d=s'      => \$diamond,
-  'path|p=s'         => \$path,
-  'groups|g:s'           => \$groups,
-  'prefix|x:s'          => \$prefix,
-  'verbose|v'           => \$verbose,
-  'help|h'              => \$help,
+  'in|i=s'       => \$in,
+  'fasta|f=s'    => \$fasta,
+  'uniref90|u=s' => \$uniref90,
+  'diamond|d=s'  => \$diamond,
+  'path|p=s'     => \$path,
+  'groups|g:s'   => \$groups,
+  'prefix|x:s'   => \$prefix,
+  'verbose|v'    => \$verbose,
+  'help|h'       => \$help,
 );
 
 die $usage if $help;
@@ -128,9 +128,13 @@ while (<$DIAMOND>) {
       ## taxid is unassigned
       next;
     } elsif ( tax_walk($F[12]) eq "ingroup" ) {
-      $new_hit_name = join ("_", $F[1], "IN");
+      my $phylum = tax_walk_to_get_rank_to_phylum($F[12]);
+      $new_hit_name = join ("_", $F[1], "IN", $phylum);
+      next;
     } elsif ( tax_walk($F[12]) eq "outgroup" ) {
-      $new_hit_name = join ("_", $F[1], "OUT");
+      my $phylum = tax_walk_to_get_rank_to_phylum($F[12]);
+      $new_hit_name = join ("_", $F[1], "OUT", $phylum);
+      next;
     }
 
     $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
@@ -229,6 +233,41 @@ sub tax_walk {
       }
     }
     return $result;
+}
+
+sub tax_walk_to_get_rank_to_phylum {
+  my $taxid = $_[0];
+  my $parent = $nodes_hash{$taxid};
+  my $parent_rank = $rank_hash{$parent};
+  my ($phylum,$kingdom,$superkingdom) = ("undef","undef","undef");
+
+  while (1) {
+    if ($parent_rank eq "phylum") {
+      $phylum = $names_hash{$parent};
+      #print "Found phylum: $phylum\n";
+      $parent = $nodes_hash{$parent};
+      $parent_rank = $rank_hash{$parent};
+      next;
+    } elsif ($parent_rank eq "kingdom") {
+      $kingdom = $names_hash{$parent};
+      #print "Found phylum: $kingdom\n";
+      $parent = $nodes_hash{$parent};
+      $parent_rank = $rank_hash{$parent};
+      next;
+    } elsif ($parent_rank eq "superkingdom") {
+      $superkingdom = $names_hash{$parent};
+      #print "Found phylum: $superkingdom\n";
+      last;
+    } elsif ($parent == 1) {
+      last;
+    } else {
+      $parent = $nodes_hash{$parent};
+      $parent_rank = $rank_hash{$parent};
+    }
+  }
+  my $result = join (";",$superkingdom,$kingdom,$phylum);
+  $result =~ s/\s+/\_/g; ## replace spaces with underscores
+  return $result;
 }
 
 sub percentage {
