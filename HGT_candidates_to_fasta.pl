@@ -134,10 +134,10 @@ while (<$DIAMOND>) {
       next;
     } elsif ( tax_walk($F[12]) eq "ingroup" ) {
       $new_hit_name = join ("_", $F[1], "IN");
-      print STDERR "$F[0] --> $new_hit_name\n";
+      #print STDERR "$F[0] --> $new_hit_name\n";
     } elsif ( tax_walk($F[12]) eq "outgroup" ) {
       $new_hit_name = join ("_", $F[1], "OUT");
-      print STDERR "$F[0] --> $new_hit_name\n";
+      #print STDERR "$F[0] --> $new_hit_name\n";
     }
 
     $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
@@ -147,9 +147,12 @@ while (<$DIAMOND>) {
 }
 close $DIAMOND;
 
+foreach (keys %hits_name_map) {
+  print STDERR "$_\t$hits_name_map{$_}\n";
+}
+
 ############################################## PARSE INFILE
 
-my $processed = 0;
 open (my $IN, $in) or die $!;
 while (<$IN>) {
   chomp;
