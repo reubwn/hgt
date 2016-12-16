@@ -131,16 +131,16 @@ while (<$DIAMOND>) {
     } elsif ( tax_walk($F[12]) eq "ingroup" ) {
       my $phylum = tax_walk_to_get_rank_to_phylum($F[12]);
       $new_hit_name = join ("_", $F[1], "IN", $phylum);
+      $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
+      push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
       next;
     } elsif ( tax_walk($F[12]) eq "outgroup" ) {
       my $phylum = tax_walk_to_get_rank_to_phylum($F[12]);
       $new_hit_name = join ("_", $F[1], "OUT", $phylum);
+      $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
+      push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
       next;
     }
-
-    $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
-    push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
-
   }
 }
 close $DIAMOND;
