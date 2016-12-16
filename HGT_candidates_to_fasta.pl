@@ -40,7 +40,7 @@ my $taxid_threshold = 33208;
 
 GetOptions (
   'in|i=s'        => \$in,
-  'cadidates|c=S' => \$candidates,
+  'cadidates|c=s' => \$candidates,
   'uniref90|u=s'  => \$uniref90,
   'fasta|f=s'     => \$fasta,
   'path|p=s'      => \$path,
