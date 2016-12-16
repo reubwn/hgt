@@ -51,7 +51,7 @@ GetOptions (
 );
 
 die $usage if $help;
-die $usage unless ($in && $uniref90 && $fasta && $path && $diamond);
+die $usage unless ($in && $uniref90 && $fasta && $path && $cadidates);
 
 ############################################## PARSE NODES
 
