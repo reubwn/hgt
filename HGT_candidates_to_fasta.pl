@@ -20,8 +20,8 @@ SYNOPSIS:
 OUTPUTS:
 
 OPTIONS:
-  -i|--in              [FILE]   : HGT_candidates.txt file [required]
-  -d|--diamond         [FILE]   : diamond/BLAST results file [required]
+  -i|--in              [FILE]   : taxified diamond/BLAST results file [required]
+  -c|--candidates      [FILE]   : *.HGT_candidates.txt file [required]
   -u|--uniref90        [FILE]   : diamond/BLAST database fasta file, e.g. UniRef90.fasta [required]
   -f|--fasta           [FILE]   : fasta file of query proteins [required]
   -p|--path            [STRING] : path to dir/ containing tax files
@@ -35,19 +35,19 @@ EXAMPLES:
 
 \n";
 
-my ($in,$diamond,$uniref90,$fasta,$path,$groups,$prefix,$verbose,$help);
+my ($in,$candidates,$uniref90,$fasta,$path,$groups,$prefix,$verbose,$help);
 my $taxid_threshold = 33208;
 
 GetOptions (
-  'in|i=s'       => \$in,
-  'fasta|f=s'    => \$fasta,
-  'uniref90|u=s' => \$uniref90,
-  'diamond|d=s'  => \$diamond,
-  'path|p=s'     => \$path,
-  'groups|g:s'   => \$groups,
-  'prefix|x:s'   => \$prefix,
-  'verbose|v'    => \$verbose,
-  'help|h'       => \$help,
+  'in|i=s'        => \$in,
+  'cadidates|c=S' => \$candidates,
+  'uniref90|u=s'  => \$uniref90,
+  'fasta|f=s'     => \$fasta,
+  'path|p=s'      => \$path,
+  'groups|g:s'    => \$groups,
+  'prefix|x:s'    => \$prefix,
+  'verbose|v'     => \$verbose,
+  'help|h'        => \$help,
 );
 
 die $usage if $help;
@@ -109,10 +109,10 @@ print STDERR "[INFO] Read ".commify((scalar(keys %seq_hash)))." sequences\n";
 my (%hits_name_map, %hits_hash);
 
 ## get HGT candidates
-chomp ( my @keys = `cut -f1 $in` );
+chomp ( my @keys = `cut -f1 $candidates` );
 my %hgt_candidates = map { $_ => 1 } @keys;
 print "[INFO] Number of HGT candidates: ".commify((scalar(keys %hgt_candidates)))."\n";
-open (my $DIAMOND, $diamond) or die $!;
+open (my $DIAMOND, $in) or die "Cannot open file '$in': $!\n";
 while (<$DIAMOND>) {
   my @F = split (/\s+/, $_);
   if ( $hgt_candidates{$F[0]} ) {
@@ -147,11 +147,12 @@ close $DIAMOND;
 
 print Dumper \%hits_hash if $verbose;
 
-############################################## PARSE INFILE
+############################################## PARSE CANDIDATES
 
+print STDERR "[INFO] Getting sequences from database '$uniref90'\n";
 print STDERR "[INFO] Processing HGT_candidates file...\n";
-open (my $IN, $in) or die $!;
-while (<$IN>) {
+open (my $CANDIDATES, $candidates) or die "Cannot open file '$candidates': $!\n";
+while (<$CANDIDATES>) {
   chomp;
   next if ($_ =~ m/^\#/);
   my @F = split (/\s+/, $_);
@@ -184,7 +185,7 @@ while (<$IN>) {
      $| = 1;
   }
 }
-close $IN;
+close $CANDIDATES;
 print STDERR "\n[INFO] Finished\n\n";
 
 ############################################# SUBS
