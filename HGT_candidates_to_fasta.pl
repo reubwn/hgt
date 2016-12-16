@@ -9,6 +9,7 @@ use Bio::Seq;
 use Bio::SeqIO;
 use Getopt::Long;
 use Sort::Naturally;
+use Data::Dumper qw(Dumper);
 #use File::Grep qw( fgrep fmap fdo );
 
 my $usage = "
@@ -143,6 +144,8 @@ while (<$DIAMOND>) {
   }
 }
 close $DIAMOND;
+
+print Dumper \%hits_hash if $verbose;
 
 ############################################## PARSE INFILE
 
