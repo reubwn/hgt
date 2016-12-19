@@ -14,8 +14,17 @@ use Data::Dumper qw(Dumper);
 
 my $usage = "
 SYNOPSIS:
+This program takes the results from the 'diamond_to_HGT_candidates.pl' script and returns a fasta file for each HGT candidate gene, containing
+1. the focal HGT candidate protein and
+2. the 'taxified' hits from UniRef90 (or other db) to that protein
 
-1. Run 'makeblastdb -in uniref90.fasta -dbtype prot -parse_seqids' to allow for rapid sequence retrieval from large fasta DB like UniRef90
+Taxified means that each protein is annotated as either ingroup or outgroup, based on the partition specified (default = 'Metazoan' vs 'non-Metazoan'), and taxonomic classification up to phylum level
+
+The resultant fasta files can then be aligned and used for phylogenetic reconstruction.
+
+PREREQUISITES:
+1. The script utilises the rapid lookup of large fasta files by 'blastdbcmd'. This requires the '-parse_seqids' flag to be specified during the creation of the blastdb: 'makeblastdb -in uniref90.fasta -dbtype prot -parse_seqids'
+2. MAFFT and RAxML need to be downloaded, installed and discoverable in your \$PATH if specified here.
 
 OUTPUTS:
 
@@ -25,9 +34,10 @@ OPTIONS:
   -u|--uniref90        [FILE]   : diamond/BLAST database fasta file, e.g. UniRef90.fasta [required]
   -f|--fasta           [FILE]   : fasta file of query proteins [required]
   -p|--path            [STRING] : path to dir/ containing tax files
-  -g|--groups          [FILE]   : groups file, e.g. OrthologousGroups.txt from OrthoFinder
+  -g|--groups          [FILE]   : groups file, e.g. OrthologousGroups.txt from OrthoFinder [TODO]
   -t|--taxid_threshold [INT]    : NCBI taxid to recurse up to; i.e., threshold taxid to define 'ingroup' [default = 33208 (Metazoa)]
-  -x|--prefix          [FILE]   : filename prefix for outfile [default = INFILE]
+  -m|--mafft                    : run MAFFT alignment on each fasta file (default = no) [TODO]
+  -x|--raxml                    : run RAxML phylogenetic reconstruction on each MAFFT alignment file [default = no] [TODO]
   -v|--verbose                  : say more things [default: be quiet]
   -h|--help                     : prints this help message
 
@@ -35,7 +45,7 @@ EXAMPLES:
 
 \n";
 
-my ($in,$candidates,$uniref90,$fasta,$path,$groups,$prefix,$verbose,$help);
+my ($in,$candidates,$uniref90,$fasta,$path,$groups,$mafft,$raxml,$prefix,$verbose,$help);
 my $taxid_threshold = 33208;
 
 GetOptions (
@@ -45,13 +55,15 @@ GetOptions (
   'fasta|f=s'     => \$fasta,
   'path|p=s'      => \$path,
   'groups|g:s'    => \$groups,
-  'prefix|x:s'    => \$prefix,
+  'mafft|m'       => \$mafft,
+  'raxml|x'       => \$raxml,
   'verbose|v'     => \$verbose,
   'help|h'        => \$help,
 );
 
 die $usage if $help;
 die $usage unless ($in && $uniref90 && $fasta && $path && $candidates);
+die "Options $groups, $mafft and $raxml are not implemented yet!\n\n" if ($groups || $mafft || $raxml);
 
 ############################################## PARSE NODES
 
@@ -130,13 +142,13 @@ while (<$DIAMOND>) {
       next;
     } elsif ( tax_walk($F[12]) eq "ingroup" ) {
       my $phylum = tax_walk_to_get_rank_to_phylum($F[12]);
-      $new_hit_name = join ("_", $F[1], "IN", $phylum);
+      $new_hit_name = join ("|", $F[1], "IN", $phylum);
       $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
       push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
       next;
     } elsif ( tax_walk($F[12]) eq "outgroup" ) {
       my $phylum = tax_walk_to_get_rank_to_phylum($F[12]);
-      $new_hit_name = join ("_", $F[1], "OUT", $phylum);
+      $new_hit_name = join ("|", $F[1], "OUT", $phylum);
       $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
       push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
       next;
@@ -162,7 +174,7 @@ while (<$CANDIDATES>) {
 
   ## make filename based on query name:
   (my $file_name = $F[0]) =~ s/\|/\_/;
-  open (my $FA, ">", $file_name) or die $!;
+  open (my $FA, ">", "$file_name.fasta") or die $!;
   open (my $CMD, "blastdbcmd -db $uniref90 -dbtype prot -outfmt \%f -entry $blastdbcmd_query_string |") or die $!;
   print $FA "\>$F[0]\n$seq_hash{$F[0]}\n";
   while (<$CMD>) {
@@ -269,7 +281,7 @@ sub tax_walk_to_get_rank_to_phylum {
       $parent_rank = $rank_hash{$parent};
     }
   }
-  my $result = join (";",$superkingdom,$kingdom,$phylum);
+  my $result = join ("|",$superkingdom,$kingdom,$phylum);
   $result =~ s/\s+/\_/g; ## replace spaces with underscores
   return $result;
 }
