@@ -34,8 +34,8 @@ OPTIONS:
   -u|--uniref90        [FILE]   : diamond/BLAST database fasta file, e.g. UniRef90.fasta [required]
   -f|--fasta           [FILE]   : fasta file of query proteins [required]
   -p|--path            [STRING] : path to dir/ containing tax files
-  -g|--groups          [FILE]   : groups file, e.g. OrthologousGroups.txt from OrthoFinder [TODO]
   -t|--taxid_threshold [INT]    : NCBI taxid to recurse up to; i.e., threshold taxid to define 'ingroup' [default = 33208 (Metazoa)]
+  -g|--groups          [FILE]   : groups file, e.g. OrthologousGroups.txt from OrthoFinder [TODO]
   -m|--mafft                    : run MAFFT alignment on each fasta file (default = no) [TODO]
   -x|--raxml                    : run RAxML phylogenetic reconstruction on each MAFFT alignment file [default = no] [TODO]
   -v|--verbose                  : say more things [default: be quiet]
@@ -54,6 +54,7 @@ GetOptions (
   'uniref90|u=s'  => \$uniref90,
   'fasta|f=s'     => \$fasta,
   'path|p=s'      => \$path,
+  'taxid_threshold|t:i' => \$taxid_threshold,
   'groups|g:s'    => \$groups,
   'mafft|m'       => \$mafft,
   'raxml|x'       => \$raxml,
