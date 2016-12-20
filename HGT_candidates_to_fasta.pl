@@ -33,7 +33,7 @@ OPTIONS:
   -c|--candidates      [FILE]   : *.HGT_candidates.txt file [required]
   -u|--uniref90        [FILE]   : diamond/BLAST database fasta file, e.g. UniRef90.fasta [required]
   -f|--fasta           [FILE]   : fasta file of query proteins [required]
-  -p|--path            [STRING] : path to dir/ containing tax files
+  -p|--path            [STRING] : path to dir/ containing tax files [required]
   -t|--taxid_threshold [INT]    : NCBI taxid to recurse up to; i.e., threshold taxid to define 'ingroup' [default = 33208 (Metazoa)]
   -g|--groups          [FILE]   : groups file, e.g. OrthologousGroups.txt from OrthoFinder [TODO]
   -m|--mafft                    : run MAFFT alignment on each fasta file (default = no) [TODO]
@@ -63,7 +63,7 @@ GetOptions (
 );
 
 die $usage if $help;
-die $usage unless ($in && $uniref90 && $fasta && $path && $candidates);
+die $usage unless ($in && $candidates && $uniref90 && $fasta && $path);
 die "Options $groups, $mafft and $raxml are not implemented yet!\n\n" if ($groups || $mafft || $raxml);
 
 ############################################## PARSE NODES
@@ -145,13 +145,15 @@ while (<$DIAMOND>) {
       my $phylum = tax_walk_to_get_rank_to_phylum($F[12]);
       $new_hit_name = join ("|", $F[1], "IN", $phylum);
       $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
-      push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
+      #push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
+      $hits_hash{$F[0]}{$F[1]} = 1; ## key= query name; value= { hash of UniRef90 hit ids }; use hash to eliminate repeated hit names
       next;
     } elsif ( tax_walk($F[12]) eq "outgroup" ) {
       my $phylum = tax_walk_to_get_rank_to_phylum($F[12]);
       $new_hit_name = join ("|", $F[1], "OUT", $phylum);
       $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
-      push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
+      #push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
+      $hits_hash{$F[0]}{$F[1]} = 1; ## key= query name; value= { hash of UniRef90 hit ids }
       next;
     }
   }
@@ -171,7 +173,7 @@ while (<$CANDIDATES>) {
   my @F = split (/\s+/, $_);
 
   ## make query string for blastdbcmd
-  my $blastdbcmd_query_string = join (",", @{ $hits_hash{$F[0]} });
+  my $blastdbcmd_query_string = join (",", keys %{ $hits_hash{$F[0]} });
 
   ## make filename based on query name:
   (my $file_name = $F[0]) =~ s/\|/\_/;
