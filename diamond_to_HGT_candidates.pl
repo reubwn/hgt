@@ -421,9 +421,7 @@ sub tax_walk {
     my $taxid = $_[0];
     my $walk_to;
     if (exists $_[1]) {
-      #if ($_[1] =~ m/\d+/) {
-        $walk_to = $_[1];
-      #}
+      $walk_to = $_[1];
     } else {
       $walk_to = $taxid_threshold; ## default is metazoa
     }

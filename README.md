@@ -5,19 +5,14 @@ scripts for the analysis of HGT in genome sequence data
 
 ### Synopsis
 
-This script calculates two measures of "support" for identifying putative HGT candidate genes.
+This script calculates two measures of "support" for identifying putative HGT candidate genes:
+1. **Alien Index:** AI is a measure of how well a given sequence matches to one set of taxa (eg. Metazoa) relative to another, mutually exclusive set of taxa (eg. non-Metazoa). It uses only the best-hit to each category to calculate this: ```log((Best E-value for INGROUP) + 1e-200) - log((Best E-value for OUTGROUP) + 1e-200)```. See [Gladyshev et al. (2008) Science 320:1210 Suppl Mat](http://science.sciencemag.org/content/suppl/2008/05/29/320.5880.1210.DC1/Gladyshev.SOM.pdf) for more details.
+2. **Hit Support Index:** The second measure uses information from all hits, as opposed to just the top 2 as above. Each query is designated *ingroup* (eg. Metazoa) versus *outgroup* (eg. non-Metazoa) based on the sum of bitscores across all hits; the category with the highest bitscore wins. Each individual hit is also designated *ingroup* or *outgroup*, based on its taxonomy. To be classified as a putative HGT candidate, a given protein must (a) be designated as *outgroup* and (b) have support for this designation from a given proportion of the rest of the hits (default is set to >=90%). See [Koutsovoulos et al. (2016) PNAS 113:5053](http://www.pnas.org/content/113/18/5053.abstract) for more details.
 
-1. **Alien Index:** AI is a measure of how well a given sequence matches to one set of taxa (eg. Metazoa) relative to another, mutually exclusive set of taxa (eg. non-Metazoa). It uses only the best-hit to each category to calculate this: ```log((Best E-value for INGROUP) + 1e-200) - log((Best E-value for OUTGROUP) + 1e-200)```. See [Gladyshev et al., 2008](http://science.sciencemag.org/content/suppl/2008/05/29/320.5880.1210.DC1/Gladyshev.SOM.pdf) for more details.
-2. 
+### Prerequisites
 
-### Details
-
-Goal is to take a taxified Diamond or BLAST file, and for each hit recurse up the tax tree until that hit can be categorised into **INGROUP** versus **OUTGROUP** (e.g., Metazoan vs non-Metazoan etc.).
-
-1. **Get Query Category:** For each query, calculate the bitscoresum for ingroup vs outgroup across **all hits**; the category with the highest bitscoresum is the \"winner\"
-2. **Get Support:** Assess support for the winning query taxid from secondary hits; winning taxid is well-supported if the rest of the hits agree with the INGROUP/OUTGROUP categorisation above --support_threshold (default = 90%)
-3. **Calculate AI:** Also calculate Alien Index based on best e-values to INGROUP vs OUTGROUP
-4. **Print:** General results printed to HGT_results, candidate HGT genes printed to HGT_candidates (candidates printed if evidence of HGT from _either_ bitscoresum _or_ AI)
+There's a bit of setup required before the script can be run:
+1.
 
 ### Options
 
