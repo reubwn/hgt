@@ -51,8 +51,9 @@ EXAMPLES:
 
 \n";
 
-my ($in,$nodesfile,$path,$namesfile,$mergedfile,$nodesDBfile,$gff,$taxid_skip,$prefix,$outfile,$hgtcandidatesfile,$warningsfile,$header,$verbose,$debug,$help);
+my ($in,$nodesfile,$path,$namesfile,$mergedfile,$nodesDBfile,$gff,$prefix,$outfile,$hgtcandidatesfile,$warningsfile,$header,$verbose,$debug,$help);
 my $taxid_threshold = 33208;
+my $taxid_skip = 0; ## default is 0, which is not a valid NCBI taxid and should not affect the tree recursion
 my $support_threshold = 90;
 my $scoring = "sum";
 my $alien_threshold = 45;
@@ -179,7 +180,11 @@ print STDERR " done\n";
 print STDERR "[INFO] Nodes parsed: ".scalar(keys %nodes_hash)."\n";
 print STDERR "[INFO] Threshold taxid set to '$taxid_threshold' ($names_hash{$taxid_threshold})\n";
 print STDERR "[INFO] INGROUP set to '$names_hash{$taxid_threshold}'; OUTGROUP is therefore 'non-$names_hash{$taxid_threshold}'\n";
-print STDERR "[INFO] Skipping any hits to taxid '$taxid_skip' ($names_hash{$taxid_skip})\n";
+if ($taxid_skip) {
+  print STDERR "[INFO] Skipping any hits to taxid '$taxid_skip' ($names_hash{$taxid_skip})\n";
+} else {
+  print STDERR "[WARN] Taxid to skip (-k) is not set! Suggest setting -k to the taxid of the phylum your organism comes from.\n";
+}
 print STDERR "[INFO] Scoring method set to '$scoring'\n";
 
 ############################################ OUTFILES
