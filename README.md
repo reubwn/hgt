@@ -3,6 +3,15 @@ scripts for the analysis of HGT in genome sequence data
 
 ## diamond_to_HGT_candidates.pl
 
+### Synopsis
+
+This script calculates two measures of "support" for identifying putative HGT candidate genes.
+
+1. **Alien Index:** AI is a measure of how well a given sequence matches to one set of taxa (eg. Metazoa) relative to another, mutually exclusive set of taxa (eg. non-Metazoa). It uses only the best-hit to each category to calculate this: ```log((Best E-value for INGROUP) + 1e-200) - log((Best E-value for OUTGROUP) + 1e-200)```. See [Gladyshev et al., 2008](http://science.sciencemag.org/content/suppl/2008/05/29/320.5880.1210.DC1/Gladyshev.SOM.pdf) for more details.
+2. 
+
+### Details
+
 Goal is to take a taxified Diamond or BLAST file, and for each hit recurse up the tax tree until that hit can be categorised into **INGROUP** versus **OUTGROUP** (e.g., Metazoan vs non-Metazoan etc.).
 
 1. **Get Query Category:** For each query, calculate the bitscoresum for ingroup vs outgroup across **all hits**; the category with the highest bitscoresum is the \"winner\"
@@ -10,7 +19,7 @@ Goal is to take a taxified Diamond or BLAST file, and for each hit recurse up th
 3. **Calculate AI:** Also calculate Alien Index based on best e-values to INGROUP vs OUTGROUP
 4. **Print:** General results printed to HGT_results, candidate HGT genes printed to HGT_candidates (candidates printed if evidence of HGT from _either_ bitscoresum _or_ AI)
 
-**Alien Index** is ```log((Best E-value for INGROUP) + 1e-200) - log((Best E-value for OUTGROUP) + 1e-200)``` (see [Gladyshev et al., 2008](http://science.sciencemag.org/content/suppl/2008/05/29/320.5880.1210.DC1/Gladyshev.SOM.pdf))
+### Options
 
 Type ```diamond_to_HGT_candidates.pl -h``` to see help and options.
 
