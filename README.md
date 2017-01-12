@@ -14,7 +14,40 @@ This script calculates two measures of "support" for identifying putative HGT ca
 
 There's a bit of setup required before the script can be run:
 
-1. ... 
+1. **Download NCBI Taxonomy:** These scripts rely on the NCBI taxonomy databases to assign taxonomic info to proteins. In particular the files "nodes.dmp" and "names.dmp" are required, while "merged.dmp" is recommended. Download them like:
+
+   ```
+   >> wget ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz
+   >> tar xzvf taxdump.tar.gz
+   >> export TAXPATH=/path/to/taxdump/
+   ```
+
+   It's also possible to use the "nodesDB.txt" file from the excellent [Blobtools](https://blobtools.readme.io/docs/what-is-blobtools) software.
+
+2. **Taxify your BLAST/Diamond file:** Diamond is great for speed, but adding the taxid information to each hit requires an additional step. See [this Gist](https://gist.github.com/sujaikumar/9ad04e62449a2d7025b17144de67038b) by Sujai Kumar on how to set this up for the UniRef90 database.
+
+   A typical Diamond script might then look like:
+
+   ```
+   ## run diamond
+   >> diamond blastp \
+   --sensitive \
+   --index-chunks 1 \
+   -e 1e-5 \
+   -p 100 \
+   -q $QUERY \
+   -d $DB \
+   -a $PREFIX
+
+   ## taxify
+   >> diamond view -a ${PREFIX}.daa \
+   | perl -lne '
+   BEGIN{open UT, "</path/to/uniref90.taxlist" or die $!; while (<UT>) { $ut{$1}=$2 if /^(\S+)\t(\S+)$/ } }
+   {print "$_\t$ut{$1}" if /^\S+\t(\S+)/ and exists $ut{$1}}' \
+   > ${PREFIX}.daa.taxid
+   ```
+
+   The taxified file has the usual 12 columns but with an additional 13th column containing the taxid of the hit protein.
 
 ### Options
 
