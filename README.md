@@ -151,6 +151,7 @@ One fasta file per HGT candidate gene; each file is named after the focal specie
 2. Construct phylogenies using RAxML (run from dir of alignments):
 
    ```
+   >> cd ../mafft_alns/
    >> mkdir processed
    >> mkdir ../raxml_trees
    >> for file in *mafft; do
@@ -161,3 +162,9 @@ One fasta file per HGT candidate gene; each file is named after the focal specie
         mv RAxML* ../raxml_trees/;
       done
    ```
+
+   If it fails or you run out of cluster time you can just restart from within the mafft_alns dir, as the processed alignments should have been moved to processed/
+
+## Coming soon!
+
+Scripts to analyse these sets of trees, to assess phylogenetic support for HGT, are in the pipeline.
