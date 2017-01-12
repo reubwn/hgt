@@ -90,3 +90,74 @@ To exclude hits to organisms that are closely related to your focal organism, us
 ```
 >> diamond_to_HGT_candidates.pl -i diamond_results.daa.taxid -p $TAXPATH -k 6231
 ```
+
+### Outputs
+
+The program outputs 3 files, suffixed with the tags:
+
+1. **HGT_results:** AI and HSI scores for all query proteins.
+2. **HGT_candidates:** All queries which show evidence from *either* AI *or* HSI above the specifed thresholds (defaults are >45 for AI, >90% for HSI). Can be further parsed to get the intersection of these two lists.
+3. **HGT_warnings:** Any non-fatal warnings detected during the run. Worth checking, but most warnings can probably safely be ignored.
+
+## HGT_candidates_to_fasta.pl
+
+### Synopsis
+
+This script takes the results from the "HGT_candidates" output file, generated using ```diamond_to_HGT_candidates.pl```, and outputs a fasta file containing the sequence data for each HGT candidate + its hits from UniRef90, each of which has been annotated with *ingroup* or *outgroup* and some taxonomy information up to Phylum level. These fasta files can then be aligned, and phylogenies constructed from these alignments.
+
+### Prerequisites
+
+1. The real utility of the script is that it uses ```blastdbcmd``` from the BLAST suite for ultra-quick sequence retrieval. This requires you generate a BLAST database of the UniRef90 fasta sequences **with the -parse_seqids option specifed**, otherwise it can't retrieve the sequence data itself using the fasta header:
+
+   ```
+   >> makeblastdb -in uniref90.fasta -dbtype prot -parse_seqids
+   ```
+
+   Also requires that ```blastdbcmd``` is in your ```$PATH```.
+
+
+### Options
+
+Type ```HGT_candidates_to_fasta.pl -h``` to see the options (note some are not implemented yet...):
+
+```
+OPTIONS:
+  -i|--in              [FILE]   : taxified diamond/BLAST results file [required]
+  -c|--candidates      [FILE]   : *.HGT_candidates.txt file [required]
+  -u|--uniref90        [FILE]   : diamond/BLAST database fasta file, e.g. UniRef90.fasta [required]
+  -f|--fasta           [FILE]   : fasta file of query proteins [required]
+  -p|--path            [STRING] : path to dir/ containing tax files [required]
+  -t|--taxid_threshold [INT]    : NCBI taxid to recurse up to; i.e., threshold taxid to define 'ingroup' [default = 33208 (Metazoa)]
+  -g|--groups          [FILE]   : groups file, e.g. OrthologousGroups.txt from OrthoFinder [TODO]
+  -m|--mafft                    : run MAFFT alignment on each fasta file (default = no) [TODO]
+  -x|--raxml                    : run RAxML phylogenetic reconstruction on each MAFFT alignment file [default = no] [TODO]
+  -v|--verbose                  : say more things [default: be quiet]
+  -h|--help                     : prints this help message
+```
+
+### Outputs
+
+One fasta file per HGT candidate gene; each file is named after the focal species query gene name.
+
+### Downstream analyses
+
+1. Align fasta files using MAFFT (run from within dir of HGT candidate fasta files):
+
+   ```
+   >> mkdir ../mafft_alns
+   >> for f in *.fasta; do echo $f; mafft --auto --quiet --thread 8 $f > ../mafft_alns/${f}.mafft; done
+   ```
+
+2. Construct phylogenies using RAxML (run from dir of alignments):
+
+   ```
+   >> mkdir processed
+   >> mkdir ../raxml_trees
+   >> for file in *mafft; do
+        echo $file;
+        raxmlHPC-PTHREADS-AVX -f a -p 12345 -x 12345 -# 100 -m PROTGAMMAAUTO -T 16 -s ${file} -n ${file};
+        raxmlHPC-PTHREADS-AVX -f b -t RAxML_bestTree.${file} -z RAxML_bootstrap.${file} -m PROTGAMMAAUTO -n RAxML_bestTree.${file};
+        mv $file processed_files/;
+        mv RAxML* ../raxml_trees/;
+      done
+   ```
