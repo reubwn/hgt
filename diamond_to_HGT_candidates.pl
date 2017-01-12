@@ -420,8 +420,10 @@ sub check_taxid_has_parent {
 sub tax_walk {
     my $taxid = $_[0];
     my $walk_to;
-    if ($_[1] =~ m/\d+/) { ## must be an INT to be a valid NCBI taxid
-      $walk_to = $_[1];
+    if (exists $_[1]) {
+      #if ($_[1] =~ m/\d+/) {
+        $walk_to = $_[1];
+      #}
     } else {
       $walk_to = $taxid_threshold; ## default is metazoa
     }
