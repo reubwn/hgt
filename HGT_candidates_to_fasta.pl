@@ -142,19 +142,29 @@ while (<$DIAMOND>) {
       ## taxid is unassigned
       next;
     } elsif ( tax_walk($F[12]) eq "ingroup" ) {
-      my $phylum = tax_walk_to_get_rank_to_phylum($F[12]);
-      $new_hit_name = join ("|", $F[1], "IN", $phylum);
-      $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
-      #push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
-      $hits_hash{$F[0]}{$F[1]} = 1; ## key= query name; value= { hash of UniRef90 hit ids }; use hash to eliminate repeated hit names
-      next;
+      ## add up to 15 INGROUP sequences (avoids uneccessarily large and uninformative alignments)
+      if (scalar(keys %{ $hits_hash{$F[0]} }) > 15) {
+        next;
+      } else {
+        my $phylum = tax_walk_to_get_rank_to_phylum($F[12]);
+        $new_hit_name = join ("|", $F[1], "IN", $phylum);
+        $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
+        #push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
+        $hits_hash{$F[0]}{$F[1]} = 1; ## key= query name; value= { hash of UniRef90 hit ids }; use hash to eliminate repeated hit names
+        next;
+      }
     } elsif ( tax_walk($F[12]) eq "outgroup" ) {
-      my $phylum = tax_walk_to_get_rank_to_phylum($F[12]);
-      $new_hit_name = join ("|", $F[1], "OUT", $phylum);
-      $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
-      #push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
-      $hits_hash{$F[0]}{$F[1]} = 1; ## key= query name; value= { hash of UniRef90 hit ids }
-      next;
+      ## add up to 15 OUTGROUP sequences
+      if (scalar(keys %{ $hits_hash{$F[0]} }) > 15) {
+        next;
+      } else {
+        my $phylum = tax_walk_to_get_rank_to_phylum($F[12]);
+        $new_hit_name = join ("|", $F[1], "OUT", $phylum);
+        $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
+        #push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
+        $hits_hash{$F[0]}{$F[1]} = 1; ## key= query name; value= { hash of UniRef90 hit ids }
+        next;
+      }
     }
   }
 }
