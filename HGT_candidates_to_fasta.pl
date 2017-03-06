@@ -149,6 +149,7 @@ while (<$DIAMOND>) {
       next;
     } elsif ( tax_walk($F[12]) eq "ingroup" ) {
       ## add up to 15 INGROUP sequences (avoids uneccessarily large and uninformative alignments)
+      $hits_limit{$F[0]}{"in_limit"}++; ## increment in_limit up to max set by $limit
       if ( $hits_limit{$F[0]}{"in_limit"} > $limit ) {
         next;
       } else {
@@ -157,11 +158,11 @@ while (<$DIAMOND>) {
         $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
         #push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
         $hits_hash{$F[0]}{$F[1]} = 1; ## key= query name; value= { hash of UniRef90 hit ids }; use hash to eliminate repeated hit names
-        $hits_limit{$F[0]}{"in_limit"}++; ## increment in_limit up to max set by $limit
         next;
       }
     } elsif ( tax_walk($F[12]) eq "outgroup" ) {
       ## add up to 15 OUTGROUP sequences
+      $hits_limit{$F[0]}{"out_limit"}++; ## increment out_limit up to max set by $limit
       if ( $hits_limit{$F[0]}{"out_limit"} > $limit ) {
         next;
       } else {
@@ -170,7 +171,6 @@ while (<$DIAMOND>) {
         $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
         #push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
         $hits_hash{$F[0]}{$F[1]} = 1; ## key= query name; value= { hash of UniRef90 hit ids }
-        $hits_limit{$F[0]}{"out_limit"}++; ## increment out_limit up to max set by $limit
         next;
       }
     }
