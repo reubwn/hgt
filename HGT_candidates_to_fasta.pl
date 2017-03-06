@@ -27,6 +27,8 @@ PREREQUISITES:
 2. MAFFT and RAxML need to be downloaded, installed and discoverable in your \$PATH if specified here.
 
 OUTPUTS:
+A bunch of fasta files, one per HGT candidate.
+Default behaviour is to fetch up to 15 ingroup and 15 outgroup sequences, if available, to avoid uneccessarily large and uninformative alignments (set by --limit)
 
 OPTIONS:
   -i|--in              [FILE]   : taxified diamond/BLAST results file [required]
@@ -35,6 +37,7 @@ OPTIONS:
   -f|--fasta           [FILE]   : fasta file of query proteins [required]
   -p|--path            [STRING] : path to dir/ containing tax files [required]
   -t|--taxid_threshold [INT]    : NCBI taxid to recurse up to; i.e., threshold taxid to define 'ingroup' [default = 33208 (Metazoa)]
+  -l|--limit                    : maximum number of ingroup / outgroup sequences to fetch (if available) [default = 15]
   -g|--groups          [FILE]   : groups file, e.g. OrthologousGroups.txt from OrthoFinder [TODO]
   -m|--mafft                    : run MAFFT alignment on each fasta file (default = no) [TODO]
   -x|--raxml                    : run RAxML phylogenetic reconstruction on each MAFFT alignment file [default = no] [TODO]
@@ -47,6 +50,7 @@ EXAMPLES:
 
 my ($in,$candidates,$uniref90,$fasta,$path,$groups,$mafft,$raxml,$prefix,$verbose,$help);
 my $taxid_threshold = 33208;
+my $limit = 15;
 
 GetOptions (
   'in|i=s'        => \$in,
@@ -55,6 +59,7 @@ GetOptions (
   'fasta|f=s'     => \$fasta,
   'path|p=s'      => \$path,
   'taxid_threshold|t:i' => \$taxid_threshold,
+  'limit|l:i'     => \$limit,
   'groups|g:s'    => \$groups,
   'mafft|m'       => \$mafft,
   'raxml|x'       => \$raxml,
@@ -120,6 +125,7 @@ print STDERR "[INFO] Read ".commify((scalar(keys %seq_hash)))." sequences\n";
 ############################################## GET HGT CANDIDATE HITS
 
 my (%hits_name_map, %hits_hash);
+my %hits_limit = ( "in_limit" => 0, "out_limit" => 0 );
 
 ## get HGT candidates
 chomp ( my @keys = `cut -f1 $candidates` );
@@ -143,7 +149,7 @@ while (<$DIAMOND>) {
       next;
     } elsif ( tax_walk($F[12]) eq "ingroup" ) {
       ## add up to 15 INGROUP sequences (avoids uneccessarily large and uninformative alignments)
-      if (scalar(keys %{ $hits_hash{$F[0]} }) > 15) {
+      if ( $hits_limit{$F[0]}{"in_limit"} > $limit ) {
         next;
       } else {
         my $phylum = tax_walk_to_get_rank_to_phylum($F[12]);
@@ -151,11 +157,12 @@ while (<$DIAMOND>) {
         $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
         #push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
         $hits_hash{$F[0]}{$F[1]} = 1; ## key= query name; value= { hash of UniRef90 hit ids }; use hash to eliminate repeated hit names
+        $hits_limit{$F[0]}{"in_limit"}++; ## increment in_limit up to max set by $limit
         next;
       }
     } elsif ( tax_walk($F[12]) eq "outgroup" ) {
       ## add up to 15 OUTGROUP sequences
-      if (scalar(keys %{ $hits_hash{$F[0]} }) > 15) {
+      if ( $hits_limit{$F[0]}{"out_limit"} > $limit ) {
         next;
       } else {
         my $phylum = tax_walk_to_get_rank_to_phylum($F[12]);
@@ -163,6 +170,7 @@ while (<$DIAMOND>) {
         $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
         #push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
         $hits_hash{$F[0]}{$F[1]} = 1; ## key= query name; value= { hash of UniRef90 hit ids }
+        $hits_limit{$F[0]}{"out_limit"}++; ## increment out_limit up to max set by $limit
         next;
       }
     }
