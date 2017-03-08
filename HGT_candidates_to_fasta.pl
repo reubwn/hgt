@@ -37,6 +37,7 @@ OPTIONS:
   -f|--fasta           [FILE]   : fasta file of query proteins [required]
   -p|--path            [STRING] : path to dir/ containing tax files [required]
   -t|--taxid_threshold [INT]    : NCBI taxid to recurse up to; i.e., threshold taxid to define 'ingroup' [default = 33208 (Metazoa)]
+  -k|--taxid_skip      [INT]    : NCBI taxid to skip; hits to this taxid will not be considered in any calculations of support
   -l|--limit                    : maximum number of ingroup / outgroup sequences to fetch (if available) [default = 15]
   -g|--groups          [FILE]   : groups file, e.g. OrthologousGroups.txt from OrthoFinder [TODO]
   -m|--mafft                    : run MAFFT alignment on each fasta file (default = no) [TODO]
@@ -50,21 +51,23 @@ EXAMPLES:
 
 my ($in,$candidates,$uniref90,$fasta,$path,$groups,$mafft,$raxml,$prefix,$verbose,$help);
 my $taxid_threshold = 33208;
+my $taxid_skip = 0; ## default is 0, which is not a valid NCBI taxid and should not affect the tree recursion
 my $limit = 15;
 
 GetOptions (
-  'in|i=s'        => \$in,
-  'cadidates|c=s' => \$candidates,
-  'uniref90|u=s'  => \$uniref90,
-  'fasta|f=s'     => \$fasta,
-  'path|p=s'      => \$path,
+  'in|i=s'              => \$in,
+  'cadidates|c=s'       => \$candidates,
+  'uniref90|u=s'        => \$uniref90,
+  'fasta|f=s'           => \$fasta,
+  'path|p=s'            => \$path,
   'taxid_threshold|t:i' => \$taxid_threshold,
-  'limit|l:i'     => \$limit,
-  'groups|g:s'    => \$groups,
-  'mafft|m'       => \$mafft,
-  'raxml|x'       => \$raxml,
-  'verbose|v'     => \$verbose,
-  'help|h'        => \$help,
+  'taxid_skip|k:i'      => \$taxid_skip,
+  'limit|l:i'           => \$limit,
+  'groups|g:s'          => \$groups,
+  'mafft|m'             => \$mafft,
+  'raxml|x'             => \$raxml,
+  'verbose|v'           => \$verbose,
+  'help|h'              => \$help,
 );
 
 die $usage if $help;
@@ -131,6 +134,11 @@ my %hits_limit = ( "in_limit" => 0, "out_limit" => 0 );
 chomp ( my @keys = `cut -f1 $candidates` );
 my %hgt_candidates = map { $_ => 1 } @keys;
 print "[INFO] Number of HGT candidates: ".commify((scalar(keys %hgt_candidates)))."\n";
+if ($taxid_skip) {
+  print "[INFO] Skipping any hits to taxid '$taxid_skip' ($names_hash{$taxid_skip})\n";
+} else {
+  print "[WARN] Taxid to skip (-k) is not set! Suggest setting -k to the taxid of the phylum your organism comes from.\n";
+}
 open (my $DIAMOND, $in) or die "Cannot open file '$in': $!\n";
 while (<$DIAMOND>) {
   my @F = split (/\s+/, $_);
@@ -146,6 +154,9 @@ while (<$DIAMOND>) {
       next;
     } elsif ( tax_walk($F[12]) eq "unassigned" ) {
       ## taxid is unassigned
+      next;
+    } elsif ( tax_walk($F[12], $taxid_skip) eq "ingroup" ) {
+      ## skip entries to close relatives as this may "confuse" the assignment of query+outgroup monophyly tests downstream
       next;
     } elsif ( tax_walk($F[12]) eq "ingroup" ) {
       ## add up to 15 INGROUP sequences (avoids uneccessarily large and uninformative alignments)
@@ -197,16 +208,17 @@ while (<$CANDIDATES>) {
   (my $file_name = $F[0]) =~ s/\|/\_/;
   open (my $FA, ">", "$file_name.fasta") or die $!;
   open (my $CMD, "blastdbcmd -db $uniref90 -dbtype prot -outfmt \%f -entry $blastdbcmd_query_string |") or die $!;
-  print $FA "\>$F[0]\n$seq_hash{$F[0]}\n";
+  ## print hits from UniRef90
   while (<$CMD>) {
     if ($_ =~ /^>/) {
       $_ =~ s/\>//;
       $_ =~ s/\s+//g;
-      #print STDERR "$_-->$hits_name_map{$_}\n";
       print $FA "\>$hits_name_map{$_}\n";
     } else {
       print $FA $_;
     }
+    ## print query sequence LAST!
+    print $FA "\>$F[0]\n$seq_hash{$F[0]}\n";
   }
   close $CMD;
   close $FA;
