@@ -217,9 +217,9 @@ while (<$CANDIDATES>) {
     } else {
       print $FA $_;
     }
-    ## print query sequence LAST!
-    print $FA "\>$F[0]\n$seq_hash{$F[0]}\n";
   }
+  ## print query sequence LAST!
+  print $FA "\>$F[0]\n$seq_hash{$F[0]}\n";
   close $CMD;
   close $FA;
 
