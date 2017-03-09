@@ -165,6 +165,14 @@ One fasta file per HGT candidate gene; each file is named after the focal specie
 
    If it fails or you run out of cluster time you can just restart from within the mafft_alns dir, as the processed alignments should have been moved to processed/
 
-## Coming soon!
+## analyse_trees.R
 
-Scripts to analyse these sets of trees, to assess phylogenetic support for HGT, are in the pipeline.
+Rscript to assess topological support for HGT candidates. For each tree, tests for monophyly with non-metazoan Eukayotes, Fungi, Plants, Bacteria and Archaea. Requires the {ape} R package.
+
+### Inputs
+
+Path to dir of (newick) trees.
+
+### Outputs
+
+Counts for monophyletic support for query with numerous groups; PDF of trees colour-coded by ingroup / outgroup categorisation.
