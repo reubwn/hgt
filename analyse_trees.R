@@ -26,18 +26,15 @@ opt = parse_args(opt_parser);
 suppressPackageStartupMessages(library(ape))
 suppressPackageStartupMessages(library(naturalsort))
 
+cat(date(),"--","analyse_trees.R\n")
+
 ################################################################################
 ## get trees #
 ##############
 
-#if (exists(opt$trees)) {
-#  tree.files <- read.trees(opt$trees)
-#} else {
 tree.files<-dir(path = opt$path, pattern = opt$pattern)
 tree.files<-naturalsort(tree.files)
-#}
-#tree.files <- dir(path = "~/Google_Drive/Bdelloid/results/hgt/test/", pattern = "treefile$")
-#opt$query<-"ARIC"
+
 results.colnames<-c("filename","ntax.tot","ntax.in","ntax.out","only.in","only.out","both","in.mono","out.mono","in.q.mono","in.q.mono.sup","out.q.mono","out.q.mono.sup","euk.mono","euk.q.mono","euk.metazoa.q.mono","euk.fungi.q.mono","euk.plants.q.mono","euk.other.q.mono","bacteria.mono","bacteria.q.mono","archaea.mono","archaea.q.mono")
 results<-data.frame(matrix(0,ncol=length(results.colnames),nrow=length(tree.files)),stringsAsFactors = F)
 colnames(results)<-results.colnames
@@ -46,10 +43,10 @@ colnames(results)<-results.colnames
 pdf(file=opt$pdf,width=15,height=15)
 
 for (i in (1:length(tree.files))) {
-  cat("Treefile:", i, "\r")
+  #cat("Treefile:", i, "\r")
   
   ## read tree
-  tr <- read.tree(tree.files[i])
+  tr <- read.tree(paste(opt$path,"/",tree.files[i],sep=""))
   results$filename[i]<-tree.files[i]
   results$ntax.tot[i]<-length(tr$tip.label)
   
@@ -165,24 +162,34 @@ for (i in (1:length(tree.files))) {
     results$archaea.q.mono[i]<-is.monophyletic(tr,c(taxa.query,grep("Archaea",tr$tip.label)),reroot=T)
   }
 }
-dev.off()
+invisible(dev.off())
 
 ## column totals / means where appropriate
+cat("Program run from:",getwd(),"\n")
+cat("Analysing trees in: ",opt$path,opt$pattern,"\n",sep="")
+cat("Query defined by pattern match:",opt$query,"\n\n")
 cat("Number of trees analysed:",length(tree.files),"\n")
-cat("Mean number taxa per tree:",mean(results$ntax.tot),"\n")
-cat("Mean number ingroup taxa per tree:",mean(results$ntax.in),"\n")
-cat("Mean number outgroup taxa per tree:",mean(results$ntax.out),"\n")
-cat("Number of trees with only ingroup taxa present:",sum(results$only.in),"\n")
-cat("Number of trees with only outgroup taxa present:",sum(results$only.out),"\n")
-cat("Number of trees with both ingroup and outgroup taxa present:",sum(results$both),"\n")
-cat("Number of trees where QUERY is monophyletic with INGROUP:",sum(results$in.q.mono),"\n")
-cat("Number of trees where QUERY is monophyletic with OUTGROUP:",sum(results$out.q.mono),"\n")
-cat("Average bootstrap support for monophyly of Q with INGROUP:",mean(as.numeric(results$in.q.mono.sup),na.rm=T),"\n")
-cat("Average bootstrap support for monophyly of Q with OUTGROUP:",mean(as.numeric(results$out.q.mono.sup),na.rm=T),"\n")
-cat("Number of trees where QUERY is monophyletic with METAZOA:",sum(results$euk.metazoa.q.mono),"\n")
-cat("Number of trees where QUERY is monophyletic with FUNGI:",sum(results$euk.fungi.q.mono),"\n")
-cat("Number of trees where QUERY is monophyletic with PLANTS:",sum(results$euk.plants.q.mono),"\n")
-cat("Number of trees where QUERY is monophyletic with OTHER EUKARYOTES:",sum(results$euk.other.q.mono),"\n")
-cat("Number of trees where QUERY is monophyletic with BACTERIA:",sum(results$bacteria.q.mono),"\n")
-cat("Number of trees where QUERY is monophyletic with ARCHAEA:",sum(results$archaea.q.mono),"\n\n")
+cat("Mean number per tree:\n")
+cat("  total taxa:",mean(results$ntax.tot),"\n")
+cat("  ingroup taxa:",mean(results$ntax.in),"\n")
+cat("  outgroup taxa::",mean(results$ntax.out),"\n\n")
+cat("Number of trees with:\n")
+cat("  only ingroup:",sum(results$only.in),"\n")
+cat("  only outgroup:",sum(results$only.out),"\n")
+cat("  both:",sum(results$both),"\n\n")
+cat("Number of trees where QUERY is monophyletic with:\n")
+cat("  INGROUP:",sum(results$in.q.mono),"\n")
+cat("  OUTGROUP:",sum(results$out.q.mono),"\n")
+cat("Average bootstrap support for monophyly of Q with:\n")
+cat("  INGROUP:",mean(as.numeric(results$in.q.mono.sup),na.rm=T),"\n")
+cat("  OUTGROUP:",mean(as.numeric(results$out.q.mono.sup),na.rm=T),"\n\n")
+cat("Number of trees where QUERY is monophyletic with:\n")
+cat("  METAZOA:",sum(results$euk.metazoa.q.mono),"\n")
+cat("  FUNGI:",sum(results$euk.fungi.q.mono),"\n")
+cat("  PLANTS:",sum(results$euk.plants.q.mono),"\n")
+cat("  OTHER EUKARYOTES:",sum(results$euk.other.q.mono),"\n")
+cat("  BACTERIA:",sum(results$bacteria.q.mono),"\n")
+cat("  ARCHAEA:",sum(results$archaea.q.mono),"\n\n")
+
+## write tab-delim results
 write.table(results, file=opt$out, quote=F, sep="\t", row.names=F)
