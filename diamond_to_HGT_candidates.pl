@@ -16,10 +16,12 @@ SYNOPSIS:
 
   1. Get Query Category: For each query, calculate the bitscoresum for ingroup vs outgroup across **all hits**; the category with the highest bitscoresum is the \"winner\"
   2. Get Support: Assess support for the winning query taxid from secondary hits; winning taxid is well-supported if the rest of the hits agree with the INGROUP/OUTGROUP categorisation above --support_threshold (default = 90%)
-  3. Calculate AI: Also calculate Alien Index based on best e-values to INGROUP vs OUTGROUP
+  3. Calculate HGT Index (hU): Also calculate hU based on best bitscores to INGROUP vs OUTGROUP
   4. Print: General results printed to HGT_results, candidate HGT genes printed to HGT_candidates (candidates printed if evidence of HGT from _either_ bitscoresum _or_ AI)
 
-    Alien Index = log((Best E-value for Metazoa) + 1e-200) - log((Best E-value for NonMetazoa) + 1e-200) (see Gladyshev et al., http://science.sciencemag.org/content/suppl/2008/05/29/320.5880.1210.DC1/Gladyshev.SOM.pdf)
+    HGT Index (hU) = (Highest bitscore for Metazoa) - (Highest bitscore for non-Metazoa)
+    Alien Index (AI) = log((Best E-value for Metazoa) + 1e-200) - log((Best E-value for Non-Metazoa) + 1e-200)
+    Consesus Hit Support (CHS) = Proportion of all hits that agree with hU classification
 
 OUTPUTS:
   A \"\*.HGT_results.txt\" file with the support values for each query; a \"\*.HGT_candidates.txt\" file with queries
@@ -35,9 +37,10 @@ OPTIONS:
   -g|--gff               [FILE]   : path to augustus-formatted GFF file [TODO]
   -t|--taxid_threshold   [INT]    : NCBI taxid to recurse up to; i.e., threshold taxid to define 'ingroup' [default = 33208 (Metazoa)]
   -k|--taxid_skip        [INT]    : NCBI taxid to skip; hits to this taxid will not be considered in any calculations of support
+  -s|--support_threshold [FLOAT]  : Secondary Hits Support threshold for considering HGT candidates [default >= 90\%]
+  -l|--hU_threshold      [INT]    : HGT Index threshold for considering HGT candidates (default >= 30) (also controls AI threshold if AI specified)
   -r|--scoring           [STRING] : scoring strategy for calculating bestsum bitscore: 'sum' or 'individual' [default = 'sum']
-  -s|--support_threshold [FLOAT]  : Secondary Hits Support threshold for considering HGT candidates [default = 90\%]
-  -l|--alien_threshold   [INT]    : Alien Index threshold for considering HGT candidates (default >= 45)
+  -A|--useai                      : use AI instead of hU [default = use hU]
   -e|--evalue_column     [INT]    : define evalue column for --in (first column = 1) [default: 11]
   -b|--bitscore_column   [INT]    : define bitscore column for --in (first column = 1) [default: 12]
   -c|--taxid_column      [INT]    : define taxid column for --in (first column = 1) [default: 13]
@@ -51,39 +54,40 @@ EXAMPLES:
 
 \n";
 
-my ($in,$nodesfile,$path,$namesfile,$mergedfile,$nodesDBfile,$gff,$prefix,$outfile,$hgtcandidatesfile,$warningsfile,$header,$verbose,$debug,$help);
+my ($in,$nodesfile,$path,$namesfile,$mergedfile,$nodesDBfile,$gff,$prefix,$outfile,$hgtcandidatesfile,$warningsfile,$header,$useai,$verbose,$debug,$help);
 my $taxid_threshold = 33208;
 my $taxid_skip = 0; ## default is 0, which is not a valid NCBI taxid and should not affect the tree recursion
 my $support_threshold = 90;
+my $hU_threshold = 30;
 my $scoring = "sum";
-my $alien_threshold = 45;
 my $evalue_column = 11;
 my $bitscore_column = 12;
 my $taxid_column = 13;
 my $delimiter = "diamond";
 
 GetOptions (
-  'in|i=s'              => \$in,
-  'path|p:s'            => \$path,
-  'nodes|o:s'           => \$nodesfile,
-  'names|a:s'           => \$namesfile,
-  'merged|m:s'          => \$mergedfile,
-  'nodesDB|n:s'         => \$nodesDBfile,
-  'gff|g:s'             => \$gff,
-  'taxid_threshold|t:i' => \$taxid_threshold,
-  'taxid_skip|k:i'      => \$taxid_skip,
-  'scoring|r:s'         => \$scoring,
+  'in|i=s'                => \$in,
+  'path|p:s'              => \$path,
+  'nodes|o:s'             => \$nodesfile,
+  'names|a:s'             => \$namesfile,
+  'merged|m:s'            => \$mergedfile,
+  'nodesDB|n:s'           => \$nodesDBfile,
+  'gff|g:s'               => \$gff,
+  'taxid_threshold|t:i'   => \$taxid_threshold,
+  'taxid_skip|k:i'        => \$taxid_skip,
   'support_threshold|s:f' => \$support_threshold,
-  'alien_threshold|l:i' => \$alien_threshold,
-  'evalue_column|e:i'   => \$evalue_column,
-  'taxid_column|c:i'    => \$taxid_column,
-  'bitscore_column|b:i' => \$bitscore_column,
-  'delimiter|d:s'       => \$delimiter,
-  'prefix|x:s'          => \$prefix,
-  'header|H'            => \$header,
-  'verbose|v'           => \$verbose,
-  'debug'               => \$debug,
-  'help|h'              => \$help,
+  'hU_threshold|l:i'      => \$hU_threshold,
+  'scoring|r:s'           => \$scoring,
+  'useai|A'               => \$useai,
+  'evalue_column|e:i'     => \$evalue_column,
+  'taxid_column|c:i'      => \$taxid_column,
+  'bitscore_column|b:i'   => \$bitscore_column,
+  'delimiter|d:s'         => \$delimiter,
+  'prefix|x:s'            => \$prefix,
+  'header|H'              => \$header,
+  'verbose|v'             => \$verbose,
+  'debug'                 => \$debug,
+  'help|h'                => \$help,
 );
 
 die $usage if $help;
@@ -192,11 +196,11 @@ print STDERR "[INFO] Scoring method set to '$scoring'\n";
 ## define outfiles:
 if ($prefix) {
   $outfile = "$prefix.HGT_results.$names_hash{$taxid_threshold}.txt";
-  $hgtcandidatesfile = "$prefix.HGT_candidates.$names_hash{$taxid_threshold}.supp$support_threshold.AI$alien_threshold.txt";
+  $hgtcandidatesfile = "$prefix.HGT_candidates.$names_hash{$taxid_threshold}.supp$support_threshold.hU$hU_threshold.txt";
   $warningsfile = "$prefix.HGT_warnings.txt";
 } else {
   $outfile = "$in.HGT_results.$names_hash{$taxid_threshold}.txt";
-  $hgtcandidatesfile = "$in.HGT_candidates.$names_hash{$taxid_threshold}.supp$support_threshold.AI$alien_threshold.txt";
+  $hgtcandidatesfile = "$in.HGT_candidates.$names_hash{$taxid_threshold}.supp$support_threshold.hU$hU_threshold.txt";
   $warningsfile = "$in.HGT_warnings.txt";
 }
 
@@ -256,7 +260,7 @@ print Dumper \%evalues_per_query_hash if $debug;
 ############################################ MAIN
 
 ## get winning bitscore and taxid; calculate congruence among all taxids for all hits per query:
-my ($processed,$ingroup,$ingroup_supported,$outgroup,$outgroup_supported,$alien_index_supported,$unassigned) = (0,0,0,0,0,0,0);
+my ($processed,$ingroup,$ingroup_supported,$outgroup,$outgroup_supported,$hgt_index_supported,$alien_index_supported,$unassigned) = (0,0,0,0,0,0,0);
 my %hgt_supported;
 print STDERR "[INFO] Calculating bestsum bitscore and hit support...\n";
 print STDERR "\n" if $verbose;
@@ -367,8 +371,8 @@ foreach my $query (nsort keys %bitscores_per_query_hash) {
     }
   }
 
-  ## catch all queries with AI>=alien_threshold:
-  if ($alien_index >= $alien_threshold) {
+  ## catch all queries with hU>=hU_threshold:
+  if ($alien_index >= $hU_threshold) {
     print $HGT join "\t",
       $query,
       ($ingroup_bitscoresum > $outgroup_bitscoresum ? $ingroup_bitscoresum : $outgroup_bitscoresum),
@@ -401,7 +405,7 @@ print STDERR "\r[INFO] Processed ".commify($processed)." queries\n\n";
 print STDERR "[INFO] Number of queries in OUTGROUP category ('non-$names_hash{$taxid_threshold}'): ".commify($outgroup)."\n";
 print STDERR "[INFO] Number of queries in OUTGROUP category ('non-$names_hash{$taxid_threshold}') with support > $support_threshold\%: ".commify($outgroup_supported)."\n";
 print STDERR "[INFO] Number of queries in unassigned/unclassified category: ".commify($unassigned)."\n" if $unassigned > 0;
-print STDERR "[INFO] Number of queries with Alien Index >= $alien_threshold: ".commify($alien_index_supported)."\n";
+print STDERR "[INFO] Number of queries with Alien Index >= $hU_threshold: ".commify($alien_index_supported)."\n";
 print STDERR "[INFO] Total number of queries with HGT support from *either* method: ".commify(scalar(keys %hgt_supported))."\n";
 print STDERR "[INFO] Total number of queries with HGT support from _both_ methods: ".commify(scalar(grep {$hgt_supported{$_} >= 2} keys %hgt_supported))."\n";
 print STDERR "[INFO] Finished.\n\n" unless $gff;
