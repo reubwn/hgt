@@ -212,7 +212,7 @@ while (<$CANDIDATES>) {
   while (<$CMD>) {
     if ($_ =~ /^>/) {
       $_ =~ s/\>//;
-      $_ =~ s/\s+//g;
+      $_ =~ s/\s+//g; ##Duncan Berger suggests edit to: "$_ =~ s/\s.*//g;", I guess in case there are other characters after the whitespace? Check.
       print $FA "\>$hits_name_map{$_}\n";
     } else {
       print $FA $_;
