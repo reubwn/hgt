@@ -40,15 +40,13 @@ OPTIONS
   -a|--names             [FILE]   : path to names.dmp
   -m|--merged            [FILE]   : path to merged.dmp
   -n|--nodesDB           [FILE]   : nodesDB.txt file from blobtools
-  -g|--gff               [FILE]   : path to augustus-formatted GFF file [TODO]
-  -t|--taxid_ingroup     [INT]    : NCBI taxid to define 'ingroup' [default = 33208 (Metazoa)]
+  -t|--taxid_ingroup     [INT]    : NCBI taxid to define 'ingroup' [default=33208 (Metazoa)]
   -k|--taxid_skip        [INT]    : NCBI taxid to skip; hits to this taxid will not be considered
-  -s|--support_threshold [FLOAT]  : Secondary Hits Support threshold for considering HGT candidates [default >= 90\%]
-  -l|--hU_threshold      [INT]    : hU threshold for HGT candidates (default>=30) (also controls AI threshold )
-  -@|--AI                         : use AI instead of hU [default = hU]
-  -e|--evalue_column     [INT]    : define evalue column for --in (first column = 1) [default=11]
-  -b|--bitscore_column   [INT]    : define bitscore column for --in (first column = 1) [default=12]
-  -c|--taxid_column      [INT]    : define taxid column for --in (first column = 1) [default=13]
+  -s|--support_threshold [FLOAT]  : Secondary Hits Support threshold for considering HGT candidates [default>=90\%]
+  -u|--hU_threshold      [INT]    : hU threshold for HGT candidates (default>=30)
+  -e|--evalue_column     [INT]    : define evalue column [default=11]
+  -b|--bitscore_column   [INT]    : define bitscore column [default=12]
+  -c|--taxid_column      [INT]    : define taxid column [default=13]
   -d|--delimiter         [STRING] : infile delimiter (diamond (\"\\s+\") or blast (\"\\t\")) [default=diamond]
   -x|--prefix            [FILE]   : filename prefix for outfile [default=INFILE]
   -v|--verbose                    : say more things
@@ -77,9 +75,9 @@ GetOptions (
   'taxid_threshold|t:i'   => \$taxid_threshold,
   'taxid_skip|k:i'        => \$taxid_skip,
   'support_threshold|s:f' => \$support_threshold,
-  'hU_threshold|l:i'      => \$hU_threshold,
+  'hU_threshold|u:i'      => \$hU_threshold,
 #  'scoring|r:s'           => \$scoring,
-  'AI|@'                  => \$useai, ##default is HGT index
+#  'AI|@'                  => \$useai, ##default is HGT index
   'evalue_column|e:i'     => \$evalue_column,
   'taxid_column|c:i'      => \$taxid_column,
   'bitscore_column|b:i'   => \$bitscore_column,
