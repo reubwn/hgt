@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 
 ## author: reubwn Nov 2016
+## added hU functionality May 2017
 
 use strict;
 use warnings;
@@ -34,23 +35,23 @@ OUTPUTS
   showing support over the specified thresholds.
 
 OPTIONS
-  -i|--in                [FILE]   : taxified diamond/BLAST results file [required]
-  -p|--path              [STRING] : path to dir/ containing tax files
-  -o|--nodes             [FILE]   : path to nodes.dmp
-  -a|--names             [FILE]   : path to names.dmp
-  -m|--merged            [FILE]   : path to merged.dmp
-  -n|--nodesDB           [FILE]   : nodesDB.txt file from blobtools
-  -t|--taxid_ingroup     [INT]    : NCBI taxid to define 'ingroup' [default=33208 (Metazoa)]
-  -k|--taxid_skip        [INT]    : NCBI taxid to skip; hits to this taxid will not be considered
-  -s|--support_threshold [FLOAT]  : Secondary Hits Support threshold for considering HGT candidates [default>=90\%]
-  -u|--hU_threshold      [INT]    : hU threshold for HGT candidates (default>=30)
-  -e|--evalue_column     [INT]    : define evalue column [default=11]
-  -b|--bitscore_column   [INT]    : define bitscore column [default=12]
-  -c|--taxid_column      [INT]    : define taxid column [default=13]
-  -d|--delimiter         [STRING] : infile delimiter (diamond (\"\\s+\") or blast (\"\\t\")) [default=diamond]
-  -x|--prefix            [FILE]   : filename prefix for outfile [default=INFILE]
-  -v|--verbose                    : say more things
-  -h|--help                       : this help message
+  -i|--in              [FILE]   : taxified diamond/BLAST results file [required]
+  -p|--path            [STRING] : path to dir/ containing tax files
+  -o|--nodes           [FILE]   : path to nodes.dmp
+  -a|--names           [FILE]   : path to names.dmp
+  -m|--merged          [FILE]   : path to merged.dmp
+  -n|--nodesDB         [FILE]   : nodesDB.txt file from blobtools
+  -t|--taxid_ingroup   [INT]    : NCBI taxid to define 'ingroup' [default=33208 (Metazoa)]
+  -k|--taxid_skip      [INT]    : NCBI taxid to skip; hits to this taxid will not be considered
+  -s|--CHS_threshold   [FLOAT]  : Consesus Hits Support threshold [default>=90\%]
+  -u|--hU_threshold    [INT]    : hU threshold (default>=30)
+  -e|--evalue_column   [INT]    : define evalue column [default=11]
+  -b|--bitscore_column [INT]    : define bitscore column [default=12]
+  -c|--taxid_column    [INT]    : define taxid column [default=13]
+  -d|--delimiter       [STRING] : infile delimiter (diamond (\"\\s+\") or blast (\"\\t\")) [default=diamond]
+  -x|--prefix          [FILE]   : filename prefix for outfile [default=INFILE]
+  -v|--verbose                  : say more things
+  -h|--help                     : this help message
 \n";
 
 my ($in,$nodesfile,$path,$namesfile,$mergedfile,$nodesDBfile,$gff,$prefix,$outfile,$hgtcandidatesfile,$warningsfile,$header,$useai,$verbose,$debug,$help);
@@ -259,9 +260,9 @@ while (<$DIAMOND>) {
 close $DIAMOND;
 print STDERR " done\n";
 print STDERR "[INFO] Total number of hits parsed: ".commify($total_entries)."\n";
-print STDERR "[WARN] There were $skipped_entries_because_bad_taxid (".percentage($skipped_entries_because_bad_taxid,$total_entries)."\%) invalid taxid entries\n" if $skipped_entries_because_bad_taxid > 0;
-print STDERR "[WARN] There were $skipped_entries_because_skipped_taxid (".percentage($skipped_entries_because_skipped_taxid,$total_entries)."\%) skipped taxid entries\n" if $skipped_entries_because_skipped_taxid > 0;
-print STDERR "[WARN] There were $skipped_entries_because_unassigned (".percentage($skipped_entries_because_unassigned,$total_entries)."\%) unassigned/unclassified taxid entries\n" if $skipped_entries_because_unassigned > 0;
+print STDERR "[WARN] There were ".commify($skipped_entries_because_bad_taxid)." (".percentage($skipped_entries_because_bad_taxid,$total_entries)."\%) invalid taxid entries\n" if $skipped_entries_because_bad_taxid > 0;
+print STDERR "[WARN] There were ".commify($skipped_entries_because_skipped_taxid)." (".percentage($skipped_entries_because_skipped_taxid,$total_entries)."\%) skipped taxid entries\n" if $skipped_entries_because_skipped_taxid > 0;
+print STDERR "[WARN] There were ".commify($skipped_entries_because_unassigned." (".percentage($skipped_entries_because_unassigned,$total_entries)."\%) unassigned/unclassified taxid entries\n" if $skipped_entries_because_unassigned > 0;
 
 ############################################ DEBUG
 
@@ -414,7 +415,8 @@ close $OUT;
 close $HGT;
 close $WARN;
 
-print STDERR "\r[INFO] Processed ".commify($processed)." queries\n\n";
+print STDERR "\r[INFO] Processed ".commify($processed)." queries\n";
+print STDERR "[****]\n";
 print STDERR "[INFO] TOTAL NUMBER OF HGT CANDIDATES: ".commify(scalar(keys(%hgt_candidates)))."\n";
 print STDERR "[INFO] Number of queries with HGT Index (hU) >= $hU_threshold: ".commify($hU_supported)."\n";
 print STDERR "[INFO] Number of queries with Alien Index (AI) >= $hU_threshold: ".commify($AI_supported)."\n";
@@ -422,6 +424,7 @@ print STDERR "[INFO] Number of queries in OUTGROUP category ('non-$names_hash{$t
 print STDERR "[INFO] Number of queries in OUTGROUP category ('non-$names_hash{$taxid_threshold}') with support >= $support_threshold\%: ".commify($outgroup_supported)."\n";
 print STDERR "[INFO] Number of queries in unassigned/unclassified category: ".commify($unassigned)."\n" if $unassigned > 0;
 print STDERR "[INFO] Finished on ".`date`."\n";
+print STDERR "[****]\n";
 
 ############################################ SUBS
 

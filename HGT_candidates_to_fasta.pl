@@ -13,22 +13,20 @@ use Data::Dumper qw(Dumper);
 #use File::Grep qw( fgrep fmap fdo );
 
 my $usage = "
-SYNOPSIS:
-This program takes the results from the 'diamond_to_HGT_candidates.pl' script and returns a fasta file for each HGT candidate gene, containing
-1. the focal HGT candidate protein and
-2. the 'taxified' hits from UniRef90 (or other db) to that protein
+SYNOPSIS
+  This program takes the results from the 'diamond_to_HGT_candidates.pl' script and returns a fasta file for each HGT candidate gene, containing
+    1. the focal HGT candidate protein and
+    2. the 'taxified' hits from UniRef90 (or other db) to that protein
 
-Taxified means that each protein is annotated as either ingroup or outgroup, based on the partition specified (default = 'Metazoan' vs 'non-Metazoan'), and taxonomic classification up to phylum level
+  Taxified means that each protein is annotated as either ingroup or outgroup, based on the partition specified (default = 'Metazoan' vs 'non-Metazoan'), and taxonomic classification up to phylum level
+  The resultant fasta files can then be aligned and used for phylogenetic reconstruction.
 
-The resultant fasta files can then be aligned and used for phylogenetic reconstruction.
+PREREQUISITES
+  The script utilises the rapid lookup of large fasta files by 'blastdbcmd'. This requires the '-parse_seqids' flag to be specified during the creation of the blastdb: 'makeblastdb -in uniref90.fasta -dbtype prot -parse_seqids'
 
-PREREQUISITES:
-1. The script utilises the rapid lookup of large fasta files by 'blastdbcmd'. This requires the '-parse_seqids' flag to be specified during the creation of the blastdb: 'makeblastdb -in uniref90.fasta -dbtype prot -parse_seqids'
-2. MAFFT and RAxML need to be downloaded, installed and discoverable in your \$PATH if specified here.
-
-OUTPUTS:
-A bunch of fasta files, one per HGT candidate.
-Default behaviour is to fetch up to 15 ingroup and 15 outgroup sequences, if available, to avoid uneccessarily large and uninformative alignments (set by --limit)
+OUTPUTS
+  A bunch of fasta files, one per HGT candidate.
+  Default behaviour is to fetch up to 15 ingroup and 15 outgroup sequences, if available, to avoid uneccessarily large and uninformative alignments (set by --limit)
 
 OPTIONS:
   -i|--in              [FILE]   : taxified diamond/BLAST results file [required]
@@ -39,14 +37,8 @@ OPTIONS:
   -t|--taxid_threshold [INT]    : NCBI taxid to recurse up to; i.e., threshold taxid to define 'ingroup' [default = 33208 (Metazoa)]
   -k|--taxid_skip      [INT]    : NCBI taxid to skip; hits to this taxid will not be considered in any calculations of support
   -l|--limit                    : maximum number of ingroup / outgroup sequences to fetch (if available) [default = 15]
-  -g|--groups          [FILE]   : groups file, e.g. OrthologousGroups.txt from OrthoFinder [TODO]
-  -m|--mafft                    : run MAFFT alignment on each fasta file (default = no) [TODO]
-  -x|--raxml                    : run RAxML phylogenetic reconstruction on each MAFFT alignment file [default = no] [TODO]
   -v|--verbose                  : say more things [default: be quiet]
   -h|--help                     : prints this help message
-
-EXAMPLES:
-
 \n";
 
 my ($in,$candidates,$uniref90,$fasta,$path,$groups,$mafft,$raxml,$prefix,$verbose,$help);
@@ -212,7 +204,7 @@ while (<$CANDIDATES>) {
   while (<$CMD>) {
     if ($_ =~ /^>/) {
       $_ =~ s/\>//;
-      $_ =~ s/\s+//g; ##Duncan Berger suggests edit to: "$_ =~ s/\s.*//g;", I guess in case there are other characters after the whitespace? Check.
+      $_ =~ s/\s.*//g; ## Duncan Berger suggests edit to: "$_ =~ s/\s.*//g;", I guess in case there are other characters after the whitespace? Check.
       print $FA "\>$hits_name_map{$_}\n";
     } else {
       print $FA $_;
