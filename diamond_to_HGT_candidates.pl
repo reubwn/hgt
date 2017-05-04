@@ -57,7 +57,7 @@ OPTIONS
 
 my ($in,$nodesfile,$path,$namesfile,$mergedfile,$nodesDBfile,$gff,$prefix,$outfile,$hgtcandidatesfile,$warningsfile,$header,$useai,$verbose,$debug,$help);
 my $taxid_threshold = 33208; ##metazoa
-my $taxid_skip = 0; ##default is 0, not a valid NCBI taxid and should not affect the tree recursion
+my $taxid_skip = 0; ##default is 0, not a valid NCBI taxid and should not affect the tree recursion NB Rotifera = 10190
 my $support_threshold = 90;
 my $hU_threshold = 30;
 my $scoring = "sum";
@@ -93,7 +93,6 @@ GetOptions (
 
 die $usage if $help;
 die $usage unless ($in);
-#die $usage unless (($nodesfile && $namesfile) || $nodesDBfile || $path);
 
 ## define delimiter:
 if ($delimiter eq "diamond") {
@@ -138,7 +137,6 @@ if ($path) {
     }
   }
 } elsif ($nodesfile && $namesfile) {
-  #select((select(STDERR), $|=1)[0]);
   print STDERR "[INFO] Building taxonomy databases from '$nodesfile' and '$namesfile'...";
   open(my $NODES, $nodesfile) or die $!;
   while (<$NODES>) {
@@ -190,18 +188,18 @@ if ($taxid_skip) {
 } else {
   print STDERR "[WARN] Taxid to skip (-k) is not set! Suggest setting -k to the taxid of the phylum your organism comes from.\n";
 }
-print STDERR "[INFO] Scoring method set to '$scoring'\n";
+#print STDERR "[INFO] Scoring method set to '$scoring'\n";
 
 ############################################ OUTFILES
 
 ## define outfiles:
 if ($prefix) {
   $outfile = "$prefix.HGT_results.$names_hash{$taxid_threshold}.txt";
-  $hgtcandidatesfile = "$prefix.HGT_candidates.$names_hash{$taxid_threshold}.supp$support_threshold.hU$hU_threshold.txt";
+  $hgtcandidatesfile = "$prefix.HGT_candidates.$names_hash{$taxid_threshold}.hU$hU_threshold.CHS$support_threshold.txt";
   $warningsfile = "$prefix.HGT_warnings.txt";
 } else {
   $outfile = "$in.HGT_results.$names_hash{$taxid_threshold}.txt";
-  $hgtcandidatesfile = "$in.HGT_candidates.$names_hash{$taxid_threshold}.supp$support_threshold.hU$hU_threshold.txt";
+  $hgtcandidatesfile = "$in.HGT_candidates.$names_hash{$taxid_threshold}.hU$hU_threshold.CHS$support_threshold.txt";
   $warningsfile = "$in.HGT_warnings.txt";
 }
 
@@ -210,8 +208,9 @@ open (my $OUT, ">",$outfile) or die $!;
 open (my $HGT, ">",$hgtcandidatesfile) or die $!;
 open (my $WARN, ">",$warningsfile) or die $!;
 my @header = (
-  "QUERY",
+  "#QUERY",
   "INGROUP",
+  "OUTGROUP",
   "hU",
   "BIT_OUT",
   "BIT_IN",
@@ -222,8 +221,8 @@ my @header = (
   "CHS",
   "TAXONOMY"
 );
-print $OUT join ("\t", "\#", @header, "\n"); #"\#query\tbestsum_bitscore\talt_bitscore\tingroup_taxname\tdecision\tsupport\tbest_ingroup_evalue\tbest_outgroup_evalue\talien_index\tbesthit_taxonomy\n" unless $header;
-print $HGT join ("\t", "\#", @header, "\n"); #"\#query\tbestsum_bitscore\talt_bitscore\tingroup_taxname\tdecision\tsupport\tbest_ingroup_evalue\tbest_outgroup_evalue\talien_index\tbesthit_taxonomy\n" unless $header;
+print $OUT join ("\t", @header, "\n"); #"\#query\tbestsum_bitscore\talt_bitscore\tingroup_taxname\tdecision\tsupport\tbest_ingroup_evalue\tbest_outgroup_evalue\talien_index\tbesthit_taxonomy\n" unless $header;
+print $HGT join ("\t", @header, "\n"); #"\#query\tbestsum_bitscore\talt_bitscore\tingroup_taxname\tdecision\tsupport\tbest_ingroup_evalue\tbest_outgroup_evalue\talien_index\tbesthit_taxonomy\n" unless $header;
 
 ############################################## PARSE DIAMOND
 
@@ -260,7 +259,7 @@ while (<$DIAMOND>) {
   }
 }
 close $DIAMOND;
-print STDERR " done\n\n";
+print STDERR " done\n";
 print STDERR "[INFO] Total number of hits parsed: ".commify($total_entries)."\n";
 print STDERR "[WARN] There were $skipped_entries_because_bad_taxid (".percentage($skipped_entries_because_bad_taxid,$total_entries)."\%) invalid taxid entries\n" if $skipped_entries_because_bad_taxid > 0;
 print STDERR "[WARN] There were $skipped_entries_because_skipped_taxid (".percentage($skipped_entries_because_skipped_taxid,$total_entries)."\%) skipped taxid entries\n" if $skipped_entries_because_skipped_taxid > 0;
@@ -274,9 +273,9 @@ print Dumper \%evalues_per_query_hash if $debug;
 ############################################ MAIN
 
 ## get winning bitscore and taxid; calculate congruence among all taxids for all hits per query:
-my ($processed,$ingroup,$ingroup_supported,$outgroup,$outgroup_supported,$hU_supported,$AI_supported,$unassigned) = (0,0,0,0,0,0,0);
+my ($processed,$ingroup,$ingroup_supported,$outgroup,$outgroup_supported,$hU_supported,$AI_supported,$unassigned) = (0,0,0,0,0,0,0,0);
 my %hgt_candidates;
-print STDERR "[INFO] Calculating bestsum bitscore and hit support...\n";
+print STDERR "[INFO] Calculating hU, AI and consensus hit support...\n";
 print STDERR "\n" if $verbose;
 foreach my $query (nsort keys %bitscores_per_query_hash) {
   my %bitscore_hash = %{ $bitscores_per_query_hash{$query} }; ## key= taxid; value= \@array of all bitscores for that taxid
@@ -351,6 +350,7 @@ foreach my $query (nsort keys %bitscores_per_query_hash) {
       "\t",
       $query, ##QUERY
       $names_hash{$taxid_threshold}, ##INGROUP
+      "non-$names_hash{$taxid_threshold}", ##OUTGROUP
       $hU, ##hU
       $outgroup_best_bitscore, ##BIT_OUT
       $ingroup_best_bitscore, ##BIT_IN
@@ -365,12 +365,6 @@ foreach my $query (nsort keys %bitscores_per_query_hash) {
 
   } elsif ($scoring eq "individual") {
     die "[ERROR] Sorry, individual scoring not supported, please change to 'sum'\n";
-    # $taxid_with_highest_bitscore = List::Util::reduce { $bitscoresum_hash{$b} > $bitscoresum_hash{$a} ? $b : $a } keys %bitscoresum_hash; ## winning taxid
-    # $taxid_with_highest_bitscore_category = tax_walk($taxid_with_highest_bitscore); ## category of winning taxid ("ingroup", "outgroup" or "unassigned")
-    # $taxid_with_highest_bitscore_category_support = $support_categories{$taxid_with_highest_bitscore_category}; ## % support from other hits
-    # print STDERR "[INFO] [$query] Taxid with highest bitscore: $taxid_with_highest_bitscore (bitscore = $bitscoresum_hash{$taxid_with_highest_bitscore}; taxonomy = ".tax_walk_to_get_rank_to_phylum($taxid_with_highest_bitscore).")\n" if $verbose;
-    # print $OUT join "\t", $query, $taxid_with_highest_bitscore, $bitscoresum_hash{$taxid_with_highest_bitscore}, tax_walk_to_get_rank_to_phylum($taxid_with_highest_bitscore), $names_hash{$taxid_threshold}, $taxid_with_highest_bitscore_category, $taxid_with_highest_bitscore_category_support, $alien_index, "\n";
-
   }
 
   print STDERR "[INFO] [$query] Decision of bestsum bitscore: '$taxid_with_highest_bitscore_category' (support = $taxid_with_highest_bitscore_category_support)\n" if $verbose;
@@ -396,6 +390,7 @@ foreach my $query (nsort keys %bitscores_per_query_hash) {
       "\t",
       $query, ##QUERY
       $names_hash{$taxid_threshold}, ##INGROUP
+      "non-$names_hash{$taxid_threshold}", ##OUTGROUP
       $hU, ##hU
       $outgroup_best_bitscore, ##BIT_OUT
       $ingroup_best_bitscore, ##BIT_IN
@@ -422,7 +417,7 @@ close $HGT;
 close $WARN;
 
 print STDERR "\r[INFO] Processed ".commify($processed)." queries\n\n";
-print STDERR "[INFO] TOTAL NUMBER OF HGT CANDIDATES: ".scalar(keys(%hgt_candidates))."\n";
+print STDERR "[INFO] TOTAL NUMBER OF HGT CANDIDATES: ".commify(scalar(keys(%hgt_candidates)))."\n";
 print STDERR "[INFO] Number of queries with HGT Index (hU) >= $hU_threshold: ".commify($hU_supported)."\n";
 print STDERR "[INFO] Number of queries with Alien Index (AI) >= $hU_threshold: ".commify($AI_supported)."\n";
 print STDERR "[INFO] Number of queries in OUTGROUP category ('non-$names_hash{$taxid_threshold}'): ".commify($outgroup)."\n";
