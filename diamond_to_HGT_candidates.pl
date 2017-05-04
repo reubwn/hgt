@@ -262,7 +262,7 @@ print STDERR " done\n";
 print STDERR "[INFO] Total number of hits parsed: ".commify($total_entries)."\n";
 print STDERR "[WARN] There were ".commify($skipped_entries_because_bad_taxid)." (".percentage($skipped_entries_because_bad_taxid,$total_entries)."\%) invalid taxid entries\n" if $skipped_entries_because_bad_taxid > 0;
 print STDERR "[WARN] There were ".commify($skipped_entries_because_skipped_taxid)." (".percentage($skipped_entries_because_skipped_taxid,$total_entries)."\%) skipped taxid entries\n" if $skipped_entries_because_skipped_taxid > 0;
-print STDERR "[WARN] There were ".commify($skipped_entries_because_unassigned." (".percentage($skipped_entries_because_unassigned,$total_entries)."\%) unassigned/unclassified taxid entries\n" if $skipped_entries_because_unassigned > 0;
+print STDERR "[WARN] There were ".commify($skipped_entries_because_unassigned)." (".percentage($skipped_entries_because_unassigned,$total_entries)."\%) unassigned/unclassified taxid entries\n" if $skipped_entries_because_unassigned > 0;
 
 ############################################ DEBUG
 
