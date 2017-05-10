@@ -416,7 +416,6 @@ close $HGT;
 close $WARN;
 
 print STDERR "\r[INFO] Processed ".commify($processed)." queries\n";
-print STDERR "[****]\n";
 print STDERR "[INFO] TOTAL NUMBER OF HGT CANDIDATES: ".commify(scalar(keys(%hgt_candidates)))."\n";
 print STDERR "[INFO] Number of queries with HGT Index (hU) >= $hU_threshold: ".commify($hU_supported)."\n";
 print STDERR "[INFO] Number of queries with Alien Index (AI) >= $hU_threshold: ".commify($AI_supported)."\n";
@@ -424,7 +423,6 @@ print STDERR "[INFO] Number of queries in OUTGROUP category ('non-$names_hash{$t
 print STDERR "[INFO] Number of queries in OUTGROUP category ('non-$names_hash{$taxid_threshold}') with support >= $support_threshold\%: ".commify($outgroup_supported)."\n";
 print STDERR "[INFO] Number of queries in unassigned/unclassified category: ".commify($unassigned)."\n" if $unassigned > 0;
 print STDERR "[INFO] Finished on ".`date`."\n";
-print STDERR "[****]\n";
 
 ############################################ SUBS
 

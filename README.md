@@ -28,28 +28,17 @@ This script analyses the output of Diamond/BLAST files and calculates 3 measures
 
    ```
    ## run diamond
-   >> diamond blastp \
-   --sensitive \
-   --index-chunks 1 \
-   -e 1e-5 \
-   -p 100 \
-   -q $QUERY \
-   -d $DB \
-   -a $PREFIX
+   >> diamond blastp --sensitive --index-chunks 1 -k 500 -e 1e-5 -p 100 -q $QUERY -d $DB -a ${QUERY}.vs.uniref90.k500.1e5
 
-   ## taxify
-   >> diamond view -a ${PREFIX}.daa \
-   | perl -lne '
-   BEGIN{open UT, "</path/to/uniref90.taxlist" or die $!; while (<UT>) { $ut{$1}=$2 if /^(\S+)\t(\S+)$/ } }
-   {print "$_\t$ut{$1}" if /^\S+\t(\S+)/ and exists $ut{$1}}' \
-   > ${PREFIX}.daa.taxid
+   ## taxify output
+   >> diamond view -a ${PREFIX}.daa | perl -lne 'BEGIN{open UT, "</path/to//uniref90.taxlist" or die $!; while (<UT>) { $ut{$1}=$2 if /^(\S+)\t(\S+)$/ } } {print "$_\t$ut{$1}" if /^\S+\t(\S+)/ and exists $ut{$1}}' > ${QUERY}.vs.uniref90.k500.1e5.daa.taxid;
    ```
 
    The taxified file has the usual 12 columns but with an additional 13th column containing the taxid of the hit protein.
 
 ### Options
 
-Type `diamond_to_HGT_candidates.pl -h` to see help and options.
+Type `-h` to see help and options.
 
 ```
   -i|--in              [FILE]   : taxified diamond/BLAST results file [required]
@@ -107,7 +96,7 @@ This script takes the results from the "HGT_candidates" output file and outputs 
 
 ### Options
 
-Type ```HGT_candidates_to_fasta.pl -h``` to see the options (note some are not implemented yet...):
+Type `-h` to see the options (note some are not implemented yet...):
 
 ```
 -i|--in              [FILE]   : taxified diamond/BLAST results file [required]
@@ -135,26 +124,51 @@ One fasta file per HGT candidate gene; each file is named after the focal specie
    >> for f in *.fasta; do echo $f; mafft --auto --quiet --thread 8 $f > ../mafft_alns/${f}.mafft; done
    ```
 
-2. Construct phylogenies using RAxML (run from dir of alignments):
+2. Construct phylogenies using, for example, iqtree or RAxML:
 
    ```
-   >> cd ../mafft_alns/
-   >> mkdir processed
-   >> mkdir ../raxml_trees
-   >> for file in *mafft; do
-        echo $file;
-        raxmlHPC-PTHREADS-AVX -f a -p 12345 -x 12345 -# 100 -m PROTGAMMAAUTO -T 16 -s ${file} -n ${file};
-        raxmlHPC-PTHREADS-AVX -f b -t RAxML_bestTree.${file} -z RAxML_bootstrap.${file} -m PROTGAMMAAUTO -n RAxML_bestTree.${file};
-        mv $file processed_files/;
-        mv RAxML* ../raxml_trees/;
-      done
-   ```
+   mkdir processed_files
+   COUNT=1;
 
-   If it fails or you run out of cluster time you can just restart from within the mafft_alns dir, as the processed alignments should have been moved to processed/
+   ## iqtree commands
+   for file in *mafft;
+      do echo $COUNT: $file;
+      iqtree-omp -s $file -st AA -nt 16 -quiet -bb 1000 -m TESTNEW -msub nuclear
+      mv $file processed_files/;
+      COUNT=$[COUNT+1];
+   done
+
+   mkdir iqtree treefiles
+   mv *treefile treefiles/
+   mv *bionj *gz *contree *iqtree *log *mldist *model *nex iqtree/
+   ```
 
 ## analyse_trees.R
 
 Rscript to assess topological support for HGT candidates. For each tree, tests for monophyly with non-metazoan Eukayotes, Fungi, Plants, Bacteria and Archaea. Requires the {ape} R package.
+
+Run with `-h` for options:
+```
+Usage: /home/reuben/software/tools/hgt/analyse_trees.R [options]
+
+Options:
+	-t CHARACTER, --trees=CHARACTER
+		File containing multiple trees, one per line, newick format [default=NULL]
+	-p CHARACTER, --path=CHARACTER
+		Path to tree files [default=./]
+	-a CHARACTER, --pattern=CHARACTER
+		Pattern match to glob proper treefiles in --path [default=*]
+	-q CHARACTER, --query=CHARACTER
+		Value used to identify query sequence [default=NULL]
+	-d CHARACTER, --delim=CHARACTER
+		Character to delimit IN and OUT in sequence names [default=_]
+	-o CHARACTER, --out=CHARACTER
+		Tab delim outfile [default=results.tab]
+	-f CHARACTER, --pdf=CHARACTER
+		PDF trees outfile [default=results.pdf]
+	-h, --help
+		Show this help message and exit
+```
 
 ### Inputs
 

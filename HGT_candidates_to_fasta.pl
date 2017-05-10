@@ -223,7 +223,7 @@ while (<$CANDIDATES>) {
   }
 }
 close $CANDIDATES;
-print STDERR "\n[INFO] Finished\n\n";
+print STDERR "[INFO] Finished on ".`date`."\n";
 
 ############################################# SUBS
 
