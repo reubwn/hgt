@@ -6,6 +6,7 @@ use strict;
 use warnings;
 
 use Getopt::Long;
+use Data::Dumper qw(Dumper);
 
 my $usage = "
 SYNOPSIS
@@ -67,11 +68,13 @@ print STDERR "[INFO] Number of queries: ".scalar(keys %hgt_results)."\n";
 open (my $GFF, $gfffile) or die "[ERROR] Cannot open $gfffile: $!\n";
 while (<$GFF>) {
   chomp;
+  next if /^\#/;
   my @F = split (/\s+/, $_);
   #next unless $F[2] =~ /mrna/i; ##only look at mRNAs...NOPE doesnt work for some files...
   ## in the GFF line, want to find the appropriate result from the %hgt_results hash...
   foreach my $query (keys %hgt_results) {
-    print "$F[0]\n" if index($F[8], $query) >= 0;
+    #print "$F[0]\n" if index($F[8], $query) >= 0;
+    $hgt_results{$query}{'scaffold'} = $F[0];
   }
   # if ($F[8] =~ (keys %hgt_results)) {
   #   print "$F[0]\n";
@@ -83,6 +86,8 @@ while (<$GFF>) {
 # LINE: while (<$RESULTS>) {
 #
 # }
+
+print Dumper \%hgt_results;
 
 
 print STDERR "[INFO] Finished on ".`date`."\n";
