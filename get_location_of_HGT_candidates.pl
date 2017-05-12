@@ -46,9 +46,9 @@ die $usage if $help;
 die $usage unless ($infile && $gfffile);
 
 my $n = 1;
-(my $gffsize = `wc -l $gfffile`) =~ s/\s.+//;
-print STDERR "[INFO] Size of GFF: $gffsize\n";
-my (%query_names,%hgt_results,%saffolds,%gff);
+(my $insize = `wc -l $infile`) =~ s/\s.+//;
+print STDERR "[INFO] Size of GFF: $insize\n";
+my (%query_names,%hgt_results,%scaffolds,%gff);
 
 ## parse HGT_results file:
 open (my $RESULTS, $infile) or die "[ERROR] Cannot open $infile: $!\n";
@@ -56,7 +56,7 @@ while (<$RESULTS>) {
   chomp;
   next if /^\#/;
   my @F = split (/\s+/, $_);
-  my @gffline = split(/\s+/, `grep -m1 -F $F[0] $gfffile`);
+  my @gffline = split(/\s+/, `grep -m 1 -F $F[0] $gfffile`);
   #print STDERR "@gffline\n";
   my $scaffold = $gffline[0];
   #print STDERR "Scaffold for $F[0]: $scaffold\n";
@@ -67,6 +67,7 @@ while (<$RESULTS>) {
     'taxonomy' => $F[11],
     'scaffold' => $scaffold
   };
+  print STDERR "\r[INFO] Working on query: $F[0]"; $|=1;
 }
 close $RESULTS;
 print STDERR "[INFO] Number of queries: ".scalar(keys %hgt_results)."\n";
