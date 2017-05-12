@@ -47,6 +47,7 @@ die $usage unless ($infile && $gfffile);
 
 my $n = 1;
 my $gffsize = `wc -l $gfffile`;
+print STDERR "[INFO] Size of GFF: $gffsize\n";
 my (%query_names,%hgt_results,%saffolds,%gff);
 
 ## parse HGT_results file:
