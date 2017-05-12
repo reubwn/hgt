@@ -87,22 +87,26 @@ print STDERR "[INFO] Number of queries: ".scalar(keys %hgt_results)."\n";
 print STDERR "[INFO] Sorting scaffolds...\n";
 
 # tie %hgt_results, 'Tie::Hash::Regex';
-# open (my $GFF, $gfffile) or die "[ERROR] Cannot open file $gfffile: $!\n";
-# while (<$GFF>) {
-#   if ($_ =~ //) {
-#
-#   }
-# }
-
-## iterate across all genes per each scaffold:
-foreach my $scaff (nsort keys %scaffolds) {
-  my @genes = @{ $scaffolds{$scaff} };
-  foreach my $gene (@genes) {
-    print "$scaff\t$gene\n";
+open (my $GFF, $gfffile) or die "[ERROR] Cannot open file $gfffile: $!\n";
+while my $line (<$GFF>) {
+  SEARCH: while (my ($k,$v) = each %hgt_results) {
+    if ($line =~ /$k/) {
+      print join ("\t", $hgt_results{$k}{'scaffold'}, $k, $hgt_results{$k}{'hU'}, $hgt_results{$k}{'AI'}, "\n");
+      last SEARCH;
+    }
   }
 }
+close $GFF;
 
-print Dumper \%scaffolds;
+## iterate across all genes per each scaffold:
+# foreach my $scaff (nsort keys %scaffolds) {
+#   my @genes = @{ $scaffolds{$scaff} };
+#   foreach my $gene (@genes) {
+#     print join ("\t", $scaff, $gene, $hgt_results{$gene}{'hU'}, $hgt_results{$gene}{'AI'}, $hgt_results{$gene}{'CHS'});
+#   }
+# }
+#
+# print Dumper \%scaffolds;
 
 print STDERR "[INFO] Finished on ".`date`."\n";
 
