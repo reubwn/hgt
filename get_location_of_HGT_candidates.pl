@@ -15,13 +15,12 @@ SYNOPSIS
   Takes a '*.HGT_results' file and a GFF and returns an '*.HGT_locations' file, specifying the location on each chromosome of HGT candidates.
 
 OPTIONS:
-  -i|--in      [FILE]   : taxified diamond/BLAST results file [required]
-  -r|--results [FILE]   : *.HGT_results.txt file [required]
-  -g|--gff     [FILE]   : GFF file [required]
-  -s|--CHS     [FLOAT]  : Consesus Hits Support threshold [default>=0.9]
-  -u|--hU      [INT]    : threshold for determining 'good' OUTGROUP (HGT) genes [default>=30]
-  -U|--not     [INT]    : threshold for determining 'good' INGROUP genes [default<=0]
-  -V|--heavy   [FLOAT]  : threshold for determining 'HGT heavy' scaffolds, with >= this proportion genes >= hU [default>=0.75]
+  -i|--in       [FILE]  : taxified diamond/BLAST results file [required]
+  -r|--results  [FILE]  : *.HGT_results.txt file [required]
+  -g|--gff      [FILE]  : GFF file [required]
+  -u|--good_out [INT]   : threshold for determining 'good' OUTGROUP (HGT) genes [default>=30]
+  -U|--good_in  [INT]   : threshold for determining 'good' INGROUP genes [default<=0]
+  -y|--heavy    [FLOAT] : threshold for determining 'HGT heavy' scaffolds, with >= this proportion genes >= hU [default>=0.75]
   -h|--help             : prints this help message
 
 OUTPUTS
@@ -29,18 +28,16 @@ OUTPUTS
 \n";
 
 my ($infile,$gfffile,$prefix,$help);
-my $CHS = 0.9;
-my $hU = 30;
-my $not = 0;
+my $good_out = 30;
+my $good_in = 0;
 my $heavy = 0.75;
 
 GetOptions (
   'in|i=s'      => \$infile,
   'gff|g=s'     => \$gfffile,
-  'CHS|s:f'     => \$CHS,
-  'hU|u:i'      => \$hU,
-  'not|U:i'     => \$not,
-  'heavy|V:f'   => \$heavy,
+  'good_out|u:i'      => \$good_out,
+  'good_in|U:i'     => \$good_in,
+  'heavy|y:f'   => \$heavy,
   'help|h'      => \$help,
 );
 
@@ -52,7 +49,11 @@ print STDERR "[INFO] GFF file: $gfffile\n";
 
 my $n = 1;
 (my $filesize = `wc -l $infile`) =~ s/\s.+\n//;
-my (%query_names,%hgt_results,%scaffolds,%gff);
+(my $locationsfile = $infile) =~ s/HGT_results.+/HGT_locations.txt/;
+(my $summaryfile = $infile) =~ s/HGT_results.+/HGT_locations.summary.txt/;
+(my $heavyfile = $infile) =~ s/HGT_results.+/HGT_locations.heavy.txt/;
+my (%query_names,%hgt_results,%scaffolds,%gff,%seen);
+
 
 ## parse HGT_results file:
 open (my $RESULTS, $infile) or die "[ERROR] Cannot open $infile: $!\n";
@@ -70,13 +71,13 @@ while (<$RESULTS>) {
     'scaffold' => $gffline[0], ##the scaffold will be the first element in @gffline, assuming a normal GFF
     'hU'       => $F[3],
     'AI'       => $F[6],
+    'bbsumcat' => $F[9],
     'CHS'      => $F[10],
     'taxonomy' => $F[11]
   };
 
   ## build scaffolds hash:
   push ( @{ $scaffolds{$gffline[0]} }, $F[0] ); ##key= scaffold; val= \@array of genes on that scaffold
-  #push ( @{ $scaffolds{$gffline[0]}{'coords'} }, $F[0] ); ##key= scaffold; val= \@array of genes on that scaffold
 
   $n++;
   last if percentage($n,$filesize) == 1;
@@ -84,21 +85,33 @@ while (<$RESULTS>) {
 close $RESULTS;
 print STDERR "\n";
 print STDERR "[INFO] Number of queries: ".scalar(keys %hgt_results)."\n";
-print STDERR "[INFO] Sorting scaffolds...\n";
+print STDERR "[INFO] Mapping results to GFF...\n";
 
-# tie %hgt_results, 'Tie::Hash::Regex';
+## iterate through GFF:
+open (my $LOC, ">$locationsfile") or die "[ERROR] Cannot open file $locationsfile: $!\n";
 open (my $GFF, $gfffile) or die "[ERROR] Cannot open file $gfffile: $!\n";
-my %seen;
 while (<$GFF>) {
   INNER: foreach my $gene (nsort keys %hgt_results) {
-    if ( index($_, $gene)>=0 ) {
-      print join ("\t", $hgt_results{$gene}{'scaffold'}, $gene, $hgt_results{$gene}{'hU'}, $hgt_results{$gene}{'AI'}, "\n") unless (exists($seen{$gene}));
-      $seen{$gene} = ();
-      last INNER;
+    ## iterate through genes (cant think of any faster way of doing this):
+    if ( index($_, $gene)>=0 ) { ##search for substring match
+      unless (exists($seen{$gene})) {
+        if ($hgt_results{$gene}{'hU'} >= $good_out) {
+          print $LOC join ("\t",$hgt_results{$gene}{'scaffold'},$gene,"GOOD_OUT",$hgt_results{$gene}{'hU'},$hgt_results{$gene}{'AI'},$hgt_results{$gene}{'CHS'},$hgt_results{$gene}{'taxonomy'},"\n");
+        } elsif ($hgt_results{$gene}{'hU'} <= $good_in) {
+          print $LOC join ("\t", $hgt_results{$gene}{'scaffold'},$gene,"GOOD_OUT",$hgt_results{$gene}{'hU'},"\n");
+        } else {
+          print $LOC join ("\t", $hgt_results{$gene}{'scaffold'},$gene,"INTERMEDIATE",$hgt_results{$gene}{'hU'},"\n");
+        }
+      }
+      $seen{$gene} = (); ##prevents printing again on another GFF line
+      last INNER; ##quit the foreach loop
+    } else {
+      die "[ERROR] Gene $gene could not be found in GFF $gfffile\n";
     }
   }
 }
 close $GFF;
+close $LOC;
 
 ## iterate across all genes per each scaffold:
 # foreach my $scaff (nsort keys %scaffolds) {
