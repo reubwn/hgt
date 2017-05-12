@@ -7,7 +7,7 @@ use warnings;
 
 use Getopt::Long;
 use Sort::Naturally;
-use Tie::Hash::Regex;
+#use Tie::Hash::Regex;
 use Data::Dumper qw(Dumper);
 
 my $usage = "
