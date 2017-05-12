@@ -46,7 +46,7 @@ die $usage if $help;
 die $usage unless ($infile && $gfffile);
 
 my $n = 1;
-chomp((my $insize = `wc -l $infile`) =~ s/\s.+//);
+(chomp(my $insize = `wc -l $infile`) =~ s/\s.+//);
 print STDERR "[INFO] Parsing file: $infile (~size: $insize)\n";
 my (%query_names,%hgt_results,%scaffolds,%gff);
 
