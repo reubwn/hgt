@@ -66,19 +66,20 @@ print STDERR "[INFO] Number of queries: ".scalar(keys %hgt_results)."\n";
 
 ## parse GFF file:
 open (my $GFF, $gfffile) or die "[ERROR] Cannot open $gfffile: $!\n";
-while (<$GFF>) {
+GFF: while (<$GFF>) {
   chomp;
   next if /^\#/;
   my @F = split (/\s+/, $_);
   #next unless $F[2] =~ /mrna/i; ##only look at mRNAs...NOPE doesnt work for some files...
   ## in the GFF line, want to find the appropriate result from the %hgt_results hash...
-  foreach my $query (keys %hgt_results) {
-    #print "$F[0]\n" if index($F[8], $query) >= 0;
-    $hgt_results{$query}{'scaffold'} = $F[0];
+  QUERY: foreach my $query (keys %hgt_results) {
+    if (index($F[8], $query) >= 0) {
+      $hgt_results{$query}{'scaffold'} = $F[0];
+      next QUERY;
+    } else {
+      next GFF:
+    }
   }
-  # if ($F[8] =~ (keys %hgt_results)) {
-  #   print "$F[0]\n";
-  # }
 }
 
 ## parse HGT_results file:
