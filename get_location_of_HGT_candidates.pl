@@ -6,6 +6,8 @@ use strict;
 use warnings;
 
 use Getopt::Long;
+use Sort::Naturally;
+use Tie::Hash::Regex;
 use Data::Dumper qw(Dumper);
 
 my $usage = "
@@ -36,7 +38,7 @@ GetOptions (
   'in|i=s'      => \$infile,
   'gff|g=s'     => \$gfffile,
   'CHS|s:f'     => \$CHS,
-  'hU|p:i'      => \$hU,
+  'hU|u:i'      => \$hU,
   'not|U:i'     => \$not,
   'heavy|V:f'   => \$heavy,
   'help|h'      => \$help,
@@ -64,7 +66,7 @@ while (<$RESULTS>) {
   die "[ERROR] No scaffold name found for query $F[0]\n" if (scalar(@gffline)==0);
 
   ## build HGT_results hash:
-  $hgt_results{$F[0]} = { ##HoH, key= query name as regex; val= {hu, ai, CHS, etc}
+  $hgt_results{$F[0]} = { ##key= query; val= HoH
     'scaffold' => $gffline[0], ##the scaffold will be the first element in @gffline, assuming a normal GFF
     'hU'       => $F[3],
     'AI'       => $F[6],
@@ -74,6 +76,7 @@ while (<$RESULTS>) {
 
   ## build scaffolds hash:
   push ( @{ $scaffolds{$gffline[0]} }, $F[0] ); ##key= scaffold; val= \@array of genes on that scaffold
+  #push ( @{ $scaffolds{$gffline[0]}{'coords'} }, $F[0] ); ##key= scaffold; val= \@array of genes on that scaffold
 
   $n++;
   last if percentage($n,$filesize) == 1;
@@ -81,35 +84,25 @@ while (<$RESULTS>) {
 close $RESULTS;
 print STDERR "\n";
 print STDERR "[INFO] Number of queries: ".scalar(keys %hgt_results)."\n";
+print STDERR "[INFO] Sorting scaffolds...\n";
 
-## parse GFF file:
-# open (my $GFF, $gfffile) or die "[ERROR] Cannot open $gfffile: $!\n";
-# GFF: while (<$GFF>) {
-#   chomp;
-#   next if /^\#/;
-#   print "\r[INFO] Complete: ".(($n/$gffsize)*100);
-#   my @F = split (/\s+/, $_);
-#   #next unless $F[2] =~ /mrna/i; ##only look at mRNAs...NOPE doesnt work for some files...
-#   ## in the GFF line, want to find the appropriate result from the %hgt_results hash...
-#   QUERY: foreach my $query (keys %hgt_results) {
-#     if (index($F[8], $query) >= 0) {
-#       $hgt_results{$query}{'scaffold'} = $F[0];
-#       next QUERY;
-#     } else {
-#       next GFF;
-#     }
-#   }
-#   $n++;
-# }
-
-## parse HGT_results file:
-# open (my $RESULTS, $resultsfile) or die "[ERROR] Cannot open $resultsfile: $!\n";
-# LINE: while (<$RESULTS>) {
+# tie %hgt_results, 'Tie::Hash::Regex';
+# open (my $GFF, $gfffile) or die "[ERROR] Cannot open file $gfffile: $!\n";
+# while (<$GFF>) {
+#   if ($_ =~ //) {
 #
+#   }
 # }
+
+## iterate across all genes per each scaffold:
+foreach my $scaff (nsort keys %scaffolds) {
+  my @genes = @{ $scaffolds{$scaff} };
+  foreach my $gene (@genes) {
+    print "$scaff\t$gene\n";
+  }
+}
 
 print Dumper \%scaffolds;
-
 
 print STDERR "[INFO] Finished on ".`date`."\n";
 
@@ -130,3 +123,5 @@ sub commify {
     $text =~ s/(\d\d\d)(?=\d)(?!\d*\.)/$1,/g;
     return scalar reverse $text;
 }
+
+__END__
