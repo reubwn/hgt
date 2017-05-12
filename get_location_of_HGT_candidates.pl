@@ -56,6 +56,10 @@ while (<$RESULTS>) {
   chomp;
   next if /^\#/;
   my @F = split (/\s+/, $_);
+  my @gffline = split(/\s+/, `grep -m1 -F $F[0] $gfffile`);
+  print STDERR "@gffline\n";
+  my $scaffold = $gffline[0];
+  print STDERR "Scaffold for $F[0]: $scaffold\n";
   $hgt_results{$F[0]} = { ##HoH, key= query name as regex; val= {hu, ai, CHS, etc}
     'hU'  => $F[3],
     'AI'  => $F[6],
@@ -67,24 +71,24 @@ close $RESULTS;
 print STDERR "[INFO] Number of queries: ".scalar(keys %hgt_results)."\n";
 
 ## parse GFF file:
-open (my $GFF, $gfffile) or die "[ERROR] Cannot open $gfffile: $!\n";
-GFF: while (<$GFF>) {
-  chomp;
-  next if /^\#/;
-  print "\r[INFO] Complete: ".(($n/$gffsize)*100);
-  my @F = split (/\s+/, $_);
-  #next unless $F[2] =~ /mrna/i; ##only look at mRNAs...NOPE doesnt work for some files...
-  ## in the GFF line, want to find the appropriate result from the %hgt_results hash...
-  QUERY: foreach my $query (keys %hgt_results) {
-    if (index($F[8], $query) >= 0) {
-      $hgt_results{$query}{'scaffold'} = $F[0];
-      next QUERY;
-    } else {
-      next GFF;
-    }
-  }
-  $n++;
-}
+# open (my $GFF, $gfffile) or die "[ERROR] Cannot open $gfffile: $!\n";
+# GFF: while (<$GFF>) {
+#   chomp;
+#   next if /^\#/;
+#   print "\r[INFO] Complete: ".(($n/$gffsize)*100);
+#   my @F = split (/\s+/, $_);
+#   #next unless $F[2] =~ /mrna/i; ##only look at mRNAs...NOPE doesnt work for some files...
+#   ## in the GFF line, want to find the appropriate result from the %hgt_results hash...
+#   QUERY: foreach my $query (keys %hgt_results) {
+#     if (index($F[8], $query) >= 0) {
+#       $hgt_results{$query}{'scaffold'} = $F[0];
+#       next QUERY;
+#     } else {
+#       next GFF;
+#     }
+#   }
+#   $n++;
+# }
 
 ## parse HGT_results file:
 # open (my $RESULTS, $resultsfile) or die "[ERROR] Cannot open $resultsfile: $!\n";
