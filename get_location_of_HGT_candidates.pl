@@ -5,6 +5,8 @@
 use strict;
 use warnings;
 
+use Getopt::Long;
+
 my $usage = "
 SYNOPSIS
   Takes a '*.HGT_results' file and a GFF and returns an '*.HGT_locations' file, specifying the location on each chromosome of HGT candidates.
