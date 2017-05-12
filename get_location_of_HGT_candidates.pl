@@ -67,7 +67,7 @@ while (<$RESULTS>) {
     'taxonomy' => $F[11],
     'scaffold' => $scaffold
   };
-  print STDERR "\r[INFO] Working on query: $F[0]"; $|=1;
+  print STDERR "\r[INFO] Working on query: $F[0] (".percentage($n,$insize)."\%)"; $|=1;
 }
 close $RESULTS;
 print STDERR "[INFO] Number of queries: ".scalar(keys %hgt_results)."\n";
@@ -102,3 +102,21 @@ print Dumper \%hgt_results;
 
 
 print STDERR "[INFO] Finished on ".`date`."\n";
+
+################################################################################
+
+sub percentage {
+    my $numerator = $_[0];
+    my $denominator = $_[1];
+    my $places = "\%.2f"; ## default is two decimal places
+    if (exists $_[2]){$places = "\%.".$_[2]."f";};
+    my $float = (($numerator / $denominator)*100);
+    my $rounded = sprintf("$places",$float);
+    return $rounded;
+}
+
+sub commify {
+    my $text = reverse $_[0];
+    $text =~ s/(\d\d\d)(?=\d)(?!\d*\.)/$1,/g;
+    return scalar reverse $text;
+}
