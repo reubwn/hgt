@@ -76,7 +76,7 @@ while (<$RESULTS>) {
   push ( @{ $scaffolds{$gffline[0]} }, $F[0] ); ##key= scaffold; val= \@array of genes on that scaffold
 
   $n++;
-  last if percentage($n,$insize) == 1;
+  last if percentage($n,$filesize) == 1;
 }
 close $RESULTS;
 print STDERR "\n";
