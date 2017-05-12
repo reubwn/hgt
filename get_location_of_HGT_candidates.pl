@@ -57,14 +57,15 @@ while (<$RESULTS>) {
   next if /^\#/;
   my @F = split (/\s+/, $_);
   my @gffline = split(/\s+/, `grep -m1 -F $F[0] $gfffile`);
-  print STDERR "@gffline\n";
+  #print STDERR "@gffline\n";
   my $scaffold = $gffline[0];
-  print STDERR "Scaffold for $F[0]: $scaffold\n";
+  #print STDERR "Scaffold for $F[0]: $scaffold\n";
   $hgt_results{$F[0]} = { ##HoH, key= query name as regex; val= {hu, ai, CHS, etc}
-    'hU'  => $F[3],
-    'AI'  => $F[6],
-    'CHS' => $F[10],
-    'TAX' => $F[11]
+    'hU'       => $F[3],
+    'AI'       => $F[6],
+    'CHS'      => $F[10],
+    'taxonomy' => $F[11],
+    'scaffold' => $scaffold
   };
 }
 close $RESULTS;
