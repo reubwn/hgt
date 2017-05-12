@@ -47,7 +47,7 @@ die $usage unless ($infile && $gfffile);
 
 my $n = 1;
 (my $insize = `wc -l $infile`) =~ s/\s.+//;
-print STDERR "[INFO] Size of GFF: $insize\n";
+print STDERR "[INFO] Parsing file: $infile (~size: $insize)\n";
 my (%query_names,%hgt_results,%scaffolds,%gff);
 
 ## parse HGT_results file:
@@ -56,9 +56,9 @@ while (<$RESULTS>) {
   chomp;
   next if /^\#/;
   my @F = split (/\s+/, $_);
+
   my @gffline = split(/\s+/, `grep -m 1 -F $F[0] $gfffile`); ##grep 1st line from GFF containing query name
-  print STDERR "[WARN] No scaffold name found for query $F[0]: something is wrong!\n" if (scalar(@gffline)==0);
-  #my $scaffold = $gffline[0]; ##the scaffold will be the first element in @gffline, assuming a normal GFF
+  die "[ERROR] No scaffold name found for query $F[0]\n" if (scalar(@gffline)==0);
 
   $hgt_results{$F[0]} = { ##HoH, key= query name as regex; val= {hu, ai, CHS, etc}
     'hU'       => $F[3],
@@ -69,7 +69,7 @@ while (<$RESULTS>) {
   };
   print STDERR "\r[INFO] Working on query \#$n: $F[0] (".percentage($n,$insize)."\%)"; $|=1;
   $n++;
-  last if percentage($n,$insize) == 10;
+  last if percentage($n,$insize) == 1;
 }
 close $RESULTS;
 print STDERR "[INFO] Number of queries: ".scalar(keys %hgt_results)."\n";
