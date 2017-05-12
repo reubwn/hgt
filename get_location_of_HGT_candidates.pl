@@ -46,7 +46,7 @@ die $usage if $help;
 die $usage unless ($infile && $gfffile);
 
 my $n = 1;
-(my $gffsize = `wc -l $gfffile`) =~ s/\D+//;
+(my $gffsize = `wc -l $gfffile`) =~ s/\s.+//;
 print STDERR "[INFO] Size of GFF: $gffsize\n";
 my (%query_names,%hgt_results,%saffolds,%gff);
 
