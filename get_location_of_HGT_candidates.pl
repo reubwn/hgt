@@ -67,9 +67,9 @@ open (my $GFF, $gfffile) or die "[ERROR] Cannot open $gfffile: $!\n";
 while (<$GFF>) {
   chomp;
   my @F = split (/\s+/, $_);
-  next unless $F[2] =~ /mrna/i; ##only look at mRNAs...NOPE doesnt work for some files...
+  #next unless $F[2] =~ /mrna/i; ##only look at mRNAs...NOPE doesnt work for some files...
   ## in the GFF line, want to find the appropriate result from the %hgt_results hash...
-  if ($F[8] =~ keys %hgt_results)) {
+  if ($F[8] =~ (keys %hgt_results)) {
     print "$F[0]\n";
   }
 }
