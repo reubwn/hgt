@@ -46,14 +46,18 @@ die $usage unless ($infile && $resultsfile && $gfffile);
 my $n = 1;
 my (%query_names,%hgt_results,%saffolds,%gff);
 
-## 1st parse HGT_results file to get query names:
+## parse HGT_results file:
 open (my $RESULTS, $resultsfile) or die "[ERROR] Cannot open $resultsfile: $!\n";
 while (<$RESULTS>) {
   chomp;
   next if /^\#/;
   my @F = split (/\s+/, $_);
-  $query_names{$F[0]} = ();
-  #$query_names{($F[0]=~s/.+\|//;)} = (); ##NB modification required!!! change as needed?
+  $hgt_results{qr/$F[0]/} = { ##HoH, key= query name as regex; val= {hu, ai, CHS, etc}
+    'hU'  => $F[3],
+    'AI'  => $F[6],
+    'CHS' => $F[10],
+    'TAX' => $F[11]
+  };
 }
 close $RESULTS;
 print STDERR "[INFO] Number of queries: ".scalar(keys %query_names)."\n";
@@ -63,16 +67,18 @@ open (my $GFF, $gfffile) or die "[ERROR] Cannot open $gfffile: $!\n";
 while (<$GFF>) {
   chomp;
   my @F = split (/\s+/, $_);
-  if ($F[8] =~ /ID\=(.+\|g\d+\.t\d+)[\.\;].+/)) {
-
+  next unless $F[2] =~ /mrna/i; ##only look at mRNAs...NOPE doesnt work for some files...
+  ## in the GFF line, want to find the appropriate result from the %hgt_results hash...
+  if ($F[8] =~ keys %hgt_results)) {
+    print "$F[0]\n";
   }
 }
 
 ## parse HGT_results file:
-open (my $RESULTS, $resultsfile) or die "[ERROR] Cannot open $resultsfile: $!\n";
-LINE: while (<$RESULTS>) {
-
-}
+# open (my $RESULTS, $resultsfile) or die "[ERROR] Cannot open $resultsfile: $!\n";
+# LINE: while (<$RESULTS>) {
+#
+# }
 
 
 print STDERR "[INFO] Finished on ".`date`."\n";
