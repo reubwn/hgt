@@ -53,7 +53,7 @@ while (<$RESULTS>) {
   chomp;
   next if /^\#/;
   my @F = split (/\s+/, $_);
-  $hgt_results{qr/$F[0]/} = { ##HoH, key= query name as regex; val= {hu, ai, CHS, etc}
+  $hgt_results{$F[0]} = { ##HoH, key= query name as regex; val= {hu, ai, CHS, etc}
     'hU'  => $F[3],
     'AI'  => $F[6],
     'CHS' => $F[10],
@@ -70,9 +70,12 @@ while (<$GFF>) {
   my @F = split (/\s+/, $_);
   #next unless $F[2] =~ /mrna/i; ##only look at mRNAs...NOPE doesnt work for some files...
   ## in the GFF line, want to find the appropriate result from the %hgt_results hash...
-  if ($F[8] =~ (keys %hgt_results)) {
-    print "$F[0]\n";
+  for (keys %hgt_results) {
+    print "$F[0]\n" if index($F[0], $_) >= 0;
   }
+  # if ($F[8] =~ (keys %hgt_results)) {
+  #   print "$F[0]\n";
+  # }
 }
 
 ## parse HGT_results file:
