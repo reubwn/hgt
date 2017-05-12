@@ -48,6 +48,8 @@ die $usage unless ($infile && $gfffile);
 print STDERR "[INFO] Infile: $infile\n";
 print STDERR "[INFO] GFF file: $gfffile\n";
 
+my $n = 1;
+(my $filesize = `wc -l $infile`) =~ s/\s.+\n//;
 my (%query_names,%hgt_results,%scaffolds,%gff);
 
 ## parse HGT_results file:
