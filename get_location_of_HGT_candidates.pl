@@ -77,7 +77,7 @@ GFF: while (<$GFF>) {
       $hgt_results{$query}{'scaffold'} = $F[0];
       next QUERY;
     } else {
-      next GFF:
+      next GFF;
     }
   }
 }
