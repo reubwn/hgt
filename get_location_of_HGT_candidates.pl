@@ -86,6 +86,7 @@ close $RESULTS;
 print STDERR "\n";
 print STDERR "[INFO] Number of queries: ".scalar(keys %hgt_results)."\n";
 print STDERR "[INFO] Mapping results to GFF...\n";
+$n=1;
 
 ## iterate through GFF:
 open (my $LOC, ">$locationsfile") or die "[ERROR] Cannot open file $locationsfile: $!\n";
@@ -102,6 +103,8 @@ while (<$GFF>) {
         } else {
           print $LOC join ("\t", $hgt_results{$gene}{'scaffold'},$gene,"INTERMEDIATE",$hgt_results{$gene}{'hU'},"\n");
         }
+        print STDERR "\r[INFO] Working on query \#$n: $gene"; $|=1;
+        $n++;
       }
       $seen{$gene} = (); ##prevents printing again on another GFF line
       last INNER; ##quit the foreach loop
