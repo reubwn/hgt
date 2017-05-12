@@ -45,9 +45,9 @@ GetOptions (
 die $usage if $help;
 die $usage unless ($infile && $gfffile);
 
-my $n = 1;
-(my $insize = `wc -l $infile`) =~ s/\s.+\n//;
-print STDERR "[INFO] Parsing file: $infile (~size: $insize)\n";
+print STDERR "[INFO] Infile: $infile\n";
+print STDERR "[INFO] GFF file: $gfffile\n";
+
 my (%query_names,%hgt_results,%scaffolds,%gff);
 
 ## parse HGT_results file:
@@ -56,22 +56,28 @@ while (<$RESULTS>) {
   chomp;
   next if /^\#/;
   my @F = split (/\s+/, $_);
+  print STDERR "\r[INFO] Working on query \#$n: $F[0] (".percentage($n,$insize)."\%)"; $|=1;
 
   my @gffline = split(/\s+/, `grep -m 1 -F $F[0] $gfffile`); ##grep 1st line from GFF containing query name
   die "[ERROR] No scaffold name found for query $F[0]\n" if (scalar(@gffline)==0);
 
+  ## build HGT_results hash:
   $hgt_results{$F[0]} = { ##HoH, key= query name as regex; val= {hu, ai, CHS, etc}
+    'scaffold' => $gffline[0], ##the scaffold will be the first element in @gffline, assuming a normal GFF
     'hU'       => $F[3],
     'AI'       => $F[6],
     'CHS'      => $F[10],
-    'taxonomy' => $F[11],
-    'scaffold' => $gffline[0] ##the scaffold will be the first element in @gffline, assuming a normal GFF
+    'taxonomy' => $F[11]
   };
-  print STDERR "\r[INFO] Working on query \#$n: $F[0] (".percentage($n,$insize)."\%)"; $|=1;
+
+  ## build scaffolds hash:
+  push ( @{ $scaffolds{$gffline[0]} }, $F[0] ); ##key= scaffold; val= \@array of genes on that scaffold
+
   $n++;
   last if percentage($n,$insize) == 1;
 }
 close $RESULTS;
+print STDERR "\n";
 print STDERR "[INFO] Number of queries: ".scalar(keys %hgt_results)."\n";
 
 ## parse GFF file:
@@ -100,7 +106,7 @@ print STDERR "[INFO] Number of queries: ".scalar(keys %hgt_results)."\n";
 #
 # }
 
-print Dumper \%hgt_results;
+print Dumper \%scaffolds;
 
 
 print STDERR "[INFO] Finished on ".`date`."\n";
