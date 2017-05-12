@@ -89,10 +89,10 @@ print STDERR "[INFO] Sorting scaffolds...\n";
 # tie %hgt_results, 'Tie::Hash::Regex';
 open (my $GFF, $gfffile) or die "[ERROR] Cannot open file $gfffile: $!\n";
 while (<$GFF>) {
-  foreach my $gene (nsort keys %hgt_results) {
+  INNER: foreach my $gene (nsort keys %hgt_results) {
     if ( index($_, $gene)>=0 ) {
       print join ("\t", $hgt_results{$gene}{'scaffold'}, $gene, $hgt_results{$gene}{'hU'}, $hgt_results{$gene}{'AI'}, "\n");
-      last;
+      last INNER;
     }
   }
 }
