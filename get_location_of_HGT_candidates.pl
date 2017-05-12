@@ -25,7 +25,7 @@ OUTPUTS
   A '*.HGT_locations' file and a map file, and a list of scaffolds with 'too many' HGT candidates encoded on them to be believable ('*.HGT_heavy').
 \n";
 
-my ($infile,$resultsfile,$gfffile,$prefix,$help);
+my ($infile,$gfffile,$prefix,$help);
 my $CHS = 0.9;
 my $hU = 30;
 my $not = 0;
@@ -33,7 +33,6 @@ my $heavy = 0.75;
 
 GetOptions (
   'in|i=s'      => \$infile,
-  'results|r=s' => \$resultsfile,
   'gff|g=s'     => \$gfffile,
   'CHS|s:f'     => \$CHS,
   'hU|p:i'      => \$hU,
@@ -43,13 +42,13 @@ GetOptions (
 );
 
 die $usage if $help;
-die $usage unless ($infile && $resultsfile && $gfffile);
+die $usage unless ($infile && $gfffile);
 
 my $n = 1;
 my (%query_names,%hgt_results,%saffolds,%gff);
 
 ## parse HGT_results file:
-open (my $RESULTS, $resultsfile) or die "[ERROR] Cannot open $resultsfile: $!\n";
+open (my $RESULTS, $infile) or die "[ERROR] Cannot open $infile: $!\n";
 while (<$RESULTS>) {
   chomp;
   next if /^\#/;
