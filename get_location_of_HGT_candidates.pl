@@ -67,7 +67,8 @@ while (<$RESULTS>) {
     'taxonomy' => $F[11],
     'scaffold' => $scaffold
   };
-  print STDERR "\r[INFO] Working on query: $F[0] (".percentage($n,$insize)."\%)"; $|=1;
+  print STDERR "\r[INFO] Working on query \#$n: $F[0] (".percentage($n,$insize)."\%)"; $|=1;
+  $n++;
 }
 close $RESULTS;
 print STDERR "[INFO] Number of queries: ".scalar(keys %hgt_results)."\n";
