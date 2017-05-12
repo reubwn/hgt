@@ -108,9 +108,7 @@ while (<$GFF>) {
       }
       $seen{$gene} = (); ##prevents printing again on another GFF line
       last INNER; ##quit the foreach loop
-    } else {
-      die "[ERROR] Gene $gene could not be found in GFF $gfffile\n";
-    }
+    } 
   }
 }
 close $GFF;
