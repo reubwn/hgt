@@ -61,7 +61,7 @@ while (<$RESULTS>) {
   };
 }
 close $RESULTS;
-print STDERR "[INFO] Number of queries: ".scalar(keys %query_names)."\n";
+print STDERR "[INFO] Number of queries: ".scalar(keys %hgt_results)."\n";
 
 ## parse GFF file:
 open (my $GFF, $gfffile) or die "[ERROR] Cannot open $gfffile: $!\n";
@@ -70,8 +70,8 @@ while (<$GFF>) {
   my @F = split (/\s+/, $_);
   #next unless $F[2] =~ /mrna/i; ##only look at mRNAs...NOPE doesnt work for some files...
   ## in the GFF line, want to find the appropriate result from the %hgt_results hash...
-  for (keys %hgt_results) {
-    print "$F[0]\n" if index($F[0], $_) >= 0;
+  foreach my $query (keys %hgt_results) {
+    print "$F[0]\n" if index($F[8], $query) >= 0;
   }
   # if ($F[8] =~ (keys %hgt_results)) {
   #   print "$F[0]\n";
