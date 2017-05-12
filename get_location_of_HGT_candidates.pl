@@ -46,6 +46,7 @@ die $usage if $help;
 die $usage unless ($infile && $gfffile);
 
 my $n = 1;
+my $gffsize = `wc -l $gfffile`;
 my (%query_names,%hgt_results,%saffolds,%gff);
 
 ## parse HGT_results file:
@@ -69,6 +70,7 @@ open (my $GFF, $gfffile) or die "[ERROR] Cannot open $gfffile: $!\n";
 GFF: while (<$GFF>) {
   chomp;
   next if /^\#/;
+  print "\r[INFO] Complete: ".(($n/$gffsize)*100);
   my @F = split (/\s+/, $_);
   #next unless $F[2] =~ /mrna/i; ##only look at mRNAs...NOPE doesnt work for some files...
   ## in the GFF line, want to find the appropriate result from the %hgt_results hash...
@@ -80,6 +82,7 @@ GFF: while (<$GFF>) {
       next GFF;
     }
   }
+  $n++;
 }
 
 ## parse HGT_results file:
