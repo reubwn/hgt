@@ -57,14 +57,15 @@ while (<$RESULTS>) {
   next if /^\#/;
   my @F = split (/\s+/, $_);
   my @gffline = split(/\s+/, `grep -m 1 -F $F[0] $gfffile`); ##grep 1st line from GFF containing query name
-  my $scaffold = $gffline[0]; ##the scaffold will be the first element in @gffline, assuming a normal GFF
-  print STDERR "[WARN] No scaffold name found for query $F[0]: something is wrong!\n" unless exists($scaffold);
+  print STDERR "[WARN] No scaffold name found for query $F[0]: something is wrong!\n" if (scalar(@gffline)==0);
+  #my $scaffold = $gffline[0]; ##the scaffold will be the first element in @gffline, assuming a normal GFF
+
   $hgt_results{$F[0]} = { ##HoH, key= query name as regex; val= {hu, ai, CHS, etc}
     'hU'       => $F[3],
     'AI'       => $F[6],
     'CHS'      => $F[10],
     'taxonomy' => $F[11],
-    'scaffold' => $scaffold
+    'scaffold' => $gffline[0] ##the scaffold will be the first element in @gffline, assuming a normal GFF
   };
   print STDERR "\r[INFO] Working on query \#$n: $F[0] (".percentage($n,$insize)."\%)"; $|=1;
   $n++;
