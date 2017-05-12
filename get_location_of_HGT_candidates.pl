@@ -58,7 +58,7 @@ while (<$RESULTS>) {
   chomp;
   next if /^\#/;
   my @F = split (/\s+/, $_);
-  print STDERR "\r[INFO] Working on query \#$n: $F[0] (".percentage($n,$insize)."\%)"; $|=1;
+  print STDERR "\r[INFO] Working on query \#$n: $F[0] (".percentage($n,$filesize)."\%)"; $|=1;
 
   my @gffline = split(/\s+/, `grep -m 1 -F $F[0] $gfffile`); ##grep 1st line from GFF containing query name
   die "[ERROR] No scaffold name found for query $F[0]\n" if (scalar(@gffline)==0);
