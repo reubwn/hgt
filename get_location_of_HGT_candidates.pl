@@ -70,9 +70,9 @@ while (my $gene = <$NA>) {
     $start = $F[3] if $F[3] < $start;
     $end = $F[4] if $F[4] > $end;
     my @bedline = ("\t", $F[0], $start, $end, $gene, "\n");
+    $bed{$F[0]} = \@bedline;
   }
   close $G;
-  $bed{$F[0]} = \@bedline;
 }
 close $NA;
 close $BED;
