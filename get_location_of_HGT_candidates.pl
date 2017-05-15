@@ -26,13 +26,14 @@ OUTPUTS
   A '*.HGT_locations' file and a map file, and a list of scaffolds with 'too many' HGT candidates encoded on them to be believable ('*.HGT_heavy').
 \n";
 
-my ($infile,$gfffile,$prefix,$help);
+my ($infile,$namesfile,$gfffile,$prefix,$help);
 my $outgrp = 30;
 my $ingrp = 0;
 my $heavy = 0.75;
 
 GetOptions (
   'in|i=s'      => \$infile,
+  'n|names=s' => \$namesfile,
   'gff|g=s'     => \$gfffile,
   'outgrp|u:i'      => \$outgrp,
   'ingrp|U:i'     => \$ingrp,
@@ -45,14 +46,38 @@ die $usage unless ($infile && $gfffile);
 
 print STDERR "[INFO] Infile: $infile\n";
 print STDERR "[INFO] GFF file: $gfffile\n";
+print STDERR "[INFO] Protein names file: $namesfile\n";
+print STDERR "[INFO] CGFF file: $gfffile\n";
 
 my $n = 1;
 (my $filesize = `wc -l $infile`) =~ s/\s.+\n//;
+(my $bedfile = $infile) =~ s/HGT_results.+/HGT_locations.bed.txt/;
 (my $locationsfile = $infile) =~ s/HGT_results.+/HGT_locations.txt/;
 (my $summaryfile = $infile) =~ s/HGT_results.+/HGT_locations.summary.txt/;
 (my $heavyfile = $infile) =~ s/HGT_results.+/HGT_locations.heavy.txt/;
-my (%query_names,%hgt_results,%scaffolds,%gff,%seen);
+my (%bed,%query_names,%hgt_results,%scaffolds,%gff,%seen);
 
+## grep protein names from GFF and convert to BED:
+open (my $NA, $namesfile) or die "[ERROR] Cannot open $namesfile: $!\n";
+open (my $BED, ">$bedfile") or die "[ERROR] Cannot open $bedfile: $!\n";
+while (my $name = <$NA>) {
+  chomp $name;
+  open (my $G, "grep -F $name $gfffile |") or die "$!\n";
+  my ($start,$end) = (1e+9,0); ##this will work so long as no start coord is ever >=1Gb!
+  while (<$G>) {
+    chomp;
+    my @F = split (/\s+/, $_);
+    $start = $F[3] if $F[3] < $start;
+    $end = $F[4] if $F[4] > $end;
+    my @bedline = ("\t", $F[0], $start, $end, $gene, "\n");
+  }
+  close $G;
+  $bed{$F[0]} = \@bedline;
+}
+close $NA;
+close $BED;
+
+print Dumper \%bed;
 
 ## parse HGT_results file:
 open (my $RESULTS, $infile) or die "[ERROR] Cannot open $infile: $!\n";
@@ -92,28 +117,33 @@ open (my $LOC, ">$locationsfile") or die "[ERROR] Cannot open file $locationsfil
 open (my $GFF, $gfffile) or die "[ERROR] Cannot open file $gfffile: $!\n";
 
 OUTER: while (<$GFF>) {
+  chomp;
+  my @F = split (/\s+/, $_);
 
-  INNER: foreach my $gene (nsort keys %hgt_results) {
-    print STDERR "\r[INFO] Working on query \#$n: $gene"; $|=1;
-    next OUTER if exists($seen{$gene});
 
-    ## iterate through all genes:
-    if ( index($_, $gene)>=0 ) { ##search for substring match
-      #unless (exists($seen{$gene})) {
-        if ($hgt_results{$gene}{'hU'} >= $outgrp) {
-          print $LOC join ("\t",$hgt_results{$gene}{'scaffold'},$gene,"OUTGROUP",$hgt_results{$gene}{'hU'},$hgt_results{$gene}{'AI'},$hgt_results{$gene}{'CHS'},$hgt_results{$gene}{'taxonomy'},"\n");
-        } elsif ($hgt_results{$gene}{'hU'} <= $ingrp) {
-          print $LOC join ("\t", $hgt_results{$gene}{'scaffold'},$gene,"INGROUP",$hgt_results{$gene}{'hU'},"\n");
-        } else {
-          print $LOC join ("\t", $hgt_results{$gene}{'scaffold'},$gene,"INTERMEDIATE",$hgt_results{$gene}{'hU'},"\n");
-        }
 
-        $n++;
-      #}
-      $seen{$gene} = (); ##prevents printing again on another GFF line
-      last INNER; ##quit the foreach loop
-    }
-  }
+
+  # INNER: foreach my $gene (nsort keys %hgt_results) {
+  #   print STDERR "\r[INFO] Working on query \#$n: $gene"; $|=1;
+  #   next OUTER if exists($seen{$gene});
+  #
+  #   ## iterate through all genes:
+  #   if ( index($_, $gene)>=0 ) { ##search for substring match
+  #     #unless (exists($seen{$gene})) {
+  #       if ($hgt_results{$gene}{'hU'} >= $outgrp) {
+  #         print $LOC join ("\t",$hgt_results{$gene}{'scaffold'},$gene,"OUTGROUP",$hgt_results{$gene}{'hU'},$hgt_results{$gene}{'AI'},$hgt_results{$gene}{'CHS'},$hgt_results{$gene}{'taxonomy'},"\n");
+  #       } elsif ($hgt_results{$gene}{'hU'} <= $ingrp) {
+  #         print $LOC join ("\t", $hgt_results{$gene}{'scaffold'},$gene,"INGROUP",$hgt_results{$gene}{'hU'},"\n");
+  #       } else {
+  #         print $LOC join ("\t", $hgt_results{$gene}{'scaffold'},$gene,"INTERMEDIATE",$hgt_results{$gene}{'hU'},"\n");
+  #       }
+  #
+  #       $n++;
+  #     #}
+  #     $seen{$gene} = (); ##prevents printing again on another GFF line
+  #     last INNER; ##quit the foreach loop
+  #   }
+  # }
 }
 close $GFF;
 close $LOC;
