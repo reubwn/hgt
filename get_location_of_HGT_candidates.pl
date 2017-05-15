@@ -134,7 +134,7 @@ open (my $GFF, $gfffile) or die "[ERROR] Cannot open file $gfffile: $!\n";
 
 foreach my $chrom (nsort keys %scaffolds) {
   foreach my $gene ( @{$scaffolds{$chrom}} ) { ##get genes on scaffold
-    print "$chrom\t$gene\t$hgt_results{$gene}{hU}\n";
+    print "$chrom\t$gene\t$bed{$gene}{start}\t$bed{$gene}{end}\t$hgt_results{$gene}{hU}\n";
   }
 
 }
