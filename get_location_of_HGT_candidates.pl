@@ -134,9 +134,9 @@ open (my $GFF, $gfffile) or die "[ERROR] Cannot open file $gfffile: $!\n";
 
 foreach my $chrom (nsort keys %scaffolds) {
   my @genes_all = @{ $scaffolds{$chrom} }; ##get genes on scaffold
-  my @genes_outgrp = map { $hgt_results{$_}{'hU'} >= $outgrp } @genes_all;
-  my @genes_ingrp = map { $hgt_results{$_}{'hU'} <= $ingrp } @genes_all;
-  my @genes_intermediate = map { $hgt_results{$_}{'hU'} > $ingrp && $hgt_results{$_}{'hU'} < $outgrp } @genes_all;
+  my @genes_outgrp = grep { $hgt_results{$_}{'hU'} >= $outgrp } @genes_all;
+  my @genes_ingrp = grep { $hgt_results{$_}{'hU'} <= $ingrp } @genes_all;
+  my @genes_intermediate = grep { $hgt_results{$_}{'hU'} > $ingrp && $hgt_results{$_}{'hU'} < $outgrp } @genes_all;
 }
 
 
