@@ -96,7 +96,6 @@ while (my $gene = <$NA>) {
                    };
   }
   close $G;
-  print STDERR "\n";
 
   ## build scaffolds hash:
   push ( @{ $scaffolds{$chrom} }, $gene ); ##key= scaffold; val= \@array of genes on that scaffold
@@ -105,6 +104,7 @@ while (my $gene = <$NA>) {
   if ($subset) {last if $n == $subset};
 }
 close $NA;
+print STDERR "\n";
 
 ## parse HGT_results file:
 print STDERR "[INFO] Parsing HGT_results file...\n";
