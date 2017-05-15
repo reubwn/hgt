@@ -88,7 +88,7 @@ while (my $gene = <$NA>) {
   push ( @{ $scaffolds{$chrom} }, $gene ); ##key= scaffold; val= \@array of genes on that scaffold
 
   $n++;
-  last if $n == 50;
+  last if $n == 100;
 }
 close $NA;
 close $BED;
@@ -138,6 +138,7 @@ foreach my $chrom (nsort keys %scaffolds) {
   # }
 
   foreach my $gene ( sort {$bed{$a}{start}<=>$bed{$b}{start}} @{$scaffolds{$chrom}} ) {
+    $hgt_results{$gene}{hU} = "NA" unless exists($hgt_results{$gene}{hU});
     print "$chrom\t$gene\t$bed{$gene}{start}\t$bed{$gene}{end}\t$hgt_results{$gene}{hU}\n";
   }
 
