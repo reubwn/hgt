@@ -73,10 +73,11 @@ while (my $gene = <$NA>) {
     $end = $F[4] if $F[4] > $end;
     my @bedline = ("\t", $F[0], $start, $end, $gene, "\n");
     $bed{$F[0]} = \@bedline;
-    print STDERR join ("\t", $F[0], $start, $end, $gene, "\n");
+    #print STDERR join ("\t", $F[0], $start, $end, $gene, "\n");
   }
   $n++;
   close $G;
+  last if $n == 50;
 }
 close $NA;
 close $BED;
