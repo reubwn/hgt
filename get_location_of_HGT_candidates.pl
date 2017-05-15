@@ -136,7 +136,7 @@ foreach my $chrom (nsort keys %scaffolds) {
   # foreach my $gene ( @{$scaffolds{$chrom}} ) { ##get genes on scaffold
   #   print "$chrom\t$gene\t$bed{$gene}{start}\t$bed{$gene}{end}\t$hgt_results{$gene}{hU}\n";
   # }
-
+  print "### Scaffold $chrom\n";
   foreach my $gene ( sort {$bed{$a}{start}<=>$bed{$b}{start}} @{$scaffolds{$chrom}} ) {
     $hgt_results{$gene}{hU} = "NA" unless exists($hgt_results{$gene}{hU});
     print "$chrom\t$gene\t$bed{$gene}{start}\t$bed{$gene}{end}\t$hgt_results{$gene}{hU}\n";
