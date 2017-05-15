@@ -50,7 +50,8 @@ print STDERR "[INFO] Protein names file: $namesfile\n";
 print STDERR "[INFO] CGFF file: $gfffile\n";
 
 my $n = 1;
-(my $filesize = `wc -l $infile`) =~ s/\s.+\n//;
+(my $infilesize = `wc -l $infile`) =~ s/\s.+\n//;
+(my $namesfilesize = `wc -l $namesfile`) =~ s/\s.+\n//;
 (my $bedfile = $infile) =~ s/HGT_results.+/HGT_locations.bed.txt/;
 (my $locationsfile = $infile) =~ s/HGT_results.+/HGT_locations.txt/;
 (my $summaryfile = $infile) =~ s/HGT_results.+/HGT_locations.summary.txt/;
@@ -61,6 +62,7 @@ my (%bed,%query_names,%hgt_results,%scaffolds,%gff,%seen);
 open (my $NA, $namesfile) or die "[ERROR] Cannot open $namesfile: $!\n";
 open (my $BED, ">$bedfile") or die "[ERROR] Cannot open $bedfile: $!\n";
 while (my $gene = <$NA>) {
+  print STDERR "\r[INFO] Working on query \#$n: $F[0] (".percentage($n,$namesfilesize)."\%)"; $|=1;
   chomp $gene;
   open (my $G, "grep -F $gene $gfffile |") or die "$!\n";
   my ($start,$end) = (1e+9,0); ##this will work so long as no start coord is ever >=1Gb!
@@ -73,6 +75,7 @@ while (my $gene = <$NA>) {
     $bed{$F[0]} = \@bedline;
     print STDERR join ("\t", $F[0], $start, $end, $gene, "\n");
   }
+  $n++;
   close $G;
 }
 close $NA;
@@ -86,7 +89,7 @@ while (<$RESULTS>) {
   chomp;
   next if /^\#/;
   my @F = split (/\s+/, $_);
-  print STDERR "\r[INFO] Working on query \#$n: $F[0] (".percentage($n,$filesize)."\%)"; $|=1;
+  print STDERR "\r[INFO] Working on query \#$n: $F[0] (".percentage($n,$infilesize)."\%)"; $|=1;
 
   my @gffline = split(/\s+/, `grep -m 1 -F $F[0] $gfffile`); ##grep 1st line from GFF containing query name
   die "[ERROR] No scaffold name found for query $F[0]\n" if (scalar(@gffline)==0);
@@ -105,7 +108,7 @@ while (<$RESULTS>) {
   push ( @{ $scaffolds{$gffline[0]} }, $F[0] ); ##key= scaffold; val= \@array of genes on that scaffold
 
   $n++;
-  last if percentage($n,$filesize) == 0.1;
+  last if percentage($n,$infilesize) == 0.1;
 }
 close $RESULTS;
 print STDERR "\n";
