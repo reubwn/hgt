@@ -62,7 +62,7 @@ my (%bed,%query_names,%hgt_results,%scaffolds,%gff,%seen);
 open (my $NA, $namesfile) or die "[ERROR] Cannot open $namesfile: $!\n";
 open (my $BED, ">$bedfile") or die "[ERROR] Cannot open $bedfile: $!\n";
 while (my $gene = <$NA>) {
-  print STDERR "\r[INFO] Working on query \#$n: $F[0] (".percentage($n,$namesfilesize)."\%)"; $|=1;
+  print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
   chomp $gene;
   open (my $G, "grep -F $gene $gfffile |") or die "$!\n";
   my ($start,$end) = (1e+9,0); ##this will work so long as no start coord is ever >=1Gb!
