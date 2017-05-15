@@ -47,9 +47,7 @@ die $usage unless ($infile && $gfffile);
 print STDERR "[INFO] Infile: $infile\n";
 print STDERR "[INFO] GFF file: $gfffile\n";
 print STDERR "[INFO] Protein names file: $namesfile\n";
-print STDERR "[INFO] CGFF file: $gfffile\n";
 
-my $n = 1;
 (my $infilesize = `wc -l $infile`) =~ s/\s.+\n//;
 (my $namesfilesize = `wc -l $namesfile`) =~ s/\s.+\n//;
 (my $bedfile = $infile) =~ s/HGT_results.+/HGT_locations.bed.txt/;
@@ -57,47 +55,60 @@ my $n = 1;
 (my $summaryfile = $infile) =~ s/HGT_results.+/HGT_locations.summary.txt/;
 (my $heavyfile = $infile) =~ s/HGT_results.+/HGT_locations.heavy.txt/;
 my (%bed,%query_names,%hgt_results,%scaffolds,%gff,%seen);
+my $n = 1;
 
 ## grep protein names from GFF and convert to BED:
 open (my $NA, $namesfile) or die "[ERROR] Cannot open $namesfile: $!\n";
 open (my $BED, ">$bedfile") or die "[ERROR] Cannot open $bedfile: $!\n";
 while (my $gene = <$NA>) {
-  print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
   chomp $gene;
+  print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
+
+  my ($start,$end,$chrom,$strand) = (1e+9,0,"NULL","NULL"); ##this will work so long as no start coord is ever >=1Gb!
   open (my $G, "grep -F $gene $gfffile |") or die "$!\n";
-  my ($start,$end) = (1e+9,0); ##this will work so long as no start coord is ever >=1Gb!
   while (<$G>) {
     chomp;
     my @F = split (/\s+/, $_);
     $start = $F[3] if $F[3] < $start;
     $end = $F[4] if $F[4] > $end;
-    my @bedline = ("\t", $F[0], $start, $end, $gene, "\n");
-    $bed{$F[0]} = \@bedline;
-    #print STDERR join ("\t", $F[0], $start, $end, $gene, "\n");
+    $chrom = $F[0];
+    $strand = $F[6];
+    $bed{$gene} = { ##key= gene; val= HoH
+                    'chrom'  => $chrom,
+                    'start'  => $start,
+                    'end'    => $end,
+                    'strand' => $strand
+                   };
+    # my @bedline = ("\t", $F[0],$start,$end,$gene,".",$F[6],"\n");
+    # $bed{$F[0]} = \@bedline;
   }
-  $n++;
   close $G;
+
+  ## build scaffolds hash:
+  push ( @{ $scaffolds{$chrom}, $gene ); ##key= scaffold; val= \@array of genes on that scaffold
+
+  $n++;
   last if $n == 50;
 }
 close $NA;
 close $BED;
-
-print Dumper \%bed;
+$n = 0;
+#print Dumper \%bed;
 
 ## parse HGT_results file:
 open (my $RESULTS, $infile) or die "[ERROR] Cannot open $infile: $!\n";
 while (<$RESULTS>) {
   chomp;
   next if /^\#/;
-  my @F = split (/\s+/, $_);
+  my @F = split (/\s+/);
   print STDERR "\r[INFO] Working on query \#$n: $F[0] (".percentage($n,$infilesize)."\%)"; $|=1;
 
-  my @gffline = split(/\s+/, `grep -m 1 -F $F[0] $gfffile`); ##grep 1st line from GFF containing query name
-  die "[ERROR] No scaffold name found for query $F[0]\n" if (scalar(@gffline)==0);
+#  my @gffline = split(/\s+/, `grep -m 1 -F $F[0] $gfffile`); ##grep 1st line from GFF containing query name
+#  die "[ERROR] No scaffold name found for query $F[0]\n" if (scalar(@gffline)==0);
 
   ## build HGT_results hash:
   $hgt_results{$F[0]} = { ##key= query; val= HoH
-    'scaffold' => $gffline[0], ##the scaffold will be the first element in @gffline, assuming a normal GFF
+  #  'scaffold' => $gffline[0], ##the scaffold will be the first element in @gffline, assuming a normal GFF
     'hU'       => $F[3],
     'AI'       => $F[6],
     'bbsumcat' => $F[9],
@@ -106,10 +117,10 @@ while (<$RESULTS>) {
   };
 
   ## build scaffolds hash:
-  push ( @{ $scaffolds{$gffline[0]} }, $F[0] ); ##key= scaffold; val= \@array of genes on that scaffold
+  #push ( @{ $scaffolds{$gffline[0]} }, $F[0] ); ##key= scaffold; val= \@array of genes on that scaffold
 
   $n++;
-  last if percentage($n,$infilesize) == 0.1;
+  #last if percentage($n,$infilesize) == 0.1;
 }
 close $RESULTS;
 print STDERR "\n";
@@ -121,10 +132,28 @@ $n=1;
 open (my $LOC, ">$locationsfile") or die "[ERROR] Cannot open file $locationsfile: $!\n";
 open (my $GFF, $gfffile) or die "[ERROR] Cannot open file $gfffile: $!\n";
 
-OUTER: while (<$GFF>) {
-  chomp;
-  my @F = split (/\s+/, $_);
+foreach my $chrom (nsort keys %scaffolds) {
+  my @genes_all encoded = @{ $scaffolds{$chrom} }; ##get genes on scaffold
+  my @genes_outgrp = map { $hgt_results{$_}{'hU'} >= $outgrp } @genes_all;
+  my @genes_ingrp = map { $hgt_results{$_}{'hU'} <= $ingrp } @genes_all;
+  my @genes_intermediate = map { $hgt_results{$_}{'hU'} > $ingrp && $hgt_results{$_}{'hU'} < $outgrp } @genes_all;
+}
 
+
+
+
+
+
+
+
+
+
+
+
+# OUTER: while (<$GFF>) {
+#   chomp;
+#   my @F = split (/\s+/, $_);
+#
 
 
 
@@ -149,7 +178,7 @@ OUTER: while (<$GFF>) {
   #     last INNER; ##quit the foreach loop
   #   }
   # }
-}
+# }
 close $GFF;
 close $LOC;
 
