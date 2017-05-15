@@ -72,7 +72,7 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) {
 
 ## grep protein names from GFF and get coords of CDS:
 open (my $NA, $namesfile) or die "[ERROR] Cannot open $namesfile: $!\n";
-#open (my $BED, ">$bedfile") or die "[ERROR] Cannot open $bedfile: $!\n";
+print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
 while (my $gene = <$NA>) {
   chomp $gene;
   print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
@@ -136,7 +136,7 @@ while (<$RESULTS>) {
 }
 close $RESULTS;
 print STDERR "[INFO] Number of queries in HGT_results: ".scalar(keys %hgt_results)."\n";
-print STDERR "[INFO] Mapping results to GFF...\n";
+print STDERR "[INFO] Evaluating results...\n";
 $n=0;
 
 ## iterate through pseudo-GFF:
