@@ -15,28 +15,27 @@ SYNOPSIS
   Takes a '*.HGT_results' file and a GFF and returns an '*.HGT_locations' file, specifying the location on each chromosome of HGT candidates.
 
 OPTIONS:
-  -i|--in       [FILE]  : taxified diamond/BLAST results file [required]
-  -r|--results  [FILE]  : *.HGT_results.txt file [required]
-  -g|--gff      [FILE]  : GFF file [required]
-  -u|--good_out [INT]   : threshold for determining 'good' OUTGROUP (HGT) genes [default>=30]
-  -U|--good_in  [INT]   : threshold for determining 'good' INGROUP genes [default<=0]
-  -y|--heavy    [FLOAT] : threshold for determining 'HGT heavy' scaffolds, with >= this proportion genes >= hU [default>=0.75]
-  -h|--help             : prints this help message
+  -i|--in     [FILE]  : *.HGT_results.txt file [required]
+  -g|--gff    [FILE]  : GFF file [required]
+  -u|--outgrp [INT]   : threshold hU score for determining 'good' OUTGROUP (HGT) genes [default>=30]
+  -U|--ingrp  [INT]   : threshold hU score for determining 'good' INGROUP genes [default<=0]
+  -y|--heavy  [FLOAT] : threshold for determining 'HGT heavy' scaffolds, with >= this proportion genes >= hU [default>=0.75]
+  -h|--help           : prints this help message
 
 OUTPUTS
   A '*.HGT_locations' file and a map file, and a list of scaffolds with 'too many' HGT candidates encoded on them to be believable ('*.HGT_heavy').
 \n";
 
 my ($infile,$gfffile,$prefix,$help);
-my $good_out = 30;
-my $good_in = 0;
+my $outgrp = 30;
+my $ingrp = 0;
 my $heavy = 0.75;
 
 GetOptions (
   'in|i=s'      => \$infile,
   'gff|g=s'     => \$gfffile,
-  'good_out|u:i'      => \$good_out,
-  'good_in|U:i'     => \$good_in,
+  'outgrp|u:i'      => \$outgrp,
+  'ingrp|U:i'     => \$ingrp,
   'heavy|y:f'   => \$heavy,
   'help|h'      => \$help,
 );
@@ -96,9 +95,9 @@ while (<$GFF>) {
     ## iterate through genes (cant think of any faster way of doing this):
     if ( index($_, $gene)>=0 ) { ##search for substring match
       unless (exists($seen{$gene})) {
-        if ($hgt_results{$gene}{'hU'} >= $good_out) {
+        if ($hgt_results{$gene}{'hU'} >= $outgrp) {
           print $LOC join ("\t",$hgt_results{$gene}{'scaffold'},$gene,"GOOD_OUT",$hgt_results{$gene}{'hU'},$hgt_results{$gene}{'AI'},$hgt_results{$gene}{'CHS'},$hgt_results{$gene}{'taxonomy'},"\n");
-        } elsif ($hgt_results{$gene}{'hU'} <= $good_in) {
+        } elsif ($hgt_results{$gene}{'hU'} <= $ingrp) {
           print $LOC join ("\t", $hgt_results{$gene}{'scaffold'},$gene,"GOOD_OUT",$hgt_results{$gene}{'hU'},"\n");
         } else {
           print $LOC join ("\t", $hgt_results{$gene}{'scaffold'},$gene,"INTERMEDIATE",$hgt_results{$gene}{'hU'},"\n");
@@ -108,7 +107,7 @@ while (<$GFF>) {
       }
       $seen{$gene} = (); ##prevents printing again on another GFF line
       last INNER; ##quit the foreach loop
-    } 
+    }
   }
 }
 close $GFF;
