@@ -133,12 +133,10 @@ open (my $LOC, ">$locationsfile") or die "[ERROR] Cannot open file $locationsfil
 open (my $GFF, $gfffile) or die "[ERROR] Cannot open file $gfffile: $!\n";
 
 foreach my $chrom (nsort keys %scaffolds) {
-  my @genes_all = @{ $scaffolds{$chrom} }; ##get genes on scaffold
-  my @genes_hU = $hgt_results{@genes_all}{'hU'};
-  print "@genes_all\n";
-  print "@genes_hU\n";
-  # my @genes_ingrp = grep { $hgt_results{$_}{'hU'} <= $ingrp } @genes_all;
-  # my @genes_intermediate = grep { $hgt_results{$_}{'hU'} > $ingrp && $hgt_results{$_}{'hU'} < $outgrp } @genes_all;
+  foreach my $gene ( @{$scaffolds{$chrom}} ) { ##get genes on scaffold
+    print "$chrom\t$gene\t$hgt_results{$gene}{hU}\n";
+  }
+
 }
 
 
