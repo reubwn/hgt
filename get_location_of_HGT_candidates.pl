@@ -79,7 +79,7 @@ while (<$RESULTS>) {
   push ( @{ $scaffolds{$gffline[0]} }, $F[0] ); ##key= scaffold; val= \@array of genes on that scaffold
 
   $n++;
-  last if percentage($n,$filesize) == 1;
+  last if percentage($n,$filesize) == 0.1;
 }
 close $RESULTS;
 print STDERR "\n";
@@ -90,21 +90,26 @@ $n=1;
 ## iterate through GFF:
 open (my $LOC, ">$locationsfile") or die "[ERROR] Cannot open file $locationsfile: $!\n";
 open (my $GFF, $gfffile) or die "[ERROR] Cannot open file $gfffile: $!\n";
-while (<$GFF>) {
+
+OUTER: while (<$GFF>) {
+
   INNER: foreach my $gene (nsort keys %hgt_results) {
-    ## iterate through genes (cant think of any faster way of doing this):
+    print STDERR "\r[INFO] Working on query \#$n: $gene"; $|=1;
+    next OUTER if exists($seen{$gene});
+
+    ## iterate through all genes:
     if ( index($_, $gene)>=0 ) { ##search for substring match
-      unless (exists($seen{$gene})) {
+      #unless (exists($seen{$gene})) {
         if ($hgt_results{$gene}{'hU'} >= $outgrp) {
-          print $LOC join ("\t",$hgt_results{$gene}{'scaffold'},$gene,"GOOD_OUT",$hgt_results{$gene}{'hU'},$hgt_results{$gene}{'AI'},$hgt_results{$gene}{'CHS'},$hgt_results{$gene}{'taxonomy'},"\n");
+          print $LOC join ("\t",$hgt_results{$gene}{'scaffold'},$gene,"OUTGROUP",$hgt_results{$gene}{'hU'},$hgt_results{$gene}{'AI'},$hgt_results{$gene}{'CHS'},$hgt_results{$gene}{'taxonomy'},"\n");
         } elsif ($hgt_results{$gene}{'hU'} <= $ingrp) {
-          print $LOC join ("\t", $hgt_results{$gene}{'scaffold'},$gene,"GOOD_OUT",$hgt_results{$gene}{'hU'},"\n");
+          print $LOC join ("\t", $hgt_results{$gene}{'scaffold'},$gene,"INGROUP",$hgt_results{$gene}{'hU'},"\n");
         } else {
           print $LOC join ("\t", $hgt_results{$gene}{'scaffold'},$gene,"INTERMEDIATE",$hgt_results{$gene}{'hU'},"\n");
         }
-        print STDERR "\r[INFO] Working on query \#$n: $gene"; $|=1;
+
         $n++;
-      }
+      #}
       $seen{$gene} = (); ##prevents printing again on another GFF line
       last INNER; ##quit the foreach loop
     }
@@ -123,6 +128,7 @@ close $LOC;
 #
 # print Dumper \%scaffolds;
 
+print STDERR "\n";
 print STDERR "[INFO] Finished on ".`date`."\n";
 
 ################################################################################
