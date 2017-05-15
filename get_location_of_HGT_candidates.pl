@@ -60,9 +60,9 @@ my (%bed,%query_names,%hgt_results,%scaffolds,%gff,%seen);
 ## grep protein names from GFF and convert to BED:
 open (my $NA, $namesfile) or die "[ERROR] Cannot open $namesfile: $!\n";
 open (my $BED, ">$bedfile") or die "[ERROR] Cannot open $bedfile: $!\n";
-while (my $name = <$NA>) {
-  chomp $name;
-  open (my $G, "grep -F $name $gfffile |") or die "$!\n";
+while (my $gene = <$NA>) {
+  chomp $gene;
+  open (my $G, "grep -F $gene $gfffile |") or die "$!\n";
   my ($start,$end) = (1e+9,0); ##this will work so long as no start coord is ever >=1Gb!
   while (<$G>) {
     chomp;
