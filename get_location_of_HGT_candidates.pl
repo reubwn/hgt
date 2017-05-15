@@ -133,7 +133,11 @@ open (my $LOC, ">$locationsfile") or die "[ERROR] Cannot open file $locationsfil
 open (my $GFF, $gfffile) or die "[ERROR] Cannot open file $gfffile: $!\n";
 
 foreach my $chrom (nsort keys %scaffolds) {
-  foreach my $gene ( @{$scaffolds{$chrom}} ) { ##get genes on scaffold
+  # foreach my $gene ( @{$scaffolds{$chrom}} ) { ##get genes on scaffold
+  #   print "$chrom\t$gene\t$bed{$gene}{start}\t$bed{$gene}{end}\t$hgt_results{$gene}{hU}\n";
+  # }
+
+  foreach my $gene ( sort {$bed{$a}{start}<=>$bed{$b}{start}} @{$scaffolds{$chrom}} ) {
     print "$chrom\t$gene\t$bed{$gene}{start}\t$bed{$gene}{end}\t$hgt_results{$gene}{hU}\n";
   }
 
