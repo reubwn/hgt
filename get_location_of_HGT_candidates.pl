@@ -85,7 +85,7 @@ while (my $gene = <$NA>) {
   close $G;
 
   ## build scaffolds hash:
-  push ( @{ $scaffolds{$chrom}, $gene ); ##key= scaffold; val= \@array of genes on that scaffold
+  push ( @{ $scaffolds{$chrom} }, $gene ); ##key= scaffold; val= \@array of genes on that scaffold
 
   $n++;
   last if $n == 50;
@@ -133,7 +133,7 @@ open (my $LOC, ">$locationsfile") or die "[ERROR] Cannot open file $locationsfil
 open (my $GFF, $gfffile) or die "[ERROR] Cannot open file $gfffile: $!\n";
 
 foreach my $chrom (nsort keys %scaffolds) {
-  my @genes_all encoded = @{ $scaffolds{$chrom} }; ##get genes on scaffold
+  my @genes_all = @{ $scaffolds{$chrom} }; ##get genes on scaffold
   my @genes_outgrp = map { $hgt_results{$_}{'hU'} >= $outgrp } @genes_all;
   my @genes_ingrp = map { $hgt_results{$_}{'hU'} <= $ingrp } @genes_all;
   my @genes_intermediate = map { $hgt_results{$_}{'hU'} > $ingrp && $hgt_results{$_}{'hU'} < $outgrp } @genes_all;
