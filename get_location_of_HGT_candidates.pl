@@ -176,7 +176,7 @@ foreach my $chrom (nsort keys %scaffolds) {
   $is_linked_total += $is_linked;
 
   ## evaluate proportion of HGT candidates per scaffold; print to 'heavy' if > threshold:
-  if ( ($good_outgrp/(scalar(@{$scaffolds{$chrom}}))) ) > $heavy) {
+  if ( ($good_outgrp/(scalar(@{$scaffolds{$chrom}}))) > $heavy ) {
     print $HEV join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$good_ingrp,$intermediate,$good_outgrp,($good_outgrp/(scalar(@{$scaffolds{$chrom}}))),$is_linked,"\n");
     $is_heavy++;
   }
