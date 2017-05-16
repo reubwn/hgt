@@ -7,7 +7,6 @@ use warnings;
 
 use Getopt::Long;
 use Sort::Naturally;
-#use Tie::Hash::Regex;
 use Data::Dumper qw(Dumper);
 
 my $usage = "
@@ -19,7 +18,9 @@ OPTIONS:
   -g|--gff    [FILE]  : GFF file [required]
   -u|--outgrp [INT]   : threshold hU score for determining 'good' OUTGROUP (HGT) genes [default>=30]
   -U|--ingrp  [INT]   : threshold hU score for determining 'good' INGROUP genes [default<=0]
-  -y|--heavy  [FLOAT] : threshold for determining 'HGT heavy' scaffolds, with >= this proportion genes >= hU [default>=0.75]
+  -c|--CHS    [INT]   : threshold CHS score for determining 'good' OUTGROUP (HGT) genes [default>=90\%]
+  -y|--heavy  [INT]   : threshold for determining 'HGT heavy' scaffolds, with >= this proportion genes >= hU [default>=75\%]
+  -b|--bed            : also write bed file for 'good' HGT genes (eg, for intersection with RNASeq bamfile)
   -s|--subset [INT]   : test on a subset of proteins [for debug]
   -h|--help           : prints this help message
 
@@ -27,18 +28,21 @@ OUTPUTS
   A '*.HGT_locations' file and a map file, and a list of scaffolds with 'too many' HGT candidates encoded on them to be believable ('*.HGT_heavy').
 \n";
 
-my ($infile,$namesfile,$gfffile,$subset,$help);
-my $outgrp = 30;
-my $ingrp = 0;
-my $heavy = 0.75;
+my ($infile,$namesfile,$gfffile,$bedfile,$subset,$help);
+my $outgrp_threshold = 30;
+my $ingrp_threshold = 0;
+my $CHS_threshold = 90;
+my $heavy = 75;
 
 GetOptions (
   'i|in=s'      => \$infile,
   'n|names=s' => \$namesfile,
   'g|gff=s'     => \$gfffile,
-  'u|outgrp:i'      => \$outgrp,
-  'U|ingrp:i'     => \$ingrp,
-  'y|heavy:f'   => \$heavy,
+  'u|outgrp:i'   => \$outgrp_threshold,
+  'U|ingrp:i'     => \$ingrp_threshold,
+  'c|CHS:i'     => \$CHS_threshold,
+  'y|heavy:i'   => \$heavy,
+  'b|bed'       => \$bedfile,
   's|subset:i'  => \$subset,
   'h|help'      => \$help,
 );
@@ -49,13 +53,16 @@ die $usage unless ($infile && $gfffile);
 print STDERR "[INFO] Infile: $infile\n";
 print STDERR "[INFO] GFF file: $gfffile\n";
 print STDERR "[INFO] Proteins names file: $namesfile\n";
-print STDERR "[INFO] hU threshold to determine strong evidence for OUTGROUP: >= $outgrp\n";
-print STDERR "[INFO] hU threshold to determine strong evidence for INGROUP: <= $ingrp\n";
+print STDERR "[INFO] hU threshold to determine strong evidence for OUTGROUP: >= $outgrp_threshold\n";
+print STDERR "[INFO] hU threshold to determine strong evidence for INGROUP: <= $ingrp_threshold\n";
+print STDERR "[INFO] CHS threshold to determine strong evidence for OUTGROUP: >= $CHS_threshold\%\n";
 print STDERR "[INFO] Proportion of genes >= hU threshold to determine 'HGT heavy' scaffolds: $heavy\n";
+print STDERR "[INFO] Write bedfile: TRUE\n" if $bedfile;
 
-(my $locationsfile = $infile) =~ s/HGT_results.+/HGT_locations.bed.txt/;
+(my $locationsfile = $infile) =~ s/HGT_results.+/HGT_locations.txt/;
 (my $summaryfile = $infile) =~ s/HGT_results.+/HGT_locations.summary.txt/;
 (my $heavyfile = $infile) =~ s/HGT_results.+/HGT_locations.heavy.txt/;
+(my $bedfile = $infile) =~ s/HGT_results.+/HGT_locations.OUTGROUP.bed/ if $bedfile;
 my ($namesfilesize,$isfasta,%bed,%query_names,%hgt_results,%scaffolds,%gff,%seen);
 my $n=1;
 
@@ -71,9 +78,9 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) {
 }
 
 ## grep protein names from GFF and get coords of CDS:
-open (my $NA, $namesfile) or die "[ERROR] Cannot open $namesfile: $!\n";
+open (my $NAMES, $namesfile) or die "[ERROR] Cannot open $namesfile: $!\n";
 print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
-while (my $gene = <$NA>) {
+while (my $gene = <$NAMES>) {
   chomp $gene;
   print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
 
@@ -103,25 +110,29 @@ while (my $gene = <$NA>) {
   $n++;
   if ($subset) {last if $n == $subset};
 }
-close $NA;
+close $NAMES;
 print STDERR "\n";
 
 ## parse HGT_results file:
-print STDERR "[INFO] Parsing HGT_results file...\n";
+print STDERR "[INFO] Parsing HGT_results file...";
 open (my $RESULTS, $infile) or die "[ERROR] Cannot open $infile: $!\n";
 while (<$RESULTS>) {
   chomp;
   next if /^\#/;
   my @F = split (/\s+/);
 
-  ## evaluate hU result:
-  my $hU_strength;
-  if ($F[3] <= $ingrp) {
-    $hU_strength = 0; ##good Metazoa candidate
-  } elsif ($F[3] >= $outgrp) {
-    $hU_strength = 2; ##good HGT candidate
+  ## evaluate HGT evidence.
+  ## assign a 'score' based on hU, bbsumcat and CHS,
+  ## 0: hU <= 0; bbsumcat = INGROUP; CHS >= 90 [good INGROUP gene]
+  ## 1: 30 < hU > 0 [intermediate score]
+  ## 2: hU >= 30; bbsumcat = OUTGROUP; CHS >= 90 [good HGT candidate]
+  my $HGT_evidence;
+  if ($F[3] <= $ingrp_threshold && $F[9] eq "INGROUP" && $F[10] >= $CHS_threshold) {
+    $HGT_evidence = 0; ##good INGROUP candidate
+  } elsif ($F[3] >= $outgrp_threshold && $F[9] eq "OUTGROUP" && $F[10] >= $CHS_threshold) {
+    $HGT_evidence = 2; ##good HGT candidate
   } else {
-    $hU_strength = 1; ##intermediate bitscore difference
+    $HGT_evidence = 1; ##intermediate
   }
 
   ## build HGT_results hash:
@@ -131,11 +142,11 @@ while (<$RESULTS>) {
     'bbsumcat' => $F[9],
     'CHS'      => $F[10],
     'taxonomy' => $F[11],
-    'strength' => $hU_strength
+    'evidence' => $HGT_evidence
   };
 }
 close $RESULTS;
-print STDERR "[INFO] Number of queries in HGT_results: ".scalar(keys %hgt_results)."\n";
+print STDERR " found ".scalar(keys %hgt_results)." queries\n";
 print STDERR "[INFO] Evaluating results...\n";
 $n=0;
 
@@ -156,13 +167,13 @@ foreach my $chrom (nsort keys %scaffolds) {
   my ($good_outgrp,$good_ingrp,$intermediate,$na,$is_linked) = (0,0,0,0,0);
   foreach my $gene ( sort {$bed{$a}{start}<=>$bed{$b}{start}} @{$scaffolds{$chrom}} ) {
     if ( exists($hgt_results{$gene}{hU}) ) {
-      if ($hgt_results{$gene}{strength} == 2) {
-        print $LOC join ("\t", $chrom,$bed{$gene}{start},$bed{$gene}{end},$gene,".",$bed{$gene}{strand},$hgt_results{$gene}{hU},$hgt_results{$gene}{strength},$hgt_results{$gene}{taxonomy},"\n");
+      if ($hgt_results{$gene}{evidence} == 2) {
+        print $LOC join ("\t", $chrom,$bed{$gene}{start},$bed{$gene}{end},$gene,".",$bed{$gene}{strand},$hgt_results{$gene}{hU},$hgt_results{$gene}{evidence},$hgt_results{$gene}{taxonomy},"\n");
         $good_outgrp++;
       } else {
-        print $LOC join ("\t", $chrom,$bed{$gene}{start},$bed{$gene}{end},$gene,".",$bed{$gene}{strand},$hgt_results{$gene}{hU},$hgt_results{$gene}{strength},"\n");
-        $good_ingrp++ if $hgt_results{$gene}{strength} == 0;
-        $intermediate++ if $hgt_results{$gene}{strength} == 1;
+        print $LOC join ("\t", $chrom,$bed{$gene}{start},$bed{$gene}{end},$gene,".",$bed{$gene}{strand},$hgt_results{$gene}{hU},$hgt_results{$gene}{evidence},"\n");
+        $good_ingrp++ if $hgt_results{$gene}{evidence} == 0;
+        $intermediate++ if $hgt_results{$gene}{evidence} == 1;
       }
     } else {
       ## NA if either no hit or if hit to 'skipped' taxon (usually self-phylum):
@@ -172,12 +183,12 @@ foreach my $chrom (nsort keys %scaffolds) {
   }
   ## evaluate if HGT candidate gene is encoded on a scaffold which also encodes a 'good_ingrp' gene:
   $is_linked = 1 if (($good_outgrp+$good_ingrp) >= 2); ##must have at least one strong evidence for both
-  print $SUM join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$good_ingrp,$intermediate,$good_outgrp,($good_outgrp/(scalar(@{$scaffolds{$chrom}}))),$is_linked,"\n");
+  print $SUM join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$good_ingrp,$intermediate,$good_outgrp,(percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))),$is_linked,"\n");
   $is_linked_total += $is_linked;
 
   ## evaluate proportion of HGT candidates per scaffold; print to 'heavy' if > threshold:
-  if ( ($good_outgrp/(scalar(@{$scaffolds{$chrom}}))) > $heavy ) {
-    print $HEV join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$good_ingrp,$intermediate,$good_outgrp,($good_outgrp/(scalar(@{$scaffolds{$chrom}}))),$is_linked,"\n");
+  if ( (percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))) > $heavy ) {
+    print $HEV join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$good_ingrp,$intermediate,$good_outgrp,(percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))),$is_linked,"\n");
     $is_heavy++;
   }
 $n++;
@@ -186,6 +197,9 @@ close $LOC;
 close $SUM;
 close $HEV;
 print STDERR "\n";
+print STDERR "[INFO] Number of good INGROUP genes: $good_ingrp\n";
+print STDERR "[INFO] Number of good OUTGROUP genes (HGT candidate): $good_outgrp\n";
+print STDERR "[INFO] Number of genes with intermediate score: $intermediate\n";
 print STDERR "[INFO] Number of scaffolds with HGT proportion >= $heavy: $is_heavy\n";
 print STDERR "[INFO] Number of 'good' HGT candidates encoded on same scaffold as 'good' INGROUP gene: $is_linked_total\n";
 print STDERR "[INFO] Finished on ".`date`."\n";
