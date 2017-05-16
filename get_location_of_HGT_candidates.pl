@@ -148,7 +148,7 @@ while (<$RESULTS>) {
   };
 }
 close $RESULTS;
-print STDERR " found ".scalar(keys %hgt_results)." queries\n";
+print STDERR " found ".commify(scalar(keys %hgt_results))." queries\n";
 print STDERR "[INFO] Evaluating results...\n";
 # $n=0;
 
@@ -156,9 +156,9 @@ print STDERR "[INFO] Evaluating results...\n";
 open (my $LOC, ">$locationsfile") or die "[ERROR] Cannot open file $locationsfile: $!\n";
 open (my $SUM, ">$summaryfile") or die "[ERROR] Cannot open file $summaryfile: $!\n";
 open (my $HEV, ">$heavyfile") or die "[ERROR] Cannot open file $heavyfile: $!\n";
-print $LOC join ("\t", "#","SCAFFOLD","START","END","GENE","SCORE","STRAND","INTRONS","hU","EVIDENCE","TAXONOMY","\n");
-print $SUM join ("\t", "#","SCAFFOLD","NUMGENES","UNASSIGNED","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
-print $HEV join ("\t", "#","SCAFFOLD","NUMGENES","UNASSIGNED","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
+print $LOC join ("\t", "#SCAFFOLD","START","END","GENE","SCORE","STRAND","INTRONS","hU","EVIDENCE","TAXONOMY","\n");
+print $SUM join ("\t", "#SCAFFOLD","NUMGENES","UNASSIGNED","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
+print $HEV join ("\t", "#SCAFFOLD","NUMGENES","UNASSIGNED","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
 my ($good_outgrp_total,$good_ingrp_total,$intermediate_total,$na_total,$intronized,$is_linked_total,$is_heavy) = (0,0,0,0,0,0,0);
 
 ## iterate across scaffolds:
@@ -208,13 +208,13 @@ close $LOC;
 close $SUM;
 close $HEV;
 print STDERR "\n";
-print STDERR "[INFO] Number of good INGROUP genes: $good_ingrp_total\n";
-print STDERR "[INFO] Number of good OUTGROUP genes (HGT candidates): $good_outgrp_total\n";
-print STDERR "[INFO] Number of HGT candidates with intron: $intronized\n";
-print STDERR "[INFO] Number of HGT candidates linked to good INGROUP gene: $is_linked_total\n";
-print STDERR "[INFO] Number of genes with intermediate score: $intermediate_total\n";
-print STDERR "[INFO] Number of genes with no assignment (no-hitters or hit-to-skippers): $na_total\n";
-print STDERR "[INFO] Number of scaffolds with HGT proportion >= $heavy: $is_heavy\n";
+print STDERR "[INFO] Number of good INGROUP genes: ".commify($good_ingrp_total)."\n";
+print STDERR "[INFO] Number of good OUTGROUP genes (HGT candidates): ".commify($good_outgrp_total)."\n";
+print STDERR "[INFO] Number of HGT candidates with (at least one) intron: ".commify($intronized)."\n";
+print STDERR "[INFO] Number of HGT candidates linked to good INGROUP gene: ".commify($is_linked_total)."\n";
+print STDERR "[INFO] Number of genes with intermediate score: ".commify($intermediate_total)."\n";
+print STDERR "[INFO] Number of genes with no assignment (no-hitters or hit-to-skippers): ".commify($na_total)."\n";
+print STDERR "[INFO] Number of scaffolds with HGT proportion >= $heavy: ".commify($is_heavy)."\n";
 print STDERR "\n[INFO] Finished on ".`date`."\n";
 
 ################################################################################
