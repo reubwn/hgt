@@ -28,7 +28,7 @@ OUTPUTS
   A '*.HGT_locations' file and a map file, and a list of scaffolds with 'too many' HGT candidates encoded on them to be believable ('*.HGT_heavy').
 \n";
 
-my ($infile,$namesfile,$gfffile,$bedfile,$subset,$help);
+my ($infile,$namesfile,$gfffile,$bed,$subset,$help);
 my $outgrp_threshold = 30;
 my $ingrp_threshold = 0;
 my $CHS_threshold = 90;
