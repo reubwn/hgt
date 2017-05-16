@@ -84,7 +84,7 @@ while (my $gene = <$NAMES>) {
   chomp $gene;
   print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
 
-  my ($start,$end,$chrom,$strand) = (1e+9,0,"NULL","NULL"); ##this will work so long as no start coord is ever >=1Gb!
+  my ($start,$end,$introns,$chrom,$strand) = (1e+9,0,-1,"NULL","NULL"); ##this will work so long as no start coord is ever >=1Gb!
 
   ## get coords of all items grepped by $gene
   open (my $G, "grep -F $gene $gfffile |") or die "$!\n";
@@ -93,13 +93,15 @@ while (my $gene = <$NAMES>) {
     my @F = split (/\s+/, $_);
     $start = $F[3] if $F[3] < $start; ##then get ONLY the 1st
     $end = $F[4] if $F[4] > $end; ##... and last coords across all items
+    $introns++; ##the number of iterations of through <$G> corresponds to the num exons; therefore introns is -1 this
     $chrom = $F[0];
     $strand = $F[6];
     $bed{$gene} = { ##key= gene; val= HoH
-                    'chrom'  => $chrom,
-                    'start'  => $start, ##this should cover the 'gene region'
-                    'end'    => $end, ##... encoded by the protein name
-                    'strand' => $strand
+                    'chrom'   => $chrom,
+                    'start'   => $start, ##this should cover the 'gene region'
+                    'end'     => $end, ##... encoded by the protein name
+                    'strand'  => $strand,
+                    'introns' => $introns
                    };
   }
   close $G;
@@ -154,9 +156,10 @@ print STDERR "[INFO] Evaluating results...\n";
 open (my $LOC, ">$locationsfile") or die "[ERROR] Cannot open file $locationsfile: $!\n";
 open (my $SUM, ">$summaryfile") or die "[ERROR] Cannot open file $summaryfile: $!\n";
 open (my $HEV, ">$heavyfile") or die "[ERROR] Cannot open file $heavyfile: $!\n";
-print $SUM join ("\t", "SCAFFOLD","NUMGENES","UNASSIGNED","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
-print $HEV join ("\t", "SCAFFOLD","NUMGENES","UNASSIGNED","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
-my ($good_outgrp_total,$good_ingrp_total,$intermediate_total,$na_total,$is_linked_total,$is_heavy) = (0,0);
+print $LOC join ("\t", "#","SCAFFOLD","START","END","GENE","SCORE","STRAND","INTRONS","hU","EVIDENCE","TAXONOMY","\n");
+print $SUM join ("\t", "#","SCAFFOLD","NUMGENES","UNASSIGNED","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
+print $HEV join ("\t", "#","SCAFFOLD","NUMGENES","UNASSIGNED","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
+my ($good_outgrp_total,$good_ingrp_total,$intermediate_total,$na_total,$intronized,$is_linked_total,$is_heavy) = (0,0,0,0,0,0,0);
 
 ## iterate across scaffolds:
 foreach my $chrom (nsort keys %scaffolds) {
@@ -168,16 +171,17 @@ foreach my $chrom (nsort keys %scaffolds) {
   foreach my $gene ( sort {$bed{$a}{start}<=>$bed{$b}{start}} @{$scaffolds{$chrom}} ) {
     if ( exists($hgt_results{$gene}{hU}) ) {
       if ($hgt_results{$gene}{evidence} == 2) {
-        print $LOC join ("\t", $chrom,$bed{$gene}{start},$bed{$gene}{end},$gene,".",$bed{$gene}{strand},$hgt_results{$gene}{hU},$hgt_results{$gene}{evidence},$hgt_results{$gene}{taxonomy},"\n");
+        print $LOC join ("\t", $chrom,$bed{$gene}{start},$bed{$gene}{end},$gene,".",$bed{$gene}{strand},$bed{$gene}{introns},$hgt_results{$gene}{hU},$hgt_results{$gene}{evidence},$hgt_results{$gene}{taxonomy},"\n");
         $good_outgrp++;
+        $intronized++ if $bed{$gene}{introns} > 0;
       } else {
-        print $LOC join ("\t", $chrom,$bed{$gene}{start},$bed{$gene}{end},$gene,".",$bed{$gene}{strand},$hgt_results{$gene}{hU},$hgt_results{$gene}{evidence},"\n");
+        print $LOC join ("\t", $chrom,$bed{$gene}{start},$bed{$gene}{end},$gene,".",$bed{$gene}{strand},$bed{$gene}{introns},$hgt_results{$gene}{hU},$hgt_results{$gene}{evidence},"\n");
         $good_ingrp++ if $hgt_results{$gene}{evidence} == 0;
         $intermediate++ if $hgt_results{$gene}{evidence} == 1;
       }
     } else {
       ## NA if either no hit or if hit to 'skipped' taxon (usually self-phylum):
-      print $LOC join ("\t", $chrom,$bed{$gene}{start},$bed{$gene}{end},$gene,".",$bed{$gene}{strand},"NA","\n");
+      print $LOC join ("\t", $chrom,$bed{$gene}{start},$bed{$gene}{end},$gene,".",$bed{$gene}{strand},$bed{$gene}{introns},"NA","\n");
       $na++;
     }
   }
@@ -205,12 +209,13 @@ close $SUM;
 close $HEV;
 print STDERR "\n";
 print STDERR "[INFO] Number of good INGROUP genes: $good_ingrp_total\n";
-print STDERR "[INFO] Number of good OUTGROUP genes (HGT candidate): $good_outgrp_total\n";
+print STDERR "[INFO] Number of good OUTGROUP genes (HGT candidates): $good_outgrp_total\n";
+print STDERR "[INFO] Number of HGT candidates with intron: $intronized\n";
+print STDERR "[INFO] Number of HGT candidates linked to good INGROUP gene: $is_linked_total\n";
 print STDERR "[INFO] Number of genes with intermediate score: $intermediate_total\n";
-print STDERR "[INFO] Number of genes with no assignment (no-hitters or skipped-hitters): $na_total\n";
+print STDERR "[INFO] Number of genes with no assignment (no-hitters or hit-to-skippers): $na_total\n";
 print STDERR "[INFO] Number of scaffolds with HGT proportion >= $heavy: $is_heavy\n";
-print STDERR "[INFO] Number of 'good' HGT candidates encoded on same scaffold as 'good' INGROUP gene: $is_linked_total\n";
-print STDERR "[INFO] Finished on ".`date`."\n";
+print STDERR "\n[INFO] Finished on ".`date`."\n";
 
 ################################################################################
 
