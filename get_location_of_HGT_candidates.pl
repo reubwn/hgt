@@ -14,21 +14,22 @@ SYNOPSIS
   Takes a '*.HGT_results' file and a GFF and returns an '*.HGT_locations' file, specifying the location on each chromosome of HGT candidates.
 
 OPTIONS:
-  -i|--in     [FILE]  : *.HGT_results.txt file [required]
-  -g|--gff    [FILE]  : GFF file [required]
-  -u|--outgrp [INT]   : threshold hU score for determining 'good' OUTGROUP (HGT) genes [default>=30]
-  -U|--ingrp  [INT]   : threshold hU score for determining 'good' INGROUP genes [default<=0]
-  -c|--CHS    [INT]   : threshold CHS score for determining 'good' OUTGROUP (HGT) genes [default>=90\%]
-  -y|--heavy  [INT]   : threshold for determining 'HGT heavy' scaffolds, with >= this proportion genes >= hU [default>=75\%]
-  -b|--bed            : also write bed file for 'good' HGT genes (eg, for intersection with RNASeq bamfile)
-  -s|--subset [INT]   : test on a subset of proteins [for debug]
-  -h|--help           : prints this help message
+  -i|--in     [FILE] : *.HGT_results.txt file [required]
+  -g|--gff    [FILE] : GFF file [required]
+  -n|--names  [FILE] : names of proteins in GFF file, can be fasta of proteins used
+  -r|--regex  [STR]  : optional regex to apply to seq headers if -n is a fasta file
+  -u|--outgrp [INT]  : threshold hU score for determining 'good' OUTGROUP (HGT) genes [default>=30]
+  -U|--ingrp  [INT]  : threshold hU score for determining 'good' INGROUP genes [default<=0]
+  -c|--CHS    [INT]  : threshold CHS score for determining 'good' OUTGROUP (HGT) genes [default>=90\%]
+  -y|--heavy  [INT]  : threshold for determining 'HGT heavy' scaffolds, with >= this proportion genes >= hU [default>=75\%]
+  -b|--bed           : also write bed file for 'good' HGT genes (eg, for intersection with RNASeq bamfile)
+  -h|--help          : prints this help message
 
 OUTPUTS
   A '*.HGT_locations' file and a map file, and a list of scaffolds with 'too many' HGT candidates encoded on them to be believable ('*.HGT_heavy').
 \n";
 
-my ($infile,$namesfile,$gfffile,$bed,$subset,$help);
+my ($infile,$gfffile,$namesfile,$regexstr,$bed,$help);
 my $outgrp_threshold = 30;
 my $ingrp_threshold = 0;
 my $CHS_threshold = 90;
@@ -36,14 +37,14 @@ my $heavy = 75;
 
 GetOptions (
   'i|in=s'     => \$infile,
-  'n|names=s'  => \$namesfile,
   'g|gff=s'    => \$gfffile,
+  'n|names=s'  => \$namesfile,
+  'r|regex:s'  => \$regexstr,
   'u|outgrp:i' => \$outgrp_threshold,
   'U|ingrp:i'  => \$ingrp_threshold,
   'c|CHS:i'    => \$CHS_threshold,
   'y|heavy:i'  => \$heavy,
   'b|bed'      => \$bed,
-  's|subset:i' => \$subset,
   'h|help'     => \$help,
 );
 
@@ -66,54 +67,84 @@ print STDERR "[INFO] Write bedfile: TRUE\n" if $bed;
 my ($namesfilesize,$isfasta,%bed,%query_names,%hgt_results,%scaffolds,%gff,%seen);
 my $n=1;
 
+## grep protein names from GFF and get coords of CDS:
+open (my $NAMES, $namesfile) or die "[ERROR] Cannot open $namesfile: $!\n";
+print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
+
 ## autodetect if names are coming from fasta:
 if ($namesfile =~ m/(fa|faa|fasta)$/) {
   print STDERR "[INFO] Proteins names file is fasta...\n";
   $namesfilesize = `grep -c ">" $namesfile`;
   $namesfilesize =~ s/\s.+\n//;
-  $isfasta = 1;
+  my $regexvar = qr/$regexstr/;
+
+  while (my $gene = <$NAMES>) {
+    if ($gene =~ m/^>/) {
+      chomp $gene;
+      $gene =~ s/^>//;
+      $gene =~ qr/$regexstr/ if ($regexstr); ##apply regex if specified
+      print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
+      my ($start,$end,$introns,$chrom,$strand) = (1e+9,0,-1,"NULL","NULL"); ##this will work so long as no start coord is ever >=1Gb!
+      ## get coords of all items grepped by $gene
+      open (my $G, "grep -F $gene $gfffile |") or die "$!\n"; ##will return CDS usually
+      while (<$G>) {
+        chomp;
+        my @F = split (/\s+/, $_);
+        $start = $F[3] if $F[3] < $start; ##then get ONLY the 1st
+        $end = $F[4] if $F[4] > $end; ##... and last coords across all CDS
+        $introns++; ##the number of iterations of through <$G> corresponds to the num exons; therefore introns is -1 this
+        $chrom = $F[0];
+        $strand = $F[6];
+        $bed{$gene} = { ##key= gene; val= HoH
+                        'chrom'   => $chrom,
+                        'start'   => $start, ##this should cover the 'gene region'
+                        'end'     => $end, ##... encoded by the protein name
+                        'strand'  => $strand,
+                        'introns' => $introns
+                       };
+      }
+      close $G;
+      ## build scaffolds hash:
+      push ( @{ $scaffolds{$chrom} }, $gene ); ##key= scaffold; val= \@array of genes on that scaffold
+      $n++;
+    } else {
+      next;
+    }
+  }
 } else {
   $namesfilesize = `wc -l $namesfile`;
   $namesfilesize =~ s/\s.+\n//;
-}
-
-## grep protein names from GFF and get coords of CDS:
-open (my $NAMES, $namesfile) or die "[ERROR] Cannot open $namesfile: $!\n";
-print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
-while (my $gene = <$NAMES>) {
-  chomp $gene;
-  print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
-
-  my ($start,$end,$introns,$chrom,$strand) = (1e+9,0,-1,"NULL","NULL"); ##this will work so long as no start coord is ever >=1Gb!
-
-  ## get coords of all items grepped by $gene
-  open (my $G, "grep -F $gene $gfffile |") or die "$!\n";
-  while (<$G>) {
-    chomp;
-    my @F = split (/\s+/, $_);
-    $start = $F[3] if $F[3] < $start; ##then get ONLY the 1st
-    $end = $F[4] if $F[4] > $end; ##... and last coords across all items
-    $introns++; ##the number of iterations of through <$G> corresponds to the num exons; therefore introns is -1 this
-    $chrom = $F[0];
-    $strand = $F[6];
-    $bed{$gene} = { ##key= gene; val= HoH
-                    'chrom'   => $chrom,
-                    'start'   => $start, ##this should cover the 'gene region'
-                    'end'     => $end, ##... encoded by the protein name
-                    'strand'  => $strand,
-                    'introns' => $introns
-                   };
+  ## iterate through genes in namesfile:
+  while (my $gene = <$NAMES>) {
+    chomp $gene;
+    print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
+    my ($start,$end,$introns,$chrom,$strand) = (1e+9,0,-1,"NULL","NULL"); ##this will work so long as no start coord is ever >=1Gb!
+    ## get coords of all items grepped by $gene
+    open (my $G, "grep -F $gene $gfffile |") or die "$!\n"; ##will return CDS usually
+    while (<$G>) {
+      chomp;
+      my @F = split (/\s+/, $_);
+      $start = $F[3] if $F[3] < $start; ##then get ONLY the 1st
+      $end = $F[4] if $F[4] > $end; ##... and last coords across all CDS
+      $introns++; ##the number of iterations of through <$G> corresponds to the num exons; therefore introns is -1 this
+      $chrom = $F[0];
+      $strand = $F[6];
+      $bed{$gene} = { ##key= gene; val= HoH
+                      'chrom'   => $chrom,
+                      'start'   => $start, ##this should cover the 'gene region'
+                      'end'     => $end, ##... encoded by the protein name
+                      'strand'  => $strand,
+                      'introns' => $introns
+                     };
+    }
+    close $G;
+    ## build scaffolds hash:
+    push ( @{ $scaffolds{$chrom} }, $gene ); ##key= scaffold; val= \@array of genes on that scaffold
+    $n++;
   }
-  close $G;
-
-  ## build scaffolds hash:
-  push ( @{ $scaffolds{$chrom} }, $gene ); ##key= scaffold; val= \@array of genes on that scaffold
-
-  $n++;
-  if ($subset) {last if $n == $subset};
 }
-close $NAMES;
 print STDERR "\n";
+close $NAMES;
 
 ## parse HGT_results file:
 print STDERR "[INFO] Parsing HGT_results file...";
