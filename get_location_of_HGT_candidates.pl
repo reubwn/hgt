@@ -143,8 +143,11 @@ $n=0;
 open (my $LOC, ">$locationsfile") or die "[ERROR] Cannot open file $locationsfile: $!\n";
 open (my $SUM, ">$summaryfile") or die "[ERROR] Cannot open file $summaryfile: $!\n";
 open (my $HEV, ">$heavyfile") or die "[ERROR] Cannot open file $heavyfile: $!\n";
-print $SUM join ("\t", "SCAFFOLD","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
+print $SUM join ("\t", "SCAFFOLD","NUMGENES","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
+print $HEV join ("\t", "SCAFFOLD","NUMGENES","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
 my ($is_linked_total,$is_heavy) = (0,0);
+
+## iterate across scaffolds:
 foreach my $chrom (nsort keys %scaffolds) {
   print STDERR "\r[INFO] Working on scaffold \#$n: $chrom (".percentage($n,scalar(keys %scaffolds))."\%)"; $|=1;
   print $LOC "## Scaffold \#$n: $chrom\n";
@@ -169,12 +172,12 @@ foreach my $chrom (nsort keys %scaffolds) {
   }
   ## evaluate if HGT candidate gene is encoded on a scaffold which also encodes a 'good_ingrp' gene:
   $is_linked = 1 if (($good_outgrp+$good_ingrp) >= 2); ##must have at least one strong evidence for both
-  print $SUM join ("\t", $chrom,$good_ingrp,$intermediate,$good_outgrp,($good_outgrp/($intermediate+$good_ingrp)),$is_linked,"\n");
+  print $SUM join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$good_ingrp,$intermediate,$good_outgrp,($good_outgrp/(scalar(@{$scaffolds{$chrom}}))),$is_linked,"\n");
   $is_linked_total += $is_linked;
 
   ## evaluate proportion of HGT candidates per scaffold; print to 'heavy' if > threshold:
   if (($good_outgrp/($intermediate+$good_ingrp)) > $heavy) {
-    print $HEV join ("\t", $chrom,$good_ingrp,$intermediate,$good_outgrp,($good_outgrp/($intermediate+$good_ingrp)),$is_linked,"\n");
+    print $HEV join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$good_ingrp,$intermediate,$good_outgrp,($good_outgrp/(scalar(@{$scaffolds{$chrom}}))),$is_linked,"\n");
     $is_heavy++;
   }
 $n++;
