@@ -42,7 +42,7 @@ GetOptions (
   'U|ingrp:i'     => \$ingrp_threshold,
   'c|CHS:i'     => \$CHS_threshold,
   'y|heavy:i'   => \$heavy,
-  'b|bed'       => \$bedfile,
+  'b|bed'       => \$bed,
   's|subset:i'  => \$subset,
   'h|help'      => \$help,
 );
@@ -57,12 +57,12 @@ print STDERR "[INFO] hU threshold to determine strong evidence for OUTGROUP: >= 
 print STDERR "[INFO] hU threshold to determine strong evidence for INGROUP: <= $ingrp_threshold\n";
 print STDERR "[INFO] CHS threshold to determine strong evidence for OUTGROUP: >= $CHS_threshold\%\n";
 print STDERR "[INFO] Proportion of genes >= hU threshold to determine 'HGT heavy' scaffolds: $heavy\n";
-print STDERR "[INFO] Write bedfile: TRUE\n" if $bedfile;
+print STDERR "[INFO] Write bedfile: TRUE\n" if $bed;
 
 (my $locationsfile = $infile) =~ s/HGT_results.+/HGT_locations.txt/;
 (my $summaryfile = $infile) =~ s/HGT_results.+/HGT_locations.summary.txt/;
 (my $heavyfile = $infile) =~ s/HGT_results.+/HGT_locations.heavy.txt/;
-(my $bedfile = $infile) =~ s/HGT_results.+/HGT_locations.OUTGROUP.bed/ if $bedfile;
+(my $bedfile = $infile) =~ s/HGT_results.+/HGT_locations.OUTGROUP.bed/ if $bed;
 my ($namesfilesize,$isfasta,%bed,%query_names,%hgt_results,%scaffolds,%gff,%seen);
 my $n=1;
 
@@ -156,7 +156,7 @@ open (my $SUM, ">$summaryfile") or die "[ERROR] Cannot open file $summaryfile: $
 open (my $HEV, ">$heavyfile") or die "[ERROR] Cannot open file $heavyfile: $!\n";
 print $SUM join ("\t", "SCAFFOLD","NUMGENES","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
 print $HEV join ("\t", "SCAFFOLD","NUMGENES","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
-my ($is_linked_total,$is_heavy) = (0,0);
+my ($good_outgrp_total,$good_ingrp_total,$intermediate_total,$na_total,$is_linked_total,$is_heavy) = (0,0);
 
 ## iterate across scaffolds:
 foreach my $chrom (nsort keys %scaffolds) {
@@ -181,6 +181,13 @@ foreach my $chrom (nsort keys %scaffolds) {
       $na++;
     }
   }
+
+  ## sum for totals:
+  $good_ingrp_total += $good_ingrp;
+  $good_outgrp_total += $good_outgrp;
+  $intermediate_total += $intermediate;
+  $na_total += $na;
+
   ## evaluate if HGT candidate gene is encoded on a scaffold which also encodes a 'good_ingrp' gene:
   $is_linked = 1 if (($good_outgrp+$good_ingrp) >= 2); ##must have at least one strong evidence for both
   print $SUM join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$good_ingrp,$intermediate,$good_outgrp,(percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))),$is_linked,"\n");
@@ -197,9 +204,10 @@ close $LOC;
 close $SUM;
 close $HEV;
 print STDERR "\n";
-print STDERR "[INFO] Number of good INGROUP genes: $good_ingrp\n";
-print STDERR "[INFO] Number of good OUTGROUP genes (HGT candidate): $good_outgrp\n";
-print STDERR "[INFO] Number of genes with intermediate score: $intermediate\n";
+print STDERR "[INFO] Number of good INGROUP genes: $good_ingrp_total\n";
+print STDERR "[INFO] Number of good OUTGROUP genes (HGT candidate): $good_outgrp_total\n";
+print STDERR "[INFO] Number of genes with intermediate score: $intermediate_total\n";
+print STDERR "[INFO] Number of genes with no assignment (no-hitters or skipped-hitters): $na_total\n";
 print STDERR "[INFO] Number of scaffolds with HGT proportion >= $heavy: $is_heavy\n";
 print STDERR "[INFO] Number of 'good' HGT candidates encoded on same scaffold as 'good' INGROUP gene: $is_linked_total\n";
 print STDERR "[INFO] Finished on ".`date`."\n";
