@@ -35,16 +35,16 @@ my $CHS_threshold = 90;
 my $heavy = 75;
 
 GetOptions (
-  'i|in=s'      => \$infile,
-  'n|names=s' => \$namesfile,
-  'g|gff=s'     => \$gfffile,
-  'u|outgrp:i'   => \$outgrp_threshold,
-  'U|ingrp:i'     => \$ingrp_threshold,
-  'c|CHS:i'     => \$CHS_threshold,
-  'y|heavy:i'   => \$heavy,
-  'b|bed'       => \$bed,
-  's|subset:i'  => \$subset,
-  'h|help'      => \$help,
+  'i|in=s'     => \$infile,
+  'n|names=s'  => \$namesfile,
+  'g|gff=s'    => \$gfffile,
+  'u|outgrp:i' => \$outgrp_threshold,
+  'U|ingrp:i'  => \$ingrp_threshold,
+  'c|CHS:i'    => \$CHS_threshold,
+  'y|heavy:i'  => \$heavy,
+  'b|bed'      => \$bed,
+  's|subset:i' => \$subset,
+  'h|help'     => \$help,
 );
 
 die $usage if $help;
@@ -148,19 +148,19 @@ while (<$RESULTS>) {
 close $RESULTS;
 print STDERR " found ".scalar(keys %hgt_results)." queries\n";
 print STDERR "[INFO] Evaluating results...\n";
-$n=0;
+# $n=0;
 
 ## iterate through pseudo-GFF:
 open (my $LOC, ">$locationsfile") or die "[ERROR] Cannot open file $locationsfile: $!\n";
 open (my $SUM, ">$summaryfile") or die "[ERROR] Cannot open file $summaryfile: $!\n";
 open (my $HEV, ">$heavyfile") or die "[ERROR] Cannot open file $heavyfile: $!\n";
-print $SUM join ("\t", "SCAFFOLD","NUMGENES","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
-print $HEV join ("\t", "SCAFFOLD","NUMGENES","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
+print $SUM join ("\t", "SCAFFOLD","NUMGENES","UNASSIGNED","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
+print $HEV join ("\t", "SCAFFOLD","NUMGENES","UNASSIGNED","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
 my ($good_outgrp_total,$good_ingrp_total,$intermediate_total,$na_total,$is_linked_total,$is_heavy) = (0,0);
 
 ## iterate across scaffolds:
 foreach my $chrom (nsort keys %scaffolds) {
-  print STDERR "\r[INFO] Working on scaffold \#$n: $chrom (".percentage($n,scalar(keys %scaffolds))."\%)"; $|=1;
+  # print STDERR "\r[INFO] Working on scaffold \#$n: $chrom (".percentage($n,scalar(keys %scaffolds))."\%)"; $|=1;
   print $LOC "## Scaffold \#$n: $chrom\n";
 
   ## sort by start coord within the %bed hash:
@@ -189,13 +189,13 @@ foreach my $chrom (nsort keys %scaffolds) {
   $na_total += $na;
 
   ## evaluate if HGT candidate gene is encoded on a scaffold which also encodes a 'good_ingrp' gene:
-  $is_linked = 1 if (($good_outgrp+$good_ingrp) >= 2); ##must have at least one strong evidence for both
-  print $SUM join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$good_ingrp,$intermediate,$good_outgrp,(percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))),$is_linked,"\n");
+  $is_linked = 1 if ($good_outgrp > 0 && $good_ingrp > 0); ##must have at least one strong evidence for both on the same scaffold
+  print $SUM join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$na,$good_ingrp,$intermediate,$good_outgrp,(percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))),$is_linked,"\n");
   $is_linked_total += $is_linked;
 
   ## evaluate proportion of HGT candidates per scaffold; print to 'heavy' if > threshold:
   if ( (percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))) > $heavy ) {
-    print $HEV join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$good_ingrp,$intermediate,$good_outgrp,(percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))),$is_linked,"\n");
+    print $HEV join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$na,$good_ingrp,$intermediate,$good_outgrp,(percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))),$is_linked,"\n");
     $is_heavy++;
   }
 $n++;
