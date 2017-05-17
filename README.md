@@ -96,7 +96,7 @@ This script takes the results from the "HGT_candidates" output file and outputs 
 
 ### Options
 
-Type `-h` to see the options (note some are not implemented yet...):
+Type `-h` to see the options:
 
 ```
 -i|--in              [FILE]   : taxified diamond/BLAST results file [required]
@@ -124,7 +124,7 @@ One fasta file per HGT candidate gene; each file is named after the focal specie
    >> for f in *.fasta; do echo $f; mafft --auto --quiet --thread 8 $f > ../mafft_alns/${f}.mafft; done
    ```
 
-2. Construct phylogenies using, for example, iqtree or RAxML:
+2. Construct phylogenies using iqtree:
 
    ```
    mkdir processed_files
@@ -142,6 +142,40 @@ One fasta file per HGT candidate gene; each file is named after the focal specie
    mv *treefile treefiles/
    mv *bionj *gz *contree *iqtree *log *mldist *model *nex iqtree/
    ```
+
+## get_locations_of_HGT_candidates.pl
+
+### Synopsis
+
+Takes the .HGT_results file from above, a GFF, and a list of protein names (can be parsed from fasta headers), and looks at the genomic location of all genes in light of their HGT candidacy. Physical "linkage" (here defined simply as genes encoded on the same scaffold) of HGT candidates (hU >= 30 and CHS >= 90% by default) with 'good' metazoan genes (hU <= 0 by default) is reported, as is the presence of introns in HGT candidates (but see note below). Scaffolds encoding a high proportion (default >= 95%) of HGT candidates are also flagged; these are likely derived from contaminant DNA and probably warrant further investigation and/or exclusion.
+
+#### Notes
+
+1. The presence of introns may not be a good measure of HGT support, see [Koutsovoulos et al](http://www.pnas.org/content/113/18/5053) and this [Gist](https://gist.github.com/GDKO/bc507bc9b620e6006a44). Number of introns is inferred by counting the number of CDS with a given protein ID from the input GFF - this works in most cases but may break if this correspondence does not fit your GFF.
+2. The names specified in `--names` must correspond to the protein names in HGT_results and the GFF. An optional regex can be applied to fasta headers, this will be fed into a string substitution like: `s/$REGEX//ig`.
+
+### Options
+
+Type `-h` to see the options:
+```
+-i|--in     [FILE] : *.HGT_results.txt file [required]
+-g|--gff    [FILE] : GFF file [required]
+-n|--names  [FILE] : names of proteins in GFF file, can be fasta of proteins used
+-r|--regex  [STR]  : optional regex to apply to seq headers if -n is a fasta file
+-u|--outgrp [INT]  : threshold hU score for determining 'good' OUTGROUP (HGT) genes [default>=30]
+-U|--ingrp  [INT]  : threshold hU score for determining 'good' INGROUP genes [default<=0]
+-c|--CHS    [INT]  : threshold CHS score for determining 'good' OUTGROUP (HGT) genes [default>=90\%]
+-y|--heavy  [INT]  : threshold for determining 'HGT heavy' scaffolds [default>=95\%]
+-b|--bed           : also write bed file for 'good' HGT genes
+-h|--help          : prints this help message
+```
+
+### Outputs
+
+1. HGT_locations: reports gene-by-gene HGT results in pseudo-BED format. Gene positions on scaffolds inherited from gene coordinates in input GFF.
+2. HGT_locations.summary: reports per-scaffold summary of number of HGT candidates
+3. HGT_locations.heavy: reports scaffolds with a high proportion (dictated by `--heavy`) of HGT candidates
+4. HGT_locations.bed (optional): BED format file of HGT candidates. Useful eg. for intersection with RNASeq mapping data.
 
 ## analyse_trees.R
 
