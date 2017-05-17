@@ -22,7 +22,7 @@ OPTIONS:
   -u|--outgrp [INT]  : threshold hU score for determining 'good' OUTGROUP (HGT) genes [default>=30]
   -U|--ingrp  [INT]  : threshold hU score for determining 'good' INGROUP genes [default<=0]
   -c|--CHS    [INT]  : threshold CHS score for determining 'good' OUTGROUP (HGT) genes [default>=90\%]
-  -y|--heavy  [INT]  : threshold for determining 'HGT heavy' scaffolds [default>=75\%]
+  -y|--heavy  [INT]  : threshold for determining 'HGT heavy' scaffolds [default>=95\%]
   -b|--bed           : also write bed file for 'good' HGT genes
   -h|--help          : prints this help message
 
@@ -40,7 +40,7 @@ my ($infile,$gfffile,$namesfile,$regexstr,$bed,$help);
 my $outgrp_threshold = 30;
 my $ingrp_threshold = 0;
 my $CHS_threshold = 90;
-my $heavy = 75;
+my $heavy = 95;
 
 GetOptions (
   'i|in=s'     => \$infile,
