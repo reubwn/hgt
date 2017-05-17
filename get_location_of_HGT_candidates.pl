@@ -84,8 +84,7 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) {
       chomp $gene;
       $gene =~ s/^>//;
       $gene =~ s/$regexvar//ig if ($regexstr); ##apply regex if specified
-      print STDERR "$gene\n";
-      print STDERR "[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
+      print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
       my ($start,$end,$introns,$chrom,$strand) = (1e+9,0,-1,"NULL","NULL"); ##this will work so long as no start coord is ever >=1Gb!
       ## get coords of all items grepped by $gene
       open (my $G, "grep -F \Q$gene\E $gfffile |") or die "$!\n"; ##will return CDS usually
