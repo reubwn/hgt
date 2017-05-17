@@ -11,7 +11,8 @@ use Data::Dumper qw(Dumper);
 
 my $usage = "
 SYNOPSIS
-  Takes a '*.HGT_results' file and a GFF and returns an '*.HGT_locations' file, specifying the location on each chromosome of HGT candidates.
+  Takes a '*.HGT_results' file and a GFF and returns '*.HGT_locations' files,
+  specifying the location on each chromosome of HGT candidates.
 
 OPTIONS:
   -i|--in     [FILE] : *.HGT_results.txt file [required]
@@ -21,12 +22,18 @@ OPTIONS:
   -u|--outgrp [INT]  : threshold hU score for determining 'good' OUTGROUP (HGT) genes [default>=30]
   -U|--ingrp  [INT]  : threshold hU score for determining 'good' INGROUP genes [default<=0]
   -c|--CHS    [INT]  : threshold CHS score for determining 'good' OUTGROUP (HGT) genes [default>=90\%]
-  -y|--heavy  [INT]  : threshold for determining 'HGT heavy' scaffolds, with >= this proportion genes >= hU [default>=75\%]
-  -b|--bed           : also write bed file for 'good' HGT genes (eg, for intersection with RNASeq bamfile)
+  -y|--heavy  [INT]  : threshold for determining 'HGT heavy' scaffolds [default>=75\%]
+  -b|--bed           : also write bed file for 'good' HGT genes
   -h|--help          : prints this help message
 
 OUTPUTS
-  A '*.HGT_locations' file and a map file, and a list of scaffolds with 'too many' HGT candidates encoded on them to be believable ('*.HGT_heavy').
+  (1) HGT_locations: reports gene-by-gene HGT results in pseudo-BED format. Gene
+      positions on scaffolds inherited from gene coordinates in input GFF.
+  (2) HGT_locations.summary: reports per-scaffold summary of number of HGT candidates
+  (3) HGT_locations.heavy: reports scaffolds with a high proportion (dictated by --heavy)
+      of HGT candidates
+  (4) HGT_locations.bed: BED format file of HGT candidates. Useful for intersection
+      with RNASeq mapping data.
 \n";
 
 my ($infile,$gfffile,$namesfile,$regexstr,$bed,$help);
