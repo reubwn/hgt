@@ -30,7 +30,7 @@ OUTPUTS
 
 OPTIONS:
   -i|--in              [FILE]   : taxified diamond/BLAST results file [required]
-  -c|--candidates      [FILE]   : *.HGT_candidates.txt file [required]
+  -c|--candidates      [FILE]   : HGT_candidates.txt file [required]
   -u|--uniref90        [FILE]   : diamond/BLAST database fasta file, e.g. UniRef90.fasta [required]
   -f|--fasta           [FILE]   : fasta file of query proteins [required]
   -p|--path            [STRING] : path to dir/ containing tax files [required]

@@ -15,7 +15,7 @@ SYNOPSIS
   specifying the location on each chromosome of HGT candidates.
 
 OPTIONS:
-  -i|--in     [FILE] : *.HGT_results.txt file [required]
+  -i|--in     [FILE] : HGT_results.txt file [required]
   -g|--gff    [FILE] : GFF file [required]
   -n|--names  [FILE] : names of proteins in GFF file, can be fasta of proteins used
   -r|--regex  [STR]  : optional regex to apply to seq headers if -n is a fasta file

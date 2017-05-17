@@ -100,7 +100,7 @@ Type `-h` to see the options:
 
 ```
 -i|--in              [FILE]   : taxified diamond/BLAST results file [required]
--c|--candidates      [FILE]   : *.HGT_candidates.txt file [required]
+-c|--candidates      [FILE]   : HGT_candidates.txt file [required]
 -u|--uniref90        [FILE]   : diamond/BLAST database fasta file, e.g. UniRef90.fasta [required]
 -f|--fasta           [FILE]   : fasta file of query proteins [required]
 -p|--path            [STRING] : path to dir/ containing tax files [required]
@@ -143,7 +143,7 @@ One fasta file per HGT candidate gene; each file is named after the focal specie
    mv *bionj *gz *contree *iqtree *log *mldist *model *nex iqtree/
    ```
 
-## get_locations_of_HGT_candidates.pl
+## `get_locations_of_HGT_candidates.pl`
 
 ### Synopsis
 
@@ -152,13 +152,14 @@ Takes the .HGT_results file from above, a GFF, and a list of protein names (can 
 #### Notes
 
 1. The presence of introns may not be a good measure of HGT support, see [Koutsovoulos et al](http://www.pnas.org/content/113/18/5053) and this [Gist](https://gist.github.com/GDKO/bc507bc9b620e6006a44). Number of introns is inferred by counting the number of CDS with a given protein ID from the input GFF - this works in most cases but may break if this correspondence does not fit your GFF.
-2. The names specified in `--names` must correspond to the protein names in HGT_results and the GFF. An optional regex can be applied to fasta headers, this will be fed into a string substitution like: `s/$REGEX//ig`.
+2. A gene can have no information (annotated `NA`) if (a) it has no hit and thus no entry in the HGT_results file ("no-hitters"), or (b) it hits only to taxa that fall under the skipped category specified by `--taxid_skip` during the `diamond_to_HGT_candidates.pl` analysis ("hit-to-skippers"). Such genes are not considered in the current analysis - eg., if a HGT candidate is linked _only_ to hit-to-skippers it will still be counted as unlinked. This seems fair, since it is necessary to discount any association between each protein and its taxonomic annotation, and most genuine metazoan genes should have good hits to homologs across the Metazoa.
+3. The sequence names specified in `--names` must correspond to the protein names in HGT_results and the GFF. An optional regex can be applied to fasta headers, this will be fed into a string substitution like: `s/$REGEX//ig`.
 
 ### Options
 
 Type `-h` to see the options:
 ```
--i|--in     [FILE] : *.HGT_results.txt file [required]
+-i|--in     [FILE] : HGT_results.txt file [required]
 -g|--gff    [FILE] : GFF file [required]
 -n|--names  [FILE] : names of proteins in GFF file, can be fasta of proteins used
 -r|--regex  [STR]  : optional regex to apply to seq headers if -n is a fasta file
