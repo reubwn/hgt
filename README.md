@@ -1,7 +1,7 @@
-# **hgt**
+# hgt
 scripts for the analysis of HGT in genome sequence data.
 
-## **diamond_to_HGT_candidates.pl**
+## diamond_to_HGT_candidates.pl
 
 ### Synopsis
 
@@ -79,7 +79,7 @@ The program outputs 3 files, suffixed with the tags:
 2. **HGT_candidates:** All queries which show evidence from *both* hU (or AI) *and* CHS above the specifed thresholds (defaults are >=30 for hU, >=90% for CHS).
 3. **HGT_warnings:** Any non-fatal warnings detected during the run. Worth checking, but most warnings can probably safely be ignored.
 
-## **HGT_candidates_to_fasta.pl**
+## HGT_candidates_to_fasta.pl
 
 ### Synopsis
 
@@ -143,7 +143,7 @@ One fasta file per HGT candidate gene; each file is named after the focal specie
    mv *bionj *gz *contree *iqtree *log *mldist *model *nex iqtree/
    ```
 
-## **get_locations_of_HGT_candidates.pl**
+## get_locations_of_HGT_candidates.pl
 
 ### Synopsis
 
@@ -178,7 +178,7 @@ Type `-h` to see the options:
 3. HGT_locations.heavy: reports scaffolds with a high proportion (dictated by `--heavy`) of HGT candidates
 4. HGT_locations.bed (optional): BED format file of HGT candidates. Useful eg. for intersection with RNASeq mapping data.
 
-## **analyse_trees.R**
+## analyse_trees.R
 
 Rscript to assess topological support for HGT candidates. For each tree, tests for monophyly with non-metazoan Eukayotes, Fungi, Plants, Bacteria and Archaea. Requires the {ape} R package.
 
