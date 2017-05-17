@@ -76,14 +76,14 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) {
   print STDERR "[INFO] Proteins names file is fasta...\n";
   $namesfilesize = `grep -c ">" $namesfile`;
   $namesfilesize =~ s/\s.+\n//;
-  my $regexvar = qr/$regexstr/;
-  print STDERR "[INFO] Apply regex: $regexstr\n";
+  my $regexvar = qr/$regexstr/ if ($regexstr);
+  print STDERR "[INFO] Will apply regex: s/$regexstr//\n" if ($regexstr);
 
   while (my $gene = <$NAMES>) {
     if ($gene =~ m/^>/) {
       chomp $gene;
       $gene =~ s/^>//;
-      $gene =~ $regexvar if ($regexstr); ##apply regex if specified
+      $gene =~ s/$regexvar//ig if ($regexstr); ##apply regex if specified
       print STDERR "$gene\n";
       print STDERR "[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
       my ($start,$end,$introns,$chrom,$strand) = (1e+9,0,-1,"NULL","NULL"); ##this will work so long as no start coord is ever >=1Gb!
