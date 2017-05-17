@@ -75,18 +75,19 @@ my ($namesfilesize,%locations,%hgt_results,%scaffolds);
 my $n=1;
 
 ## grep protein names from GFF and get coords of CDS:
-open (my $NAMES, $namesfile) or die "[ERROR] Cannot open $namesfile: $!\n";
-print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
-
-## autodetect if names are coming from fasta:
-if ($namesfile =~ m/(fa|faa|fasta)$/) {
-  print STDERR "[INFO] Proteins names file is fasta...\n";
+if ($namesfile =~ m/(fa|faa|fasta)$/) { ##autodetect if names are coming from fasta
+  ## get filesize:
   $namesfilesize = `grep -c ">" $namesfile`;
   $namesfilesize =~ s/\s.+\n//;
-  my $regexvar = qr/$regexstr/ if ($regexstr);
-  print STDERR "[INFO] Will apply regex: s/$regexstr//\n" if ($regexstr);
 
-  while (my $gene = <$NAMES>) {
+  open (my $FAA, $namesfile) or die "[ERROR] Cannot open $namesfile: $!\n";
+  print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
+  print STDERR "[INFO] Proteins names file is from fasta (".commify($namesfilesize)." sequences)\n";
+
+  my $regexvar = qr/$regexstr/ if ($regexstr);
+  print STDERR "[INFO] Applying regex 's/$regexstr//' to fasta headers...\n" if ($regexstr);
+
+  while (my $gene = <$FAA>) {
     if ($gene =~ m/^>/) {
       chomp $gene;
       $gene =~ s/^>//;
@@ -120,9 +121,15 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) {
       next;
     }
   }
+  close $FAA;
 } else {
+  ## get filesize:
   $namesfilesize = `wc -l $namesfile`;
   $namesfilesize =~ s/\s.+\n//;
+
+  open (my $NAMES, $namesfile) or die "[ERROR] Cannot open $namesfile: $!\n";
+  print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
+
   ## iterate through genes in namesfile:
   while (my $gene = <$NAMES>) {
     chomp $gene;
@@ -152,9 +159,9 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) {
     push ( @{ $scaffolds{$chrom} }, $gene ); ##key= scaffold; val= \@array of genes on that scaffold
     $n++;
   }
+  close $NAMES;
 }
 print STDERR "\n";
-close $NAMES;
 
 ## parse HGT_results file:
 print STDERR "[INFO] Parsing HGT_results file...";
