@@ -87,7 +87,7 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) {
       print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
       my ($start,$end,$introns,$chrom,$strand) = (1e+9,0,-1,"NULL","NULL"); ##this will work so long as no start coord is ever >=1Gb!
       ## get coords of all items grepped by $gene
-      open (my $G, "grep -F \Q$gene\E $gfffile |") or die "$!\n"; ##will return CDS usually
+      open (my $G, "grep -F CDS $gfffile | grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
       while (<$G>) {
         chomp;
         my @F = split (/\s+/, $_);
@@ -105,6 +105,7 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) {
                        };
       }
       close $G;
+      print STDERR "[WARN] Nothing found for gene $gene in GFF $gfffile!\n" if (scalar(keys %locations)==0); ##this shouldnt happen and should be a die
       ## build scaffolds hash:
       push ( @{ $scaffolds{$chrom} }, $gene ); ##key= scaffold; val= \@array of genes on that scaffold
       $n++;
@@ -121,7 +122,7 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) {
     print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
     my ($start,$end,$introns,$chrom,$strand) = (1e+9,0,-1,"NULL","NULL"); ##this will work so long as no start coord is ever >=1Gb!
     ## get coords of all items grepped by $gene
-    open (my $G, "grep -F $gene $gfffile |") or die "$!\n"; ##will return CDS usually
+    open (my $G, "grep -F CDS $gfffile | grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
     while (<$G>) {
       chomp;
       my @F = split (/\s+/, $_);
@@ -139,6 +140,7 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) {
                      };
     }
     close $G;
+    print STDERR "[WARN] Nothing found for gene $gene in GFF $gfffile!\n" if (scalar(keys %locations)==0); ##this shouldnt happen and should be a die
     ## build scaffolds hash:
     push ( @{ $scaffolds{$chrom} }, $gene ); ##key= scaffold; val= \@array of genes on that scaffold
     $n++;
