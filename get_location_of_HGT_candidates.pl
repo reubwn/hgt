@@ -57,14 +57,14 @@ print STDERR "[INFO] Proteins names file: $namesfile\n";
 print STDERR "[INFO] hU threshold to determine strong evidence for OUTGROUP: >= $outgrp_threshold\n";
 print STDERR "[INFO] hU threshold to determine strong evidence for INGROUP: <= $ingrp_threshold\n";
 print STDERR "[INFO] CHS threshold to determine strong evidence for OUTGROUP: >= $CHS_threshold\%\n";
-print STDERR "[INFO] Proportion of genes >= hU threshold to determine 'HGT heavy' scaffolds: $heavy\n";
-print STDERR "[INFO] Write bedfile: TRUE\n" if $bed;
+print STDERR "[INFO] Proportion of genes >= hU threshold to determine 'HGT heavy' scaffolds: $heavy\%\n";
+print STDERR "[INFO] Write bedfile: TRUE\n" if ($bed);
 
 (my $locationsfile = $infile) =~ s/HGT_results.+/HGT_locations.txt/;
 (my $summaryfile = $infile) =~ s/HGT_results.+/HGT_locations.summary.txt/;
 (my $heavyfile = $infile) =~ s/HGT_results.+/HGT_locations.heavy.txt/;
-(my $bedfile = $infile) =~ s/HGT_results.+/HGT_locations.OUTGROUP.bed/ if $bed;
-my ($namesfilesize,$isfasta,%bed,%query_names,%hgt_results,%scaffolds,%gff,%seen);
+(my $bedfile = $infile) =~ s/HGT_results.+/HGT_locations.bed/ if ($bed);
+my ($namesfilesize,%locations,%hgt_results,%scaffolds);
 my $n=1;
 
 ## grep protein names from GFF and get coords of CDS:
@@ -96,7 +96,7 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) {
         $introns++; ##the number of iterations of through <$G> corresponds to the num exons; therefore introns is -1 this
         $chrom = $F[0];
         $strand = $F[6];
-        $bed{$gene} = { ##key= gene; val= HoH
+        $locations{$gene} = { ##key= gene; val= HoH
                         'chrom'   => $chrom,
                         'start'   => $start, ##this should cover the 'gene region'
                         'end'     => $end, ##... encoded by the protein name
@@ -130,7 +130,7 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) {
       $introns++; ##the number of iterations of through <$G> corresponds to the num exons; therefore introns is -1 this
       $chrom = $F[0];
       $strand = $F[6];
-      $bed{$gene} = { ##key= gene; val= HoH
+      $locations{$gene} = { ##key= gene; val= HoH
                       'chrom'   => $chrom,
                       'start'   => $start, ##this should cover the 'gene region'
                       'end'     => $end, ##... encoded by the protein name
@@ -188,32 +188,34 @@ print STDERR "[INFO] Evaluating results...\n";
 open (my $LOC, ">$locationsfile") or die "[ERROR] Cannot open file $locationsfile: $!\n";
 open (my $SUM, ">$summaryfile") or die "[ERROR] Cannot open file $summaryfile: $!\n";
 open (my $HEV, ">$heavyfile") or die "[ERROR] Cannot open file $heavyfile: $!\n";
+open (my $BED, ">$bedfile") or die "[ERROR] Cannot open file $bedfile: $!\n" if ($bed);
 print $LOC join ("\t", "#SCAFFOLD","START","END","GENE","SCORE","STRAND","INTRONS","hU","EVIDENCE","TAXONOMY","\n");
 print $SUM join ("\t", "#SCAFFOLD","NUMGENES","UNASSIGNED","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
 print $HEV join ("\t", "#SCAFFOLD","NUMGENES","UNASSIGNED","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
-my ($good_outgrp_total,$good_ingrp_total,$intermediate_total,$na_total,$intronized,$is_linked_total,$is_heavy) = (0,0,0,0,0,0,0);
+my ($good_outgrp_total,$good_ingrp_total,$intermediate_total,$na_total,$intronized,$is_linked_total,$is_heavy,$num_genes_on_heavy) = (0,0,0,0,0,0,0,0);
 
 ## iterate across scaffolds:
 foreach my $chrom (nsort keys %scaffolds) {
   # print STDERR "\r[INFO] Working on scaffold \#$n: $chrom (".percentage($n,scalar(keys %scaffolds))."\%)"; $|=1;
   print $LOC "## Scaffold \#$n: $chrom\n";
 
-  ## sort by start coord within the %bed hash:
+  ## sort by start coord within the %locations hash:
   my ($good_outgrp,$good_ingrp,$intermediate,$na,$is_linked) = (0,0,0,0,0);
-  foreach my $gene ( sort {$bed{$a}{start}<=>$bed{$b}{start}} @{$scaffolds{$chrom}} ) {
+  foreach my $gene ( sort {$locations{$a}{start}<=>$locations{$b}{start}} @{$scaffolds{$chrom}} ) {
     if ( exists($hgt_results{$gene}{hU}) ) {
       if ($hgt_results{$gene}{evidence} == 2) {
-        print $LOC join ("\t", $chrom,$bed{$gene}{start},$bed{$gene}{end},$gene,".",$bed{$gene}{strand},$bed{$gene}{introns},$hgt_results{$gene}{hU},$hgt_results{$gene}{evidence},$hgt_results{$gene}{taxonomy},"\n");
+        print $LOC join ("\t", $chrom,$locations{$gene}{start},$locations{$gene}{end},$gene,".",$locations{$gene}{strand},$locations{$gene}{introns},$hgt_results{$gene}{hU},$hgt_results{$gene}{evidence},$hgt_results{$gene}{taxonomy},"\n");
+        print $BED join ("\t", $chrom,$locations{$gene}{start},$locations{$gene}{end},$gene,".",$locations{$gene}{strand},"\n") if ($bed);
         $good_outgrp++;
-        $intronized++ if $bed{$gene}{introns} > 0;
+        $intronized++ if $locations{$gene}{introns} > 0;
       } else {
-        print $LOC join ("\t", $chrom,$bed{$gene}{start},$bed{$gene}{end},$gene,".",$bed{$gene}{strand},$bed{$gene}{introns},$hgt_results{$gene}{hU},$hgt_results{$gene}{evidence},"\n");
+        print $LOC join ("\t", $chrom,$locations{$gene}{start},$locations{$gene}{end},$gene,".",$locations{$gene}{strand},$locations{$gene}{introns},$hgt_results{$gene}{hU},$hgt_results{$gene}{evidence},"\n");
         $good_ingrp++ if $hgt_results{$gene}{evidence} == 0;
         $intermediate++ if $hgt_results{$gene}{evidence} == 1;
       }
     } else {
       ## NA if either no hit or if hit to 'skipped' taxon (usually self-phylum):
-      print $LOC join ("\t", $chrom,$bed{$gene}{start},$bed{$gene}{end},$gene,".",$bed{$gene}{strand},$bed{$gene}{introns},"NA","\n");
+      print $LOC join ("\t", $chrom,$locations{$gene}{start},$locations{$gene}{end},$gene,".",$locations{$gene}{strand},$locations{$gene}{introns},"NA","\n");
       $na++;
     }
   }
@@ -232,6 +234,7 @@ foreach my $chrom (nsort keys %scaffolds) {
   ## evaluate proportion of HGT candidates per scaffold; print to 'heavy' if > threshold:
   if ( (percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))) > $heavy ) {
     print $HEV join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$na,$good_ingrp,$intermediate,$good_outgrp,(percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))),$is_linked,"\n");
+    $num_genes_on_heavy += scalar(@{$scaffolds{$chrom}});
     $is_heavy++;
   }
 $n++;
@@ -239,6 +242,8 @@ $n++;
 close $LOC;
 close $SUM;
 close $HEV;
+colse $BED if ($bed);
+
 print STDERR "\n";
 print STDERR "[INFO] Number of good INGROUP genes: ".commify($good_ingrp_total)."\n";
 print STDERR "[INFO] Number of good OUTGROUP genes (HGT candidates): ".commify($good_outgrp_total)."\n";
@@ -246,7 +251,8 @@ print STDERR "[INFO] Number of HGT candidates with (at least one) intron: ".comm
 print STDERR "[INFO] Number of HGT candidates linked to good INGROUP gene: ".commify($is_linked_total)."\n";
 print STDERR "[INFO] Number of genes with intermediate score: ".commify($intermediate_total)."\n";
 print STDERR "[INFO] Number of genes with no assignment (no-hitters or hit-to-skippers): ".commify($na_total)."\n";
-print STDERR "[INFO] Number of scaffolds with HGT proportion >= $heavy: ".commify($is_heavy)."\n";
+print STDERR "[INFO] Number of 'HGT heavy' scaffolds: ".commify($is_heavy)."\n";
+print STDERR "[INFO] Number of genes encoded on 'HGT heavy' scaffolds: ".commify($num_genes_on_heavy)."\n";
 print STDERR "\n[INFO] Finished on ".`date`."\n";
 
 ################################################################################
