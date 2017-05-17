@@ -78,7 +78,7 @@ my $n=1;
 if ($namesfile =~ m/(fa|faa|fasta)$/) { ##autodetect if names are coming from fasta
   ## get filesize:
   $namesfilesize = `grep -c ">" $namesfile`;
-  $namesfilesize =~ s/\s.+\n//;
+  $namesfilesize =~ s/\n//;
 
   open (my $FAA, $namesfile) or die "[ERROR] Cannot open $namesfile: $!\n";
   print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
