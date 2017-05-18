@@ -68,10 +68,12 @@ print STDERR "[INFO] Proportion of genes >= hU threshold to determine 'HGT heavy
 print STDERR "[INFO] Write bedfile: TRUE\n" if ($bed);
 
 (my $locationsfile = $infile) =~ s/HGT_results.+/HGT_locations.txt/;
-(my $summaryfile = $infile) =~ s/HGT_results.+/HGT_locations.summary.txt/;
+(my $summaryfile = $infile) =~ s/HGT_results.+/HGT_locations.scaffold_summary.txt/;
+(my $oversummaryfile = $infile) =~ s/HGT_results.+/HGT_locations.overall_summary.txt/;
 (my $heavyfile = $infile) =~ s/HGT_results.+/HGT_locations.heavy.txt/;
+(my $warningsfile = $infile) =~ s/HGT_results.+/HGT_locations.warnings.txt/;
 (my $bedfile = $infile) =~ s/HGT_results.+/HGT_locations.bed/ if ($bed);
-my ($namesfilesize,%locations,%hgt_results,%scaffolds);
+my ($namesfilesize,%orphans,%locations,%hgt_results,%scaffolds);
 my $n=1;
 
 ## grep protein names from GFF and get coords of CDS:
@@ -93,7 +95,8 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) { ##autodetect if names are coming from fa
       $gene =~ s/^>//;
       $gene =~ s/$regexvar//ig if ($regexstr); ##apply regex if specified
       print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
-      my ($start,$end,$introns,$chrom,$strand) = (1e+9,0,-1,"NULL","NULL"); ##this will work so long as no start coord is ever >=1Gb!
+      my ($start,$end,$introns) = (1e+9,0,-1); ##this will work so long as no start coord is ever >=1Gb!
+      my ($chrom,$strand) = ("NULL","NULL");
       ## get coords of all items grepped by $gene
       open (my $G, "grep -F CDS $gfffile | grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
       while (<$G>) {
@@ -113,7 +116,11 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) { ##autodetect if names are coming from fa
                        };
       }
       close $G;
-      print STDERR "[WARN] Nothing found for gene $gene in GFF $gfffile!\n" if (scalar(keys %locations)==0); ##this shouldnt happen and should be a die
+      unless (exists($locations{$gene}{chrom})) { ##all genes should have a chrom...
+        print STDERR "\n[WARN] Nothing found for gene $gene in GFF $gfffile!\n";
+        $orphans{$gene} = ();
+      }
+
       ## build scaffolds hash:
       push ( @{ $scaffolds{$chrom} }, $gene ); ##key= scaffold; val= \@array of genes on that scaffold
       $n++;
@@ -131,10 +138,11 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) { ##autodetect if names are coming from fa
   print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
 
   ## iterate through genes in namesfile:
-  while (my $gene = <$NAMES>) {
+  GENE: while (my $gene = <$NAMES>) {
     chomp $gene;
     print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
-    my ($start,$end,$introns,$chrom,$strand) = (1e+9,0,-1,"NULL","NULL"); ##this will work so long as no start coord is ever >=1Gb!
+    my ($start,$end,$introns) = (1e+9,0,-1); ##this will work so long as no start coord is ever >=1Gb!
+    my ($chrom,$strand) = ("NULL","NULL");
     ## get coords of all items grepped by $gene
     open (my $G, "grep -F CDS $gfffile | grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
     while (<$G>) {
@@ -154,7 +162,14 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) { ##autodetect if names are coming from fa
                      };
     }
     close $G;
-    print STDERR "[WARN] Nothing found for gene $gene in GFF $gfffile!\n" if (scalar(keys %locations)==0); ##this shouldnt happen and should be a die
+
+    ## evaluate GFF grep results - gene name may not be present if there is a mismatch in protein faa and GFF used:
+    unless (exists($locations{$gene}{chrom})) { ##all genes should have a chrom...
+      print STDERR "\n[WARN] Nothing found for gene $gene in GFF $gfffile!\n";
+      $orphans{$gene} = (); ##count
+      next GENE; ##move on
+    }
+
     ## build scaffolds hash:
     push ( @{ $scaffolds{$chrom} }, $gene ); ##key= scaffold; val= \@array of genes on that scaffold
     $n++;
@@ -162,6 +177,17 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) { ##autodetect if names are coming from fa
   close $NAMES;
 }
 print STDERR "\n";
+
+## print orphans to warnings file:
+if (scalar(keys %orphans) > 0) {
+  print STDERR "[WARN] Orphans found! ".scalar(keys %orphans)." gene names not in GFF\n";
+  open (my $WARN, ">$warningsfile") or die "[ERROR] Cannot open file $warningsfile: $!\n";
+  print $WARN "Following gene names not found in $gfffile (".scalar(keys %orphans)." genes):\n";
+  foreach (nsort keys %orphans) {
+    print $WARN "$_\n";
+  }
+  close $WARN;
+}
 
 ## parse HGT_results file:
 print STDERR "[INFO] Parsing HGT_results file...";
@@ -209,7 +235,7 @@ open (my $BED, ">$bedfile") or die "[ERROR] Cannot open file $bedfile: $!\n" if 
 print $LOC join ("\t", "#SCAFFOLD","START","END","GENE","SCORE","STRAND","INTRONS","hU","EVIDENCE","TAXONOMY","\n");
 print $SUM join ("\t", "#SCAFFOLD","NUMGENES","UNASSIGNED","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
 print $HEV join ("\t", "#SCAFFOLD","NUMGENES","UNASSIGNED","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
-my ($good_outgrp_total,$good_ingrp_total,$intermediate_total,$na_total,$intronized,$linked_total,$is_heavy,$num_genes_on_heavy) = (0,0,0,0,0,0,0,0);
+my ($good_outgrp_total,$good_ingrp_total,$intermediate_total,$na_total,$intronized,$linked_total,$is_heavy,$num_genes_on_heavy_HGT,$num_genes_on_heavy_total) = (0,0,0,0,0,0,0,0,0);
 
 ## iterate across scaffolds:
 foreach my $chrom (nsort keys %scaffolds) {
@@ -219,6 +245,13 @@ foreach my $chrom (nsort keys %scaffolds) {
   ## sort by start coord within the %locations hash:
   my ($good_outgrp,$good_ingrp,$intermediate,$na,$is_linked) = (0,0,0,0,0);
   foreach my $gene ( sort {$locations{$a}{start}<=>$locations{$b}{start}} @{$scaffolds{$chrom}} ) {
+    ## evaluate if protein name was not found in the GFF (if protein file and GFF dont match up exactly):
+    # unless (exists($locations{$gene}{chrom})) {
+    #   open (my $WARN, ">$warningsfile") or die "[ERROR] Cannot open file $warningsfile: $!\n";
+    #   print $WARN join ("\t", $gene,"No chrom found in GFF $gfffile","\n");
+    #   next GENE; ##skip to next gene
+    # }
+    ## then evaluate if gene has associated hU:
     if ( exists($hgt_results{$gene}{hU}) ) {
       if ($hgt_results{$gene}{evidence} == 2) {
         print $LOC join ("\t", $chrom,$locations{$gene}{start},$locations{$gene}{end},$gene,".",$locations{$gene}{strand},$locations{$gene}{introns},$hgt_results{$gene}{hU},$hgt_results{$gene}{evidence},$hgt_results{$gene}{taxonomy},"\n");
@@ -258,7 +291,8 @@ foreach my $chrom (nsort keys %scaffolds) {
   ## evaluate proportion of HGT candidates per scaffold; print to 'heavy' if > threshold:
   if ( (percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))) > $heavy ) {
     print $HEV join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$na,$good_ingrp,$intermediate,$good_outgrp,(percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))),$is_linked,"\n");
-    $num_genes_on_heavy += scalar(@{$scaffolds{$chrom}});
+    $num_genes_on_heavy_total += scalar(@{$scaffolds{$chrom}});
+    $num_genes_on_heavy_HGT += scalar( grep { $hgt_results{$_}{evidence}==2 } @{$scaffolds{$chrom}} );
     $is_heavy++;
   }
 $n++;
@@ -269,15 +303,30 @@ close $HEV;
 colse $BED if ($bed);
 
 print STDERR "\n";
-print STDERR "[INFO] Number of good INGROUP genes: ".commify($good_ingrp_total)."\n";
-print STDERR "[INFO] Number of good OUTGROUP genes (HGT candidates): ".commify($good_outgrp_total)."\n";
-print STDERR "[INFO] Number of HGT candidates with (at least one) intron: ".commify($intronized)."\n";
-print STDERR "[INFO] Number of HGT candidates linked to good INGROUP gene: ".commify($linked_total)."\n";
-print STDERR "[INFO] Number of genes with intermediate score: ".commify($intermediate_total)."\n";
-print STDERR "[INFO] Number of genes with no assignment (no-hitters or hit-to-skippers): ".commify($na_total)."\n";
-print STDERR "[INFO] Number of 'HGT heavy' scaffolds: ".commify($is_heavy)."\n";
-print STDERR "[INFO] Number of genes encoded on 'HGT heavy' scaffolds: ".commify($num_genes_on_heavy)."\n";
+print STDERR "[RESULT] Number of good INGROUP genes: ".commify($good_ingrp_total)."\n";
+print STDERR "[RESULT] Number of good OUTGROUP genes (HGT candidates): ".commify($good_outgrp_total)."\n";
+print STDERR "[RESULT] Number of HGT candidates with (at least one) intron: ".commify($intronized)."\n";
+print STDERR "[RESULT] Number of HGT candidates linked to good INGROUP gene: ".commify($linked_total)."\n";
+print STDERR "[RESULT] Number of genes with intermediate score: ".commify($intermediate_total)."\n";
+print STDERR "[RESULT] Number of genes with no assignment (no-hitters or hit-to-skippers): ".commify($na_total)."\n";
+print STDERR "[RESULT] Number of 'HGT heavy' scaffolds: ".commify($is_heavy)."\n";
+print STDERR "[RESULT] Number of genes on 'HGT heavy' scaffolds: ".commify($num_genes_on_heavy_total)." (total); ".commify($num_genes_on_heavy_HGT)." (HGT candidates)\n";
 print STDERR "\n[INFO] Finished on ".`date`."\n";
+
+open (my $OVER, ">$oversummaryfile") or die "[ERROR] Cannot open file $oversummaryfile: $!\n";
+print $OVER "[INFO] Infile: $infile\n";
+print $OVER "[INFO] GFF file: $gfffile\n";
+print $OVER "[INFO] Proteins names file: $namesfile\n";
+print $OVER "[RESULT] Number of good INGROUP genes: ".commify($good_ingrp_total)."\n";
+print $OVER "[RESULT] Number of good OUTGROUP genes (HGT candidates): ".commify($good_outgrp_total)."\n";
+print $OVER "[RESULT] Number of HGT candidates with (at least one) intron: ".commify($intronized)."\n";
+print $OVER "[RESULT] Number of HGT candidates linked to good INGROUP gene: ".commify($linked_total)."\n";
+print $OVER "[RESULT] Number of genes with intermediate score: ".commify($intermediate_total)."\n";
+print $OVER "[RESULT] Number of genes with no assignment (no-hitters or hit-to-skippers): ".commify($na_total)."\n";
+print $OVER "[RESULT] Number of 'HGT heavy' scaffolds: ".commify($is_heavy)."\n";
+print $OVER "[RESULT] Number of genes on 'HGT heavy' scaffolds: ".commify($num_genes_on_heavy_total)." (total); ".commify($num_genes_on_heavy_HGT)." (HGT candidates)\n";
+print $OVER "[INFO] Finished on ".`date`."\n";
+close $OVER;
 
 ################################################################################
 
