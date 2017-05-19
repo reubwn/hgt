@@ -300,7 +300,7 @@ $n++;
 close $LOC;
 close $SUM;
 close $HEV;
-colse $BED if ($bed);
+close $BED if ($bed);
 
 print STDERR "\n";
 print STDERR "[RESULT] Number of good INGROUP genes: ".commify($good_ingrp_total)."\n";
