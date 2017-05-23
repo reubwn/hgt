@@ -36,6 +36,7 @@ OPTIONS:
   -p|--path            [STRING] : path to dir/ containing tax files [required]
   -t|--taxid_threshold [INT]    : NCBI taxid to recurse up to; i.e., threshold taxid to define 'ingroup' [default = 33208 (Metazoa)]
   -k|--taxid_skip      [INT]    : NCBI taxid to skip; hits to this taxid will not be considered in any calculations of support
+  -d|--dir             [DIR]    : dir name to put fasta files into [default=outdir]
   -l|--limit                    : maximum number of ingroup / outgroup sequences to fetch (if available) [default = 15]
   -v|--verbose                  : say more things [default: be quiet]
   -h|--help                     : prints this help message
@@ -44,22 +45,24 @@ OPTIONS:
 my ($in,$candidates,$uniref90,$fasta,$path,$groups,$mafft,$raxml,$prefix,$verbose,$help);
 my $taxid_threshold = 33208;
 my $taxid_skip = 0; ## default is 0, which is not a valid NCBI taxid and should not affect the tree recursion
+my $outdir = "outdir";
 my $limit = 15;
 
 GetOptions (
-  'in|i=s'              => \$in,
-  'cadidates|c=s'       => \$candidates,
-  'uniref90|u=s'        => \$uniref90,
-  'fasta|f=s'           => \$fasta,
-  'path|p=s'            => \$path,
-  'taxid_threshold|t:i' => \$taxid_threshold,
-  'taxid_skip|k:i'      => \$taxid_skip,
-  'limit|l:i'           => \$limit,
-  'groups|g:s'          => \$groups,
-  'mafft|m'             => \$mafft,
-  'raxml|x'             => \$raxml,
-  'verbose|v'           => \$verbose,
-  'help|h'              => \$help,
+  'i|in=s'              => \$in,
+  'c|cadidates=s'       => \$candidates,
+  'u|uniref90=s'        => \$uniref90,
+  'f|fasta=s'           => \$fasta,
+  'p|path=s'            => \$path,
+  't|taxid_threshold:i' => \$taxid_threshold,
+  'k|taxid_skip:i'      => \$taxid_skip,
+  'l|limit:i'           => \$limit,
+  'd|dir:s'             => \$outdir,
+  'g|groups:s'          => \$groups,
+  'm|mafft'             => \$mafft,
+  'x|raxml'             => \$raxml,
+  'v|verbose'           => \$verbose,
+  'h|help'              => \$help,
 );
 
 die $usage if $help;
@@ -180,10 +183,17 @@ while (<$DIAMOND>) {
   }
 }
 close $DIAMOND;
-
 print Dumper \%hits_hash if $verbose;
 
 ############################################## PARSE CANDIDATES
+
+## make outdir to save results:
+if (-d $outdir) {
+  rmtree([ "$outdir" ]);
+  mkdir $outdir;
+} else {
+  mkdir $outdir;
+}
 
 print STDERR "[INFO] Getting sequences from database '$uniref90'\n";
 print STDERR "[INFO] Processing HGT_candidates file...\n";
@@ -215,6 +225,9 @@ while (<$CANDIDATES>) {
   close $CMD;
   close $FA;
 
+  ## mv fasta to outdir:
+  system("mv $file_name.fasta $outdir");
+
   ## progress
   $processed++;
   if ($processed % 10 == 0){
@@ -223,8 +236,7 @@ while (<$CANDIDATES>) {
   }
 }
 close $CANDIDATES;
-print STDERR "\n";
-print STDERR "[INFO] Finished on ".`date`."\n";
+print STDERR "\n[INFO] Finished on ".`date`."\n";
 
 ############################################# SUBS
 
