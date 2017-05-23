@@ -196,6 +196,7 @@ if (-d $outdir) {
 }
 
 print STDERR "[INFO] Getting sequences from database '$uniref90'\n";
+print STDERR "[INFO] Writing results to dir: $outdir\n";
 print STDERR "[INFO] Processing HGT_candidates file...\n";
 open (my $CANDIDATES, $candidates) or die "Cannot open file '$candidates': $!\n";
 while (<$CANDIDATES>) {
