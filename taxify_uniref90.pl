@@ -46,7 +46,7 @@ while (my $line = <$IN>) {
     $ncbitaxid = $1;
   } elsif ($line =~ m/\Q$entry_end\E/) {
     if ($seqid eq "NULL" || $taxid eq "NULL" || $ncbitaxid eq "NULL") {
-      print STDERR "[WARN] $seqid $taxid $ncbitaxid\n";
+      print "[WARN] $seqid $taxid $ncbitaxid\n";
     } else {
       print join ("\t",
         $seqid,
