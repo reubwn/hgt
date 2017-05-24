@@ -20,7 +20,7 @@ GetOptions (
 );
 
 my (%uniref);
-my ($seqid,$taxid,$ncbitaxid) = (0,0,0);
+my ($seqid,$taxid,$ncbitaxid) = ("NULL","NULL","NULL");
 my $seqid_searchfor = '<entry id="';
 my $taxid_searchfor = '<property type="common taxon ID" value="';
 my $UniParc_searchfor = '<dbReference type="UniParc ID" id="';
@@ -38,8 +38,8 @@ while (my $line = <$IN>) {
   } elsif ($line =~ m/\Q$NCBI_searchfor\E(\d+)\"/) {
     $ncbitaxid = $1;
   } elsif ($line =~ m/\Q$endquery_searchfor\E/) {
-    print "[WARN] $seqid $taxid $ncbitaxid\n" if ($seqid ~~ 0 || $taxid ~~ 0 || $ncbitaxid ~~ 0);
+    print "[WARN] $seqid $taxid $ncbitaxid\n" if ($seqid eq "NULL" || $taxid eq "NULL" || $ncbitaxid eq "NULL");
     print "$seqid\t$taxid\t$ncbitaxid\n";
-    ($seqid,$taxid,$ncbitaxid) = (0,0,0);
+    ($seqid,$taxid,$ncbitaxid) = ("NULL","NULL","NULL");
   }
 }
