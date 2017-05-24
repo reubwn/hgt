@@ -32,7 +32,7 @@ my $entry_end = '</entry>';
 open (my $IN, $infile) or die $!;
 while (my $line = <$IN>) {
   chomp $line;
-  if ($line =~ m/^\Q$entry_begin\E(\w+)\"/) {
+  if ($line =~ m/^\Q$entry_begin\E(\S+)\"/) {
     $seqid = $1;
   } elsif ($line =~ m/^\Q$taxname_searchfor\E(.+)\"/) {
     $taxname = $1;
