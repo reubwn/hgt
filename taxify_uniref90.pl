@@ -38,22 +38,22 @@ while (my $line = <$IN>) {
     $taxname = $1;
   } elsif ($line =~ m/^\Q$taxid_searchfor\E(\d+)\"/) {
     $taxid = $1;
-  } elsif ($line =~ m/^\Q$UniParc_searchfor\E(\w+)\"/) {
-    $dbxref{$1} = ();
-  } elsif ($line =~ m/^\Q$UniRef_searchfor\E.+(UniRef\w+)\"/) {
-    $dbxref{$1} = ();
+  # } elsif ($line =~ m/^\Q$UniParc_searchfor\E(\w+)\"/) {
+  #   $dbxref{$1} = ();
+  # } elsif ($line =~ m/^\Q$UniRef_searchfor\E.+(UniRef\w+)\"/) {
+  #   $dbxref{$1} = ();
   } elsif ($line =~ m/\Q$NCBI_searchfor\E(\d+)\"/) {
     $ncbitaxid = $1;
   } elsif ($line =~ m/\Q$entry_end\E/) {
     if ($seqid eq "NULL" || $taxid eq "NULL" || $ncbitaxid eq "NULL") {
-      print "[WARN] $seqid $taxid $ncbitaxid\n";
+      # print "[WARN] $seqid $taxid $ncbitaxid\n";
     } else {
       print join ("\t",
         $seqid,
         $taxid,
-        $ncbitaxid,
-        $taxname,
-        (nsort keys %dbxref),
+        # $ncbitaxid,
+        # $taxname,
+        # (nsort keys %dbxref),
         "\n"
       );
       ($seqid,$taxid,$ncbitaxid,$taxname) = ("NULL","NULL","NULL","NULL");
