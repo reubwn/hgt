@@ -39,7 +39,7 @@ while (my $line = <$IN>) {
     $ncbitaxid = $1;
   } elsif ($line =~ m/\Q$endquery_searchfor\E/) {
     print STDERR "[WARN] $seqid $taxid $ncbitaxid\n" if ($seqid eq 0 || $taxid eq 0 || $ncbitaxid eq 0);
-    print STDERR "$seqid\t$taxid\t$ncbitaxid\n";
+    print "$seqid\t$taxid\t$ncbitaxid\n";
     ($seqid,$taxid,$ncbitaxid) = (0,0,0);
   }
 }
