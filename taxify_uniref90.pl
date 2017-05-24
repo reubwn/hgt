@@ -19,27 +19,45 @@ GetOptions (
   'path|p:s'  => \$path,
 );
 
-my (%uniref);
-my ($seqid,$taxid,$ncbitaxid) = ("NULL","NULL","NULL");
-my $seqid_searchfor = '<entry id="';
+my %dbxref;
+my ($seqid,$taxname,$taxid,$ncbitaxid) = ("NULL","NULL","NULL");
+my $entry_begin = '<entry id="';
+my $taxname_searchfor = '<property type="common taxon" value="';
 my $taxid_searchfor = '<property type="common taxon ID" value="';
 my $UniParc_searchfor = '<dbReference type="UniParc ID" id="';
-# my $UniRef_searchfor =
+my $UniRef_searchfor = '<property type="UniRef';
 my $NCBI_searchfor = '<property type="NCBI taxonomy" value="';
-my $endquery_searchfor = '</entry>';
+my $entry_end = '</entry>';
 
 open (my $IN, $infile) or die $!;
 while (my $line = <$IN>) {
   chomp $line;
-  if ($line =~ m/^\Q$seqid_searchfor\E(\w+)\"/) {
+  if ($line =~ m/^\Q$entry_begin\E(\w+)\"/) {
     $seqid = $1;
+  } elsif ($line =~ m/^\Q$taxname_searchfor\E(.+)\"/) {
+    $taxname = $1;
   } elsif ($line =~ m/^\Q$taxid_searchfor\E(\d+)\"/) {
     $taxid = $1;
+  } elsif ($line =~ m/^\Q$UniParc_searchfor\E(\w+)\"/) {
+    $dbxref{$1} = ();
+  } elsif ($line =~ m/^\Q$UniRef_searchfor\E.+(UniRef\w+)\"/) {
+    $dbxref{$1} = ();
   } elsif ($line =~ m/\Q$NCBI_searchfor\E(\d+)\"/) {
     $ncbitaxid = $1;
-  } elsif ($line =~ m/\Q$endquery_searchfor\E/) {
-    print "[WARN] $seqid $taxid $ncbitaxid\n" if ($seqid eq "NULL" || $taxid eq "NULL" || $ncbitaxid eq "NULL");
-    print "$seqid\t$taxid\t$ncbitaxid\n";
-    ($seqid,$taxid,$ncbitaxid) = ("NULL","NULL","NULL");
+  } elsif ($line =~ m/\Q$entry_end\E/) {
+    if ($seqid eq "NULL" || $taxid eq "NULL" || $ncbitaxid eq "NULL") {
+      print STDERR "[WARN] $seqid $taxid $ncbitaxid\n";
+    } else {
+      print join ("\t"
+        $seqid,
+        $taxid,
+        $ncbitaxid,
+        $taxname,
+        (nsort keys %dbxref),
+        "\n"
+      );
+      ($seqid,$taxid,$ncbitaxid,$taxname) = ("NULL","NULL","NULL","NULL");
+      %dbxref = ();
+    }
   }
 }
