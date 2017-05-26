@@ -192,8 +192,8 @@ cat("  Metazoa:",sum(results$euk.metazoa.q.mono)," (",nrow(subset(results,result
 cat("  Fungi:",sum(results$euk.fungi.q.mono)," (",nrow(subset(results,results$both==1 & results$out.q.mono==1 & results$euk.fungi.q.mono)),")","\n")
 cat("  plants:",sum(results$euk.plants.q.mono)," (",nrow(subset(results,results$both==1 & results$out.q.mono==1 & results$euk.plants.q.mono)),")","\n")
 cat("  other eukaryotes:",sum(results$euk.other.q.mono)," (",nrow(subset(results,results$both==1 & results$out.q.mono==1 & results$euk.other.q.mono)),")","\n")
-cat("  Bacteria:",sum(results$bacteria.q.mono)," (",nrow(subset(results,results$both==1 & results$out.q.mono==1 & results$euk.bacteria.q.mono)),")","\n")
-cat("  Archaea:",sum(results$archaea.q.mono)," (",nrow(subset(results,results$both==1 & results$out.q.mono==1 & results$euk.archaea.q.mono)),")","\n\n")
+cat("  Bacteria:",sum(results$bacteria.q.mono)," (",nrow(subset(results,results$both==1 & results$out.q.mono==1 & results$bacteria.q.mono)),")","\n")
+cat("  Archaea:",sum(results$archaea.q.mono)," (",nrow(subset(results,results$both==1 & results$out.q.mono==1 & results$archaea.q.mono)),")","\n\n")
 
 ## write tab-delim results
 write.table(results, file=opt$out, quote=F, sep="\t", row.names=F)
