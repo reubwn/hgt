@@ -211,4 +211,58 @@ Path to dir of (newick) trees.
 
 ### Outputs
 
-Counts for monophyletic support for query with numerous groups; PDF of trees colour-coded by ingroup / outgroup categorisation.
+Program calculates:
+1. Counts for monophyletic support for query with numerous groups;
+2. Assessment of topological evidence for HGT;
+3. PDF of trees colour-coded by ingroup / outgroup categorisation;
+
+Typical output might look like:
+```
+Mean number of taxa per tree:
+  Total taxa: 12.87234
+  Ingroup taxa: 0.893617
+  Outgroup taxa: 10.97872
+```
+Showing the number of taxa designated as 'ingroup' (eg Metazoa) versus 'outgroup' (eg non-Metazoa) per analysed tree.
+
+```
+Number of trees with:
+  Ingroup taxa only: 0
+  Outgroup taxa only: 36
+  Both: 11
+```
+Showing number of trees with _only_ ingroup or _only_ outgroup taxa present, or with _both_ ingroup and outgroup taxa present.
+
+```
+Number of 'Both' trees where Query can be monophyletic with:
+  Ingroup taxa only: 2
+  Outgroup taxa only: 2
+  Both: 5
+Average bootstrap support for monophyly of Query with:
+  Ingroup: 82.71429
+  Outgroup: 79.28571
+```
+Tests for monophyly of Query with in/outgroup explicitly ask the question: is it possible to draw a root somewhere on the tree that results in a monophyletic cluster containing the Query + (all of the) in/outgroup taxa? Note that Monophyly of Query+ingroup and monophyly of Query+outgroup are not mutually exclusive (counted as 'Both').
+
+```
+Assessment of HGT support catagories:
+  1. Monophyly with outgroup taxa is possible (incl. clusters with only outgroup sequences): 43
+  2. Monophyly with outgroup taxa is possible (excl. clusters with only outgroup sequences): 7
+  3. Monophyly with outgroup taxa is possible, with ingroup impossible, at least 3 each in/outgroup taxa: 0
+  4. Monophyly with outgroup taxa is possible (>=70% bootstrap support), with ingroup impossible, at least 3 each in/outgroup taxa: 0
+```
+1. It is possible root the tree such that Query is monophyletic with outgroup taxa, includes those trees with _only_ outgroup taxa;
+2. It is possible root the tree such that Query is monophyletic with outgroup taxa, **excludes** those trees with _only_ outgroup taxa (ie, requires at least 1 ingroup + 1 outgroup + Query in tree);
+3. More stringent; requires at least 3 members from ingroup and outgroup present in tree, and excludes trees where monophyly with ingroup is also possible;
+4. More stringent again; as above but requires high bootstrap value.
+
+```
+Number of trees where Query+GROUP are monophyletic:
+  Metazoa: 7 (0)
+  Fungi: 13 (0)
+  plants: 5 (0)
+  other eukaryotes: 6 (0)
+  Bacteria: 16 (0)
+  Archaea: 0 (0)
+```
+Note that these counts require monophyly of Query + _all_ members of `GROUP`; if `GROUP` is paraphyletic, won't be counted.
