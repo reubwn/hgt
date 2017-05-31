@@ -293,7 +293,7 @@ foreach my $chrom (nsort keys %scaffolds) {
   if ( ($good_outgrp>0) && ($good_ingrp>0) ) { ##must have at least one strong evidence for both on the same scaffold
     ## fetch gene names of all HGTc genes which are linked:
     my @linked_HGTc = grep { $hgt_results{$_}{evidence} eq "2" } @{$scaffolds{$chrom}}; ##evaluate as eq as there will be some NA's
-    print $LINLIST join ("\n", @linked_HGTc,"\n"); ##print list of linked HGTc gene names
+    print $LINLIST join ("\n", @linked_HGTc); ##print list of linked HGTc gene names
     print $SUM join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$na,$good_ingrp,$intermediate,$good_outgrp,(percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))),"1","\n"); ##print to scaffold_summary
     $linked_total += $good_outgrp; ##sum total linked HGT candidates
     $is_linked = 1;
