@@ -43,7 +43,7 @@ colnames(results)<-results.colnames
 pdf(file=opt$pdf,width=15,height=15)
 
 for (i in (1:length(tree.files))) {
-  if (opt$verbose == TRUE) { cat("Treefile:", i, "\r") }
+  if (opt$verbose == TRUE) { cat("Treefile #", i, ": ",tree.files[i],"\n",sep="") }
 
   ## read tree
   tr <- read.tree(paste(opt$path,"/",tree.files[i],sep=""))
