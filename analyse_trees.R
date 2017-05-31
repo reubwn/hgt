@@ -98,7 +98,8 @@ for (i in (1:length(tree.files))) {
     if (is.monophyletic(tr,c(taxa.query,taxa.in),reroot=T)==T) {
       sr<-root(tr,taxa.out[1])
       ## sometimes there is no node label
-      if (nchar(sr$node.label[getMRCA(sr,c(taxa.query,grep(paste(opt$delim,"IN",opt$delim,sep=""),sr$tip.label)))-length(sr$tip.label)])>0){
+      # if (nchar(sr$node.label[getMRCA(sr,c(taxa.query,grep(paste(opt$delim,"IN",opt$delim,sep=""),sr$tip.label)))-length(sr$tip.label)])>0){
+      if (!is.null(sr$node.label[getMRCA(sr,c(taxa.query,grep(paste(opt$delim,"IN",opt$delim,sep=""),sr$tip.label)))-length(sr$tip.label)])){  
         results$in.q.mono.sup[i]<-sr$node.label[getMRCA(sr,c(taxa.query,grep(paste(opt$delim,"IN",opt$delim,sep=""),sr$tip.label)))-length(sr$tip.label)]
       }# else { results$in.q.mono.sup[i]<-NA }
       ## plot the monophyly
