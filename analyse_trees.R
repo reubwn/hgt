@@ -43,7 +43,7 @@ colnames(results)<-results.colnames
 pdf(file=opt$pdf,width=15,height=15)
 
 for (i in (1:length(tree.files))) {
-  if (opt$verbose == TRUE) { cat("Treefile #", i, ": ",tree.files[i],"\n",sep="") }
+  if (opt$verbose == TRUE) { cat("Treefile #", i, ": ",tree.files[i],sep="") }
 
   ## read tree
   tr <- read.tree(paste(opt$path,"/",tree.files[i],sep=""))
@@ -163,6 +163,7 @@ for (i in (1:length(tree.files))) {
     ## is query monophyletic with Archaea?
     results$archaea.q.mono[i]<-is.monophyletic(tr,c(taxa.query,grep("Archaea",tr$tip.label)),reroot=T)
   }
+  if (opt$verbose == TRUE) { cat("\r") }
 }
 invisible(dev.off())
 
