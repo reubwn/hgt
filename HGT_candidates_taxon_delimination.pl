@@ -40,7 +40,7 @@ GetOptions (
   'n|nodesDB:s'         => \$nodesDBfile,
   't|taxid_threshold:i' => \$taxid_threshold,
   'k|taxid_skip:i'      => \$taxid_skip,
-  'v|verbose'           => \$verbose,
+  'e|nohead'            => \$noheader,
   'h|help'              => \$help,
 );
 
@@ -50,6 +50,23 @@ die $usage unless ($infile && $listfile && $path);
 ## outfile
 my $outfile = "$infile.HGT_candidates.taxon_delimitation";
 open (my $OUT, ">$outfile") or die "[ERROR] Cannot open outfile '$outfile': $!\n\n";
+print $OUT join (
+  "\t",
+  "QUERY",
+  "UNIREF90",
+  "PERCID",
+  "BITSCORE",
+  "TAXID",
+  "SUPERKING",
+  "KINGDOM",
+  "PHYLUM",
+  "CLASS",
+  "ORDER",
+  "FAMILY",
+  "GENUS",
+  "SPECIES",
+  "\n"
+) unless ($noheader);
 
 ############################################## PARSE NODES
 ## parse nodes and names:
