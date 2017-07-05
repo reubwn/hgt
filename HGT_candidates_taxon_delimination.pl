@@ -188,6 +188,8 @@ LINE: while (my $line = <$DIAMOND>) {
   }
 }
 
+print STDERR "[INFO] Finished on ".`date`."\n";
+
 ############################################ SUBS
 
 sub percentage {
