@@ -170,6 +170,14 @@ print STDERR "[INFO] Parsing hit info from '$infile'...\n";
 my (%seen,$processed);
 open (my $DIAMOND, $infile) or die "[ERROR] Cannot open '$infile': $!\n\n";
 LINE: while (my $line = <$DIAMOND>) {
+
+  ## progress:
+  $processed++;
+  if ($processed % 1000 == 0){
+    print STDERR "\r[INFO] Processed ".commify($processed)." queries...";$| = 1;
+  }
+
+  ## code:
   chomp $line;
   my @F = split (/\s+/, $line);
   if (exists($seen{$F[0]})) {
@@ -201,13 +209,6 @@ LINE: while (my $line = <$DIAMOND>) {
     } else {
       next LINE;
     }
-  }
-
-  ## progress:
-  $processed++;
-  if ($processed % 1000 == 0){
-    print STDERR "\r[INFO] Processed ".commify($processed)." queries...";
-    $| = 1;
   }
 }
 print STDERR "[INFO] Finished on ".`date`."\n";
