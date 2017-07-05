@@ -150,7 +150,7 @@ print STDERR "[INFO] Read ".scalar(keys %candidate_list)." HGT candidate names f
 ############################################ PARSE DIAMOND FILE
 
 print STDERR "[INFO] Parsing hit info from '$infile'...\n";
-my (%seen);
+my (%seen,$processed);
 open (my $DIAMOND, $infile) or die "[ERROR] Cannot open '$infile': $!\n\n";
 LINE: while (my $line = <$DIAMOND>) {
   chomp $line;
@@ -159,7 +159,6 @@ LINE: while (my $line = <$DIAMOND>) {
     next LINE;
   } else {
     if (exists($candidate_list{$F[0]})) {
-
       if ($F[12] !~ m/\d+/) {
         next LINE;
       } elsif (check_taxid_has_parent($F[12]) == 1) {
@@ -186,8 +185,14 @@ LINE: while (my $line = <$DIAMOND>) {
       next LINE;
     }
   }
-}
 
+  ## progress:
+  $processed++;
+  if ($processed % 1000 == 0){
+    print STDERR "\r[INFO] Processed ".commify($processed)." queries...";
+    $| = 1;
+  }
+}
 print STDERR "[INFO] Finished on ".`date`."\n";
 
 ############################################ SUBS
