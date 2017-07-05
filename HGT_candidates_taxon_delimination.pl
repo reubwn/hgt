@@ -167,8 +167,8 @@ LINE: while (my $line = <$DIAMOND>) {
           $F[0],
           $F[1],
           $F[2],
+          $F[11],
           $F[12],
-          $F[13],
           tax_walk_to_get_rank_to_species($F[12]),
           "\n"
         );
@@ -291,7 +291,8 @@ sub tax_walk_to_get_rank_to_species {
       $parent_rank = $rank_hash{$parent};
     }
   }
-  my $result = join ("\t",$superkingdom,$kingdom,$phylum,$class,$order,$family,$genus,$species);
-  $result =~ s/\s+/\_/g; ## replace spaces with underscores
+  my $result = join (";",$superkingdom,$kingdom,$phylum,$class,$order,$family,$genus,$species);
+  $result =~ s/\s+/\_/g; ## replace spaces in some names with underscores
+  $result =~ s/\;/\t/g; ## then replace ; with tabs
   return $result;
 }
