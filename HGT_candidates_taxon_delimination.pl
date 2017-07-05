@@ -26,7 +26,7 @@ OPTIONS:
   -h|--help                     : prints this help message
 \n";
 
-my ($infile,$candidates,$listfile,$path,$nodesfile,$namesfile,$mergedfile,$nodesDBfile,$prefix,$verbose,$help);
+my ($infile,$candidates,$listfile,$path,$nodesfile,$namesfile,$mergedfile,$nodesDBfile,$prefix,$noheader,$help);
 my $taxid_threshold = 33208;
 my $taxid_skip = 0; ## default is 0, which is not a valid NCBI taxid and should not affect the tree recursion
 
