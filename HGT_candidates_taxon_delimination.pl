@@ -159,7 +159,14 @@ LINE: while (my $line = <$DIAMOND>) {
     next LINE;
   } else {
     if (exists($candidate_list{$F[0]})) {
-      if ( tax_walk($F[12], $taxid_skip) eq "ingroup" ) { ##assume taxid is in 13th column
+
+      if ($F[12] !~ m/\d+/) {
+        next LINE;
+      } elsif (check_taxid_has_parent($F[12]) == 1) {
+        next LINE;
+      } elsif ( tax_walk($F[12], $taxid_skip) eq "ingroup" ) { ## do not include any hits to within taxid $taxid_skip
+        next LINE;
+      } elsif ( tax_walk($F[12]) eq "unassigned" ) {
         next LINE;
       } else {
         print $OUT join (
@@ -197,6 +204,15 @@ sub commify {
     my $text = reverse $_[0];
     $text =~ s/(\d\d\d)(?=\d)(?!\d*\.)/$1,/g;
     return scalar reverse $text;
+}
+
+sub check_taxid_has_parent {
+  my $taxid = $_[0];
+  my $result = 0;
+  unless ($nodes_hash{$taxid}) {
+    $result = 1;
+  }
+  return $result; ## 0 = taxid exists; 1 = taxid does not exist
 }
 
 sub tax_walk {
