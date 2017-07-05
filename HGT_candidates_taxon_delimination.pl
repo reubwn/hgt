@@ -172,7 +172,7 @@ LINE: while (my $line = <$DIAMOND>) {
           tax_walk_to_get_rank_to_species($F[12]),
           "\n"
         );
-        $seen{$F[0]};
+        $seen{$F[0]} = ();
         next LINE;
       }
     } else {
