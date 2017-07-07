@@ -211,7 +211,7 @@ LINE: while (my $line = <$DIAMOND>) {
     }
   }
 }
-print STDERR "[INFO] Finished on ".`date`."\n";
+print STDERR "\n[INFO] Finished on ".`date`."\n";
 
 ############################################ SUBS
 
