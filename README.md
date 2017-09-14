@@ -3,7 +3,7 @@ scripts for the analysis of HGT in genome sequence data.
 
 ### doi
 
-https://zenodo.org/badge/76456664.svg
+[![DOI](https://zenodo.org/badge/76456664.svg)](https://zenodo.org/badge/latestdoi/76456664)
 
 ## diamond_to_HGT_candidates.pl
 
