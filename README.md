@@ -1,6 +1,10 @@
 # hgt
 scripts for the analysis of HGT in genome sequence data.
 
+### doi
+
+https://zenodo.org/badge/76456664.svg
+
 ## diamond_to_HGT_candidates.pl
 
 ### Synopsis
