@@ -16,8 +16,7 @@ option_list = list(
   make_option(c("-q","--query"), type="character", default=NULL, help="Value used to identify query sequence [default=%default]", metavar="character"),
   make_option(c("-d","--delim"), type="character", default="_", help="Character to delimit IN and OUT in sequence names [default=underscore]", metavar="character"),
   make_option(c("-o","--out"), type="character", default="results.tab", help="Tab delim outfile [default=%default]", metavar="character"),
-  make_option(c("-f","--pdf"), type="character", default="results.pdf", help="PDF trees outfile [default=%default]", metavar="character"),
-  make_option(c("-v","--verbose"), type="character", default=FALSE, help="Say more things [default=%default]", metavar="character")
+  make_option(c("-f","--pdf"), type="character", default="results.pdf", help="PDF trees outfile [default=%default]", metavar="character")
 );
 
 opt_parser = OptionParser(option_list=option_list);
@@ -43,7 +42,7 @@ colnames(results)<-results.colnames
 pdf(file=opt$pdf,width=15,height=15)
 
 for (i in (1:length(tree.files))) {
-  if (opt$verbose == TRUE) { cat("Treefile #", i, ": ",tree.files[i],sep="") }
+  #cat("Treefile:", i, "\r")
 
   ## read tree
   tr <- read.tree(paste(opt$path,"/",tree.files[i],sep=""))
@@ -98,7 +97,7 @@ for (i in (1:length(tree.files))) {
     if (is.monophyletic(tr,c(taxa.query,taxa.in),reroot=T)==T) {
       sr<-root(tr,taxa.out[1])
       ## sometimes there is no node label
-      if (!is.null(sr$node.label[getMRCA(sr,c(taxa.query,grep(paste(opt$delim,"IN",opt$delim,sep=""),sr$tip.label)))-length(sr$tip.label)])){
+      if (nchar(sr$node.label[getMRCA(sr,c(taxa.query,grep(paste(opt$delim,"IN",opt$delim,sep=""),sr$tip.label)))-length(sr$tip.label)])>0){
         results$in.q.mono.sup[i]<-sr$node.label[getMRCA(sr,c(taxa.query,grep(paste(opt$delim,"IN",opt$delim,sep=""),sr$tip.label)))-length(sr$tip.label)]
       }# else { results$in.q.mono.sup[i]<-NA }
       ## plot the monophyly
@@ -113,7 +112,7 @@ for (i in (1:length(tree.files))) {
     if (is.monophyletic(tr,c(taxa.query,taxa.out),reroot=T)==T) {
       sr<-root(tr,taxa.in[1])
       ## sometimes there is no node label; so need to replace with "NA"
-      if (!is.null(sr$node.label[getMRCA(sr,c(taxa.query,grep(paste(opt$delim,"OUT",opt$delim,sep=""),sr$tip.label)))-length(sr$tip.label)])){
+      if (nchar(sr$node.label[getMRCA(sr,c(taxa.query,grep(paste(opt$delim,"OUT",opt$delim,sep=""),sr$tip.label)))-length(sr$tip.label)])>0){
         results$out.q.mono.sup[i]<-sr$node.label[getMRCA(sr,c(taxa.query,grep(paste(opt$delim,"OUT",opt$delim,sep=""),sr$tip.label)))-length(sr$tip.label)]
       }# else { results$out.q.mono.sup[i]<-NA }
       ## plot the monophyly
@@ -161,43 +160,40 @@ for (i in (1:length(tree.files))) {
     ## is query monophyletic with Archaea?
     results$archaea.q.mono[i]<-is.monophyletic(tr,c(taxa.query,grep("Archaea",tr$tip.label)),reroot=T)
   }
-  if (opt$verbose == TRUE) { cat("\r") }
 }
 invisible(dev.off())
 
 ## column totals / means where appropriate
 cat("Program run from:",getwd(),"\n")
 cat("Analysing trees in: ",opt$path,opt$pattern,"\n",sep="")
-cat("Query defined by pattern match:",opt$query,"\n")
-cat("Number of trees analysed:",length(tree.files),"\n\n")
-cat("Mean number of taxa per tree:\n")
-cat("  Total taxa:",mean(results$ntax.tot),"\n")
-cat("  Ingroup taxa:",mean(results$ntax.in),"\n")
-cat("  Outgroup taxa:",mean(results$ntax.out),"\n\n")
+cat("Query defined by pattern match:",opt$query,"\n\n")
+cat("Number of trees analysed:",length(tree.files),"\n")
+cat("Mean number per tree:\n")
+cat("  total taxa:",mean(results$ntax.tot),"\n")
+cat("  ingroup taxa:",mean(results$ntax.in),"\n")
+cat("  outgroup taxa:",mean(results$ntax.out),"\n\n")
 cat("Number of trees with:\n")
-cat("  Ingroup taxa only:",sum(results$only.in),"\n")
-cat("  Outgroup taxa only:",sum(results$only.out),"\n")
-cat("  Both:",sum(results$both),"\n\n")
-cat("Number of 'Both' trees where Query can be monophyletic with:\n")
-cat("  Ingroup taxa only:",nrow(subset(results, results$both==1 & results$in.q.mono==1 & results$out.q.mono==0)),"\n")
-cat("  Outgroup taxa only:",nrow(subset(results, results$both==1 & results$in.q.mono==0 & results$out.q.mono==1)),"\n")
-cat("  Both:",nrow(subset(results, results$both==1 & results$in.q.mono==1 & results$out.q.mono==1)),"\n")
-# cat("NB this includes clusters that may contain only in/outgroup sequences\n\n")
+cat("  only ingroup:",sum(results$only.in),"\n")
+cat("  only outgroup:",sum(results$only.out),"\n")
+cat("  both:",sum(results$both),"\n\n")
+cat("Number of trees where Query is monophyletic with:\n")
+cat("  ingroup:",sum(results$in.q.mono),"\n")
+cat("  outgroup:",sum(results$out.q.mono),"\n")
+cat("/!\\ NB this includes clusters that may contain only in/outgroup sequences /!\\\n\n")
 cat("Average bootstrap support for monophyly of Query with:\n")
-cat("  Ingroup:",mean(as.numeric(results$in.q.mono.sup),na.rm=T),"\n")
-cat("  Outgroup:",mean(as.numeric(results$out.q.mono.sup),na.rm=T),"\n\n")
-cat("Assessment of HGT support catagories:\n")
-cat("  Monophyly with outgroup taxa is possible (incl. clusters with only outgroup sequences):",nrow(subset(results, results$out.q.mono==1)),"\n")
-cat("  Monophyly with outgroup taxa is possible (excl. clusters with only outgroup sequences):",nrow(subset(results, results$both==1 & results$out.q.mono==1)),"\n")
-cat("  Monophyly with outgroup taxa is possible, with ingroup impossible, at least 3 each in/outgroup taxa:",nrow(subset(results,results$ntax.in>=3 & results$ntax.out>=3 & results$in.q.mono==0 & results$out.q.mono==1)),"\n")
-cat("  Monophyly with outgroup taxa is possible (>=70% bootstrap support), with ingroup impossible, at least 3 each in/outgroup taxa:",nrow(subset(results,results$ntax.in>=3 & results$ntax.out>=3 & results$in.q.mono==0 & results$out.q.mono==1 & results$out.q.mono.sup>=70)),"\n\n")
-cat("Number of trees where Query+GROUP are monophyletic:\n")
-cat("  Metazoa: ",sum(results$euk.metazoa.q.mono)," (",nrow(subset(results,results$ntax.in>=3 & results$ntax.out>=3 & results$in.q.mono==0 & results$out.q.mono==1 & results$euk.metazoa.q.mono==1)),")","\n",sep="")
-cat("  Fungi: ",sum(results$euk.fungi.q.mono)," (",nrow(subset(results,results$ntax.in>=3 & results$ntax.out>=3 & results$in.q.mono==0 & results$out.q.mono==1 & results$euk.fungi.q.mono==1)),")","\n",sep="")
-cat("  plants: ",sum(results$euk.plants.q.mono)," (",nrow(subset(results,results$ntax.in>=3 & results$ntax.out>=3 & results$in.q.mono==0 & results$out.q.mono==1 & results$euk.plants.q.mono==1)),")","\n",sep="")
-cat("  other eukaryotes: ",sum(results$euk.other.q.mono)," (",nrow(subset(results,results$ntax.in>=3 & results$ntax.out>=3 & results$in.q.mono==0 & results$out.q.mono==1 & results$euk.other.q.mono==1)),")","\n",sep="")
-cat("  Bacteria: ",sum(results$bacteria.q.mono)," (",nrow(subset(results,results$ntax.in>=3 & results$ntax.out>=3 & results$in.q.mono==0 & results$out.q.mono==1 & results$bacteria.q.mono==1)),")","\n",sep="")
-cat("  Archaea: ",sum(results$archaea.q.mono)," (",nrow(subset(results,results$ntax.in>=3 & results$ntax.out>=3 & results$in.q.mono==0 & results$out.q.mono==1 & results$archaea.q.mono==1)),")","\n\n",sep="")
+cat("  ingroup:",mean(as.numeric(results$in.q.mono.sup),na.rm=T),"\n")
+cat("  outgroup:",mean(as.numeric(results$out.q.mono.sup),na.rm=T),"\n\n")
+cat("Number of trees where Query is monophyletic with Outgroups to the exclusion of Ingroups present:\n")
+cat("  ",nrow(subset(results,results$both==1 & results$out.q.mono==1)),"\n")
+cat("/!\\ NB these can be considered HGT candidates with 'good' topological support /!\\\n") ## modify this statement..?
+cat("/!\\ Get filenames from results.tab using: 'perl -lane 'if($F[6]==1 && $F[11]==1){print $F[0]}'' /!\\\n\n")
+cat("Number of trees where Query is monophyletic with:\n")
+cat("  Metazoa:",sum(results$euk.metazoa.q.mono),"\n")
+cat("  Fungi:",sum(results$euk.fungi.q.mono),"\n")
+cat("  plants:",sum(results$euk.plants.q.mono),"\n")
+cat("  other eukaryotes:",sum(results$euk.other.q.mono),"\n")
+cat("  Bacteria:",sum(results$bacteria.q.mono),"\n")
+cat("  Archaea:",sum(results$archaea.q.mono),"\n\n")
 
 ## write tab-delim results
 write.table(results, file=opt$out, quote=F, sep="\t", row.names=F)

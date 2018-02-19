@@ -40,6 +40,36 @@ This script analyses the output of Diamond/BLAST files and calculates 3 measures
 
    The taxified file has the usual 12 columns but with an additional 13th column containing the taxid of the hit protein.
 
+---
+### UPDATE Feb 2018
+Apparently the latest UniRef90 database now contains the taxids in the fasta headers (thanks [@evolgenomology](https://github.com/evolgenomology)!), which makes generating the required taxlists a bit easier (no need to download and parse the XML file). Unfortunately you'll still need to add the taxid post-hoc as there is no option in Diamond to add this to the output file.
+
+1. Download the UniRef90 fasta database (~15 Gb):
+   ```
+   wget ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref90/uniref90.fasta.gz
+   ```
+2. Generate taxlist somehow (can be as simple as):
+   ```
+   >> perl -lane 'if(/^>(\w+)\s.+TaxID\=(\d+)/){print "$1 $2"}' <(zcat uniref90.fasta.gz)> uniref90.fasta.taxlist
+   ```
+3. Run Diamond as above:
+   ```
+   >> diamond blastp --sensitive --index-chunks 1 -k 500 -e 1e-5 -p 100 -q $QUERY -d $DB -a ${QUERY}.vs.uniref90.k500.1e5
+   ```
+4. Taxify output:
+   ```
+   >> cat /path/to/uniref90.fasta.taxlist <(diamond view -a ${QUERY}.vs.uniref90.k500.1e5.daa) \
+   | perl -lane '
+    if(@F==2){
+      $tax{$F[0]}=$F[1];
+    }else{
+      print join("\t",@F,$tax{$F[0]});
+    }
+   ' > ${QUERY}.vs.uniref90.k500.1e5.daa.taxid
+   ```
+   This will insert the taxid into a 13th column as above.
+---
+
 ### Options
 
 Type `-h` to see help and options.

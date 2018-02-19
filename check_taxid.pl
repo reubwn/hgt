@@ -16,8 +16,8 @@ my $taxid_skip = 42241;
 my $taxid_threshold = 33208; ##metazoa
 
 GetOptions (
-  't|taxid=s'             => \$taxid,
-  'path|p:s'              => \$path,
+  't|taxid=s' => \$taxid,
+  'path|p:s'  => \$path,
 );
 
 ## parse nodes and names:
