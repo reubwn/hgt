@@ -10,7 +10,7 @@ use Bio::SeqIO;
 use Getopt::Long;
 use Sort::Naturally;
 use Data::Dumper qw(Dumper);
-#use File::Grep qw( fgrep fmap fdo );
+use File::Path;
 
 my $usage = "
 SYNOPSIS
