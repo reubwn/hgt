@@ -230,7 +230,7 @@ while (<$DIAMOND>) {
   chomp;
   next if /^\#/;
   $total_entries++;
-  my @F = split (m/\t/, $_);
+  my @F = split (m/\s+/, $_);
   if (scalar(@F) <= 1) {
     die "[ERROR] File did not split: is it a diamond file?\n";
   }
