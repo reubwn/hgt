@@ -44,11 +44,11 @@ OPTIONS
   -t|--taxid_ingroup   [INT]    : NCBI taxid to define 'ingroup' [default=33208 (Metazoa)]
   -k|--taxid_skip      [INT]    : NCBI taxid to skip; hits to this taxid will not be considered
   -s|--CHS_threshold   [FLOAT]  : Consesus Hits Support threshold [default>=90\%]
-  -u|--hU_threshold    [INT]    : hU threshold (default>=30)
+  -u|--hU_threshold    [INT]    : hU threshold [default>=30]
   -e|--evalue_column   [INT]    : define evalue column [default=11]
   -b|--bitscore_column [INT]    : define bitscore column [default=12]
   -c|--taxid_column    [INT]    : define taxid column [default=13]
-  -d|--delimiter       [STRING] : infile delimiter (diamond (\"\\s+\") or blast (\"\\t\")) [default=diamond]
+  -d|--delimiter       [STRING] : infile delimiter [default=(\"\\t|\\s+\")]
   -x|--prefix          [FILE]   : filename prefix for outfile [default=INFILE]
   -v|--verbose                  : say more things
   -h|--help                     : this help message
@@ -92,15 +92,6 @@ GetOptions (
 
 die $usage if $help;
 die $usage unless ($in);
-
-## define delimiter:
-if ($delimiter eq "diamond") {
-  $delimiter = qr/\s+/;
-} elsif ($delimiter eq "blast") {
-  $delimiter = qr/\t/;
-} else {
-  die "[ERROR] Unknown delimiter, please choose \"diamond\" or \"blast\"\n";
-}
 
 ############################################## PARSE NODES
 
@@ -242,6 +233,9 @@ while (<$DIAMOND>) {
   next if /^\#/;
   $total_entries++;
   my @F = split (m/(\t|\s+)/, $_);
+  if (scalar(@F) <= 1) {
+    die "[ERROR] File did not split: is it a diamond file?\n";
+  }
   if ($F[($taxid_column-1)] !~ m/\d+/) {
     print $WARN join ("\t", $F[0], $., $F[($taxid_column-1)], "invalid/unrecognised taxid", "\n");
     $skipped_entries_because_bad_taxid++;
