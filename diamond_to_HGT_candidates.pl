@@ -48,7 +48,6 @@ OPTIONS
   -e|--evalue_column   [INT]    : define evalue column [default=11]
   -b|--bitscore_column [INT]    : define bitscore column [default=12]
   -c|--taxid_column    [INT]    : define taxid column [default=13]
-  -d|--delimiter       [STRING] : infile delimiter [default=(\"\\t|\\s+\")]
   -x|--prefix          [FILE]   : filename prefix for outfile [default=INFILE]
   -v|--verbose                  : say more things
   -h|--help                     : this help message
@@ -63,7 +62,6 @@ my $scoring = "sum";
 my $evalue_column = 11;
 my $bitscore_column = 12;
 my $taxid_column = 13;
-my $delimiter = "diamond";
 
 GetOptions (
   'i|in=s'                => \$in,
@@ -82,7 +80,7 @@ GetOptions (
   'e|evalue_column:i'     => \$evalue_column,
   'c|taxid_column:i'      => \$taxid_column,
   'b|bitscore_column:i'   => \$bitscore_column,
-  'd|delimiter:s'         => \$delimiter,
+#  'd|delimiter:s'         => \$delimiter,
   'x|prefix:s'            => \$prefix,
 #  'header|H'              => \$header,
   'v|verbose'             => \$verbose,
@@ -297,6 +295,7 @@ foreach my $query (nsort keys %bitscores_per_query_hash) {
   ## calculate HGT index (hU):
   my ($ingroup_best_bitscore, $outgroup_best_bitscore) = (0,0);
   foreach my $taxid (keys %bitscore_hash) {
+    print STDERR "$taxid: @{ $bitscore_hash{$taxid} }\n";
     my $max_bitscore = max( @{ $bitscore_hash{$taxid} } );
     if (tax_walk($taxid) eq "ingroup") {
       $ingroup_best_bitscore = $max_bitscore if ($max_bitscore > $ingroup_best_bitscore); ## only accept it if it's HIGHER (better) than current bitscore
