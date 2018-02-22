@@ -234,7 +234,7 @@ while (<$DIAMOND>) {
   if (scalar(@F) <= 1) {
     die "[ERROR] File did not split: is it a diamond file?\n";
   }
-  if (defined ($F[($taxid_column-1)])) {
+  if ($F[($taxid_column-1)] !~ m/\d+/) {
     print $WARN join ("\t", $F[0], $., $F[($taxid_column-1)], "invalid/unrecognised/absent taxid", "\n");
     $skipped_entries_because_bad_taxid++;
     next;
