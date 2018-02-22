@@ -232,7 +232,9 @@ while (<$DIAMOND>) {
   $total_entries++;
   my @F = split (m/\s+/, $_);
   if (scalar(@F) <= 1) {
-    die "[ERROR] File did not split: is it a diamond file?\n";
+    die "[ERROR] File '$in' did not split properly: is it tab or space delimited?\n";
+  } elsif ( (scalar(@F)<$taxid_column) or (scalar(@F)<$bitscore_column) or (scalar(@F)<$evalue_column) ) {
+    die "[ERROR] File '$in' did not split properly: number of columns is too small\n";
   }
   if ($F[($taxid_column-1)] !~ m/\d+/) {
     print $WARN join ("\t", $F[0], $., $F[($taxid_column-1)], "invalid/unrecognised/absent taxid", "\n");
