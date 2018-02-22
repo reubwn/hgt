@@ -234,8 +234,8 @@ while (<$DIAMOND>) {
   if (scalar(@F) <= 1) {
     die "[ERROR] File did not split: is it a diamond file?\n";
   }
-  if ($F[($taxid_column-1)] !~ m/\d+/) {
-    print $WARN join ("\t", $F[0], $., $F[($taxid_column-1)], "invalid/unrecognised taxid", "\n");
+  if (defined ($F[($taxid_column-1)])) {
+    print $WARN join ("\t", $F[0], $., $F[($taxid_column-1)], "invalid/unrecognised/absent taxid", "\n");
     $skipped_entries_because_bad_taxid++;
     next;
   } elsif (check_taxid_has_parent($F[($taxid_column-1)]) == 1) {
