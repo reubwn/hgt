@@ -295,7 +295,6 @@ foreach my $query (nsort keys %bitscores_per_query_hash) {
   ## calculate HGT index (hU):
   my ($ingroup_best_bitscore, $outgroup_best_bitscore) = (0,0);
   foreach my $taxid (keys %bitscore_hash) {
-    print STDERR "$taxid: @{ $bitscore_hash{$taxid} }\n";
     my $max_bitscore = max( @{ $bitscore_hash{$taxid} } );
     if (tax_walk($taxid) eq "ingroup") {
       $ingroup_best_bitscore = $max_bitscore if ($max_bitscore > $ingroup_best_bitscore); ## only accept it if it's HIGHER (better) than current bitscore
