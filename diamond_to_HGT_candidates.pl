@@ -36,7 +36,7 @@ OUTPUTS
 
 OPTIONS
   -i|--in              [FILE]   : taxified diamond/BLAST results file [required] (accepts gzipped)
-  -p|--path            [STRING] : path to dir/ containing tax files
+  -p|--path            [STRING] : path to dir/ containing tax files [required]
   -o|--nodes           [FILE]   : path to nodes.dmp
   -a|--names           [FILE]   : path to names.dmp
   -m|--merged          [FILE]   : path to merged.dmp
@@ -107,7 +107,7 @@ if ($delimiter eq "diamond") {
 ## parse nodes and names:
 my (%nodes_hash, %names_hash, %rank_hash);
 if ($path) {
-  print STDERR "[INFO] Building taxonomy databases from tax files in '$path'...";
+  print STDERR "[INFO] Building taxonomy databases from tax files in '$path'...\n";
   open(my $NODES, "$path/nodes.dmp") or die $!;
   while (<$NODES>) {
     chomp;
@@ -178,7 +178,6 @@ if ($path) {
   close $NODES;
 }
 ## print some info to STDERR:
-print STDERR " done\n";
 print STDERR "[INFO] Nodes parsed: ".scalar(keys %nodes_hash)."\n";
 print STDERR "[INFO] Threshold taxid set to '$taxid_threshold' ($names_hash{$taxid_threshold})\n";
 print STDERR "[INFO] INGROUP set to '$names_hash{$taxid_threshold}'; OUTGROUP is therefore 'non-$names_hash{$taxid_threshold}'\n";
@@ -242,7 +241,7 @@ while (<$DIAMOND>) {
   chomp;
   next if /^\#/;
   $total_entries++;
-  my @F = split ($delimiter, $_);
+  my @F = split (m/(\t|\s+)/, $_);
   if ($F[($taxid_column-1)] !~ m/\d+/) {
     print $WARN join ("\t", $F[0], $., $F[($taxid_column-1)], "invalid/unrecognised taxid", "\n");
     $skipped_entries_because_bad_taxid++;
