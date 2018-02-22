@@ -416,11 +416,13 @@ close $HGT;
 close $WARN;
 
 print STDERR "\r[INFO] Processed ".commify($processed)." queries\n";
+print STDERR "[INFO] All results are printed to '$outfile'\n";
+print STDERR "[INFO] HGT candidates are printed to '$hgtcandidatesfile'\n";
 #print STDERR "[INFO] Number of queries in unassigned/unclassified category: ".commify($unassigned)."\n" if $unassigned > 0;
 #print STDERR "[INFO] Number of queries in OUTGROUP category ('non-$names_hash{$taxid_threshold}'): ".commify($outgroup)."\n";
 #print STDERR "[INFO] Number of queries in OUTGROUP category ('non-$names_hash{$taxid_threshold}') with CHS >= $support_threshold\%: ".commify($outgroup_supported)."\n";
 print STDERR "[INFO] Number of queries with HGT Index >= $hU_threshold: ".commify($hU_supported)."\n";
-print STDERR "[INFO] Number of queries with HGT Index >= $hU_threshold and CHS >= $support_threshold\% to non-$names_hash{$taxid_threshold}: ".commify(scalar(keys(%hgt_candidates)))."\n";
+print STDERR "[INFO] Number of queries with HGT Index >= $hU_threshold and CHS >= $support_threshold\% to non-$names_hash{$taxid_threshold}: ".commify(scalar(keys(%hgt_candidates)))." (".percentage(scalar(keys(%hgt_candidates)),$processed).")\n";
 #print STDERR "[INFO] Number of queries with Alien Index (AI) >= $hU_threshold: ".commify($AI_supported)."\n";
 #print STDERR "[INFO] NUMBER OF HGT CANDIDATES: ".commify(scalar(keys(%hgt_candidates)))."\n";
 print STDERR "[INFO] Finished on ".`date`."\n";
