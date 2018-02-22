@@ -226,13 +226,14 @@ print $HGT join ("\t", @header, "\n"); #"\#query\tbestsum_bitscore\talt_bitscore
 ############################################## PARSE DIAMOND
 
 ## parse Diamond file:
-print STDERR "[INFO] Parsing Diamond file '$in'...";
+print STDERR "[INFO] Parsing Diamond file '$in'\n";
 my (%bitscores_per_query_hash, %evalues_per_query_hash);
 my ($total_entries,$skipped_entries_because_bad_taxid,$skipped_entries_because_skipped_taxid,$skipped_entries_because_unassigned) = (0,0,0,0);
 
 my $DIAMOND;
 if ($in =~ m/gz$/) {
   open ($DIAMOND, "zcat $in |") or die $!; ## if gzipped
+  print STDERR "[INFO] Diamond file is gzipped\n";
 } else {
   open (my $DIAMOND, $in) or die $!;
 }
@@ -265,7 +266,6 @@ while (<$DIAMOND>) {
   }
 }
 close $DIAMOND;
-print STDERR " done\n";
 print STDERR "[INFO] Total number of hits parsed: ".commify($total_entries)."\n";
 print STDERR "[WARN] There were ".commify($skipped_entries_because_bad_taxid)." (".percentage($skipped_entries_because_bad_taxid,$total_entries)."\%) invalid taxid entries\n" if $skipped_entries_because_bad_taxid > 0;
 print STDERR "[WARN] There were ".commify($skipped_entries_because_skipped_taxid)." (".percentage($skipped_entries_because_skipped_taxid,$total_entries)."\%) skipped taxid entries\n" if $skipped_entries_because_skipped_taxid > 0;
