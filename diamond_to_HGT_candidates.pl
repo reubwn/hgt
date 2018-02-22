@@ -223,7 +223,7 @@ if ($in =~ m/gz$/) {
   open ($DIAMOND, "zcat $in |") or die $!; ## if gzipped
   print STDERR "[INFO] Diamond file is gzipped\n";
 } else {
-  open (my $DIAMOND, $in) or die $!;
+  open ($DIAMOND, $in) or die $!;
 }
 
 while (<$DIAMOND>) {
