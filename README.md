@@ -1,9 +1,15 @@
 # hgt
 scripts for the analysis of HGT in genome sequence data.
 
+## Note!
+
+These methods are predictive! Finding a candidate gene with high *h*[U] or AI or attached to a 'real' metazoan gene or with introns etc. does not necessarily mean that that gene has been acquired horizontally. Further tests would be required to provide further evidence for the evolutionary origin of each gene. You have been warned :-)
+
 ### doi
 
 [![DOI](https://zenodo.org/badge/76456664.svg)](https://zenodo.org/badge/latestdoi/76456664)
+
+---
 
 ## diamond_to_HGT_candidates.pl
 
@@ -11,7 +17,7 @@ scripts for the analysis of HGT in genome sequence data.
 
 This script analyses the output of Diamond/BLAST files and calculates 3 measures of support for identifying putative HGT candidate genes:
 
-1. **HGT Index:** hU is a measure of how well a given sequence matches to one set of taxa (eg. Metazoa) relative to another, mutually exclusive set of taxa (eg. non-Metazoa). It uses best-hit bitscores and is defined: `(best-hit bitscore for OUTGROUP) - (best-hit bitsore for INGROUP)`. See [Boschetti et al. 2012](http://journals.plos.org/plosgenetics/article?id=10.1371/journal.pgen.1003035) for more details.
+1. **HGT Index:** *h*[U] is a measure of how well a given sequence matches to one set of taxa (eg. Metazoa) relative to another, mutually exclusive set of taxa (eg. non-Metazoa). It uses best-hit bitscores and is defined: `(best-hit bitscore for OUTGROUP) - (best-hit bitsore for INGROUP)`. See [Boschetti et al. 2012](http://journals.plos.org/plosgenetics/article?id=10.1371/journal.pgen.1003035) for more details.
 2. **Alien Index:** AI is another measure based on E-values rather than bitscores: `log10((best-hit E-value for INGROUP) + 1e-200) - log10((best-hit E-value for OUTGROUP) + 1e-200)`. See [Gladyshev et al. 2008](http://science.sciencemag.org/content/suppl/2008/05/29/320.5880.1210.DC1/Gladyshev.SOM.pdf) for more details.
 2. **Consensus Hit Support:** CHS uses information from all hits, as opposed to just the top 2 as for hU and AI. Each query is designated *ingroup* (eg. Metazoa) versus *outgroup* (eg. non-Metazoa) based on the sum of bitscores across all hits; the category with the highest bitscore wins. Each individual hit is also designated *ingroup* or *outgroup*, based on its taxonomy. To be classified as a putative HGT candidate, a given protein must (a) be designated as *outgroup* and (b) have support for this designation from a given proportion of the rest of the hits (default is set to >=90%). This approach may be less prone to errors associated with contamination issues in genome data, as it does not rely on evidence of providence from only the top hit. See [Koutsovoulos et al. 2016](http://www.pnas.org/content/113/18/5053.abstract) for more details.
 
@@ -50,22 +56,22 @@ Apparently the latest UniRef90 database now contains the taxids in the fasta hea
    ```
 2. Generate taxlist somehow (can be as simple as):
    ```
-   >> perl -lane 'if(/^>(\w+)\s.+TaxID\=(\d+)/){print "$1 $2"}' <(zcat uniref90.fasta.gz)> uniref90.fasta.taxlist
+   >> perl -lane 'if(/^>(\w+)\s.+TaxID\=(\d+)/){print "$1 $2"}' <(zcat uniref90.fasta.gz) | gzip > uniref90.fasta.taxlist.gz
    ```
 3. Run Diamond as above:
    ```
-   >> diamond blastp --sensitive --index-chunks 1 -k 500 -e 1e-5 -p 100 -q $QUERY -d $DB -a ${QUERY}.vs.uniref90.k500.1e5
+   >> diamond blastp --sensitive --index-chunks 1 -k 500 -e 1e-5 -p 100 -q $QUERY -d /path/to/uniref90.fasta.dmnd -a ${QUERY}.vs.uniref90.k500.1e5
    ```
 4. Taxify output:
    ```
-   >> cat /path/to/uniref90.fasta.taxlist <(diamond view -a ${QUERY}.vs.uniref90.k500.1e5.daa) \
+   >> cat <(zcat /path/to/uniref90.fasta.taxlist.gz) <(diamond view -a ${QUERY}.vs.uniref90.k500.1e5.daa) \
    | perl -lane '
     if(@F==2){
       $tax{$F[0]}=$F[1];
     }else{
-      print join("\t",@F,$tax{$F[0]});
+      print join("\t",@F,$tax{$F[1]});
     }
-   ' > ${QUERY}.vs.uniref90.k500.1e5.daa.taxid
+   ' | gzip > ${QUERY}.vs.uniref90.k500.1e5.daa.taxid.gz
    ```
    This will insert the taxid into a 13th column as above.
 ---
@@ -75,7 +81,7 @@ Apparently the latest UniRef90 database now contains the taxids in the fasta hea
 Type `-h` to see help and options.
 
 ```
-  -i|--in              [FILE]   : taxified diamond/BLAST results file [required]
+  -i|--in              [FILE]   : taxified diamond/BLAST results file [required] (accepts gzipped)
   -p|--path            [STRING] : path to dir/ containing tax files
   -o|--nodes           [FILE]   : path to nodes.dmp
   -a|--names           [FILE]   : path to names.dmp

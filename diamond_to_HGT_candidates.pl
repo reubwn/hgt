@@ -35,7 +35,7 @@ OUTPUTS
   showing support over the specified thresholds.
 
 OPTIONS
-  -i|--in              [FILE]   : taxified diamond/BLAST results file [required]
+  -i|--in              [FILE]   : taxified diamond/BLAST results file [required] (accepts gzipped)
   -p|--path            [STRING] : path to dir/ containing tax files
   -o|--nodes           [FILE]   : path to nodes.dmp
   -a|--names           [FILE]   : path to names.dmp
@@ -66,28 +66,28 @@ my $taxid_column = 13;
 my $delimiter = "diamond";
 
 GetOptions (
-  'in|i=s'                => \$in,
-  'path|p:s'              => \$path,
-  'nodes|o:s'             => \$nodesfile,
-  'names|a:s'             => \$namesfile,
-  'merged|m:s'            => \$mergedfile,
-  'nodesDB|n:s'           => \$nodesDBfile,
-  'gff|g:s'               => \$gff,
-  'taxid_threshold|t:i'   => \$taxid_threshold,
-  'taxid_skip|k:i'        => \$taxid_skip,
-  'support_threshold|s:f' => \$support_threshold,
-  'hU_threshold|u:i'      => \$hU_threshold,
+  'i|in=s'                => \$in,
+  'p|path:s'              => \$path,
+  'o|nodes:s'             => \$nodesfile,
+  'a|names:s'             => \$namesfile,
+  'm|merged:s'            => \$mergedfile,
+  'n|nodesDB:s'           => \$nodesDBfile,
+  'g|gff:s'               => \$gff,
+  't|taxid_threshold:i'   => \$taxid_threshold,
+  'k|taxid_skip:i'        => \$taxid_skip,
+  's|support_threshold:f' => \$support_threshold,
+  'u|hU_threshold:i'      => \$hU_threshold,
 #  'scoring|r:s'           => \$scoring,
 #  'AI|@'                  => \$useai, ##default is HGT index
-  'evalue_column|e:i'     => \$evalue_column,
-  'taxid_column|c:i'      => \$taxid_column,
-  'bitscore_column|b:i'   => \$bitscore_column,
-  'delimiter|d:s'         => \$delimiter,
-  'prefix|x:s'            => \$prefix,
+  'e|evalue_column:i'     => \$evalue_column,
+  'c|taxid_column:i'      => \$taxid_column,
+  'b|bitscore_column:i'   => \$bitscore_column,
+  'd|delimiter:s'         => \$delimiter,
+  'x|prefix:s'            => \$prefix,
 #  'header|H'              => \$header,
-  'verbose|v'             => \$verbose,
+  'v|verbose'             => \$verbose,
   'debug'                 => \$debug,
-  'help|h'                => \$help,
+  'h|help'                => \$help,
 );
 
 die $usage if $help;
@@ -229,7 +229,14 @@ print $HGT join ("\t", @header, "\n"); #"\#query\tbestsum_bitscore\talt_bitscore
 print STDERR "[INFO] Parsing Diamond file '$in'...";
 my (%bitscores_per_query_hash, %evalues_per_query_hash);
 my ($total_entries,$skipped_entries_because_bad_taxid,$skipped_entries_because_skipped_taxid,$skipped_entries_because_unassigned) = (0,0,0,0);
-open (my $DIAMOND, $in) or die $!;
+
+my $DIAMOND;
+if ($in =~ m/gz$/) {
+  open ($DIAMOND, "zcat $in |") or die $!; ## if gzipped
+} else {
+  open (my $DIAMOND, $in) or die $!;
+}
+
 while (<$DIAMOND>) {
   chomp;
   next if /^\#/;
