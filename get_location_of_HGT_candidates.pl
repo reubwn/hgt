@@ -16,7 +16,7 @@ SYNOPSIS
 
 OPTIONS:
   -i|--in     [FILE] : HGT_results.txt file [required]
-  -g|--gff    [FILE] : GFF file [required]
+  -g|--gff    [FILE] : GFF file [required] (accepts *.gz)
   -n|--names  [FILE] : names of proteins in GFF file, can be fasta of proteins used
   -r|--regex  [STR]  : optional regex to apply to seq headers if -n is a fasta file
   -u|--outgrp [INT]  : threshold hU score for determining 'good' OUTGROUP (HGT) genes [default>=30]
@@ -67,12 +67,7 @@ print STDERR "[INFO] CHS threshold to determine strong evidence for OUTGROUP: >=
 print STDERR "[INFO] Proportion of genes >= hU threshold to determine 'HGT heavy' scaffolds: $heavy\%\n";
 print STDERR "[INFO] Write bedfile: TRUE\n" if ($bed);
 
-## define a bunch of output files: (too many?)
 (my $locationsfile = $infile) =~ s/HGT_results.+/HGT_locations.txt/;
-(my $HGTc_linkedNamesfile = $infile) =~ s/HGT_results.+/HGT_locations.HGTc_linked.list/;
-(my $HGTc_linkedFastafile = $infile) =~ s/HGT_results.+/HGT_locations.HGTc_linked.fasta/; ##not IMPLEMENTED yet
-(my $HGTc_intronsNamesfile = $infile) =~ s/HGT_results.+/HGT_locations.HGTc_introns.list/;
-(my $HGTc_intronsFastafile = $infile) =~ s/HGT_results.+/HGT_locations.HGTc_introns.fasta/; ##not IMPLEMENTED yet
 (my $summaryfile = $infile) =~ s/HGT_results.+/HGT_locations.scaffold_summary.txt/;
 (my $oversummaryfile = $infile) =~ s/HGT_results.+/HGT_locations.overall_summary.txt/;
 (my $heavyfile = $infile) =~ s/HGT_results.+/HGT_locations.heavy.txt/;
@@ -103,7 +98,12 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) { ##autodetect if names are coming from fa
       my ($start,$end,$introns) = (1e+9,0,-1); ##this will work so long as no start coord is ever >=1Gb!
       my ($chrom,$strand) = ("NULL","NULL");
       ## get coords of all items grepped by $gene
-      open (my $G, "grep -F CDS $gfffile | grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
+      my $G;
+      if ($gfffile =~ m/gz$/) {
+        open (my $G, "zcat $gfffile | grep -F CDS | grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
+      } else {
+        open (my $G, "grep -F CDS $gfffile | grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
+      }
       while (<$G>) {
         chomp;
         my @F = split (/\s+/, $_);
@@ -235,8 +235,6 @@ print STDERR "[INFO] Evaluating results...\n";
 open (my $LOC, ">$locationsfile") or die "[ERROR] Cannot open file $locationsfile: $!\n";
 open (my $SUM, ">$summaryfile") or die "[ERROR] Cannot open file $summaryfile: $!\n";
 open (my $HEV, ">$heavyfile") or die "[ERROR] Cannot open file $heavyfile: $!\n";
-open (my $INTLIST, ">$HGTc_intronsNamesfile") or die "[ERROR] Cannot open file $HGTc_intronsNamesfile: $!\n";
-open (my $LINLIST, ">$HGTc_linkedNamesfile") or die "[ERROR] Cannot open file $HGTc_linkedNamesfile: $!\n";
 open (my $BED, ">$bedfile") or die "[ERROR] Cannot open file $bedfile: $!\n" if ($bed);
 #print $LOC "## HGT_locations\n##".`date`."\n";
 print $LOC join ("\t", "#SCAFFOLD","START","END","GENE","SCORE","STRAND","INTRONS","hU","EVIDENCE","TAXONOMY","\n");
@@ -264,24 +262,18 @@ foreach my $chrom (nsort keys %scaffolds) {
         print $LOC join ("\t", $chrom,$locations{$gene}{start},$locations{$gene}{end},$gene,".",$locations{$gene}{strand},$locations{$gene}{introns},$hgt_results{$gene}{hU},$hgt_results{$gene}{evidence},$hgt_results{$gene}{taxonomy},"\n");
         print $BED join ("\t", $chrom,$locations{$gene}{start},$locations{$gene}{end},$gene,".",$locations{$gene}{strand},"\n") if ($bed);
         $good_outgrp++;
-        if ($locations{$gene}{introns} > 0) {
-          print $INTLIST "$gene\n"; ##print list of HGTc with introns
-          $intronized++;
-        }
-
+        $intronized++ if $locations{$gene}{introns} > 0;
       } else {
-        print $LOC join ("\t", $chrom,$locations{$gene}{start},$locations{$gene}{end},$gene,".",$locations{$gene}{strand},$locations{$gene}{introns},$hgt_results{$gene}{hU},$hgt_results{$gene}{evidence},"ingroup","\n");
+        print $LOC join ("\t", $chrom,$locations{$gene}{start},$locations{$gene}{end},$gene,".",$locations{$gene}{strand},$locations{$gene}{introns},$hgt_results{$gene}{hU},$hgt_results{$gene}{evidence},"\n");
         $good_ingrp++ if $hgt_results{$gene}{evidence} == 0;
         $intermediate++ if $hgt_results{$gene}{evidence} == 1;
       }
     } else {
       ## NA if either no hit or if hit to 'skipped' taxon (usually self-phylum):
-      print $LOC join ("\t", $chrom,$locations{$gene}{start},$locations{$gene}{end},$gene,".",$locations{$gene}{strand},$locations{$gene}{introns},"no-hit","no-hit","not-applicable","\n");
-      $hgt_results{$gene}{hU} = "NA"; ##put NA for hU and evidence as it is evaluated later
-      $hgt_results{$gene}{evidence} = "NA";
+      print $LOC join ("\t", $chrom,$locations{$gene}{start},$locations{$gene}{end},$gene,".",$locations{$gene}{strand},$locations{$gene}{introns},"NA","\n");
       $na++;
     }
-  }##end of GENE loop
+  }
 
   ## sum for totals:
   $good_ingrp_total += $good_ingrp;
@@ -291,16 +283,15 @@ foreach my $chrom (nsort keys %scaffolds) {
 
   ## evaluate if HGT candidate gene is encoded on a scaffold which also encodes a 'good_ingrp' gene:
   if ( ($good_outgrp>0) && ($good_ingrp>0) ) { ##must have at least one strong evidence for both on the same scaffold
-    ## fetch gene names of all HGTc genes which are linked:
-    my @linked_HGTc = grep { $hgt_results{$_}{evidence} eq "2" } @{$scaffolds{$chrom}}; ##evaluate as eq as there will be some NA's
-    foreach (@linked_HGTc) { print $LINLIST "$_\n" };
-    #print $LINLIST join ("\n", @linked_HGTc); ##print list of linked HGTc gene names
-    print $SUM join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$na,$good_ingrp,$intermediate,$good_outgrp,(percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))),"1","\n"); ##print to scaffold_summary
+    print $SUM join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$na,$good_ingrp,$intermediate,$good_outgrp,(percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))),"1","\n");
     $linked_total += $good_outgrp; ##sum total linked HGT candidates
     $is_linked = 1;
   } else {
     print $SUM join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$na,$good_ingrp,$intermediate,$good_outgrp,(percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))),"0","\n");
   }
+  # $is_linked = 1 if ($good_outgrp > 0 && $good_ingrp > 0);
+  # print $SUM join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$na,$good_ingrp,$intermediate,$good_outgrp,(percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))),$is_linked,"\n");
+  # $is_linked_total += $is_linked;
 
   ## evaluate proportion of HGT candidates per scaffold; print to 'heavy' if > threshold:
   if ( (percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))) > $heavy ) {
@@ -314,8 +305,6 @@ $n++;
 close $LOC;
 close $SUM;
 close $HEV;
-close $INTLIST;
-close $LINLIST;
 close $BED if ($bed);
 
 print STDERR "\n";
