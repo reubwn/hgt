@@ -16,7 +16,7 @@ SYNOPSIS
 
 OPTIONS:
   -i|--in     [FILE] : HGT_results.txt file [required]
-  -g|--gff    [FILE] : GFF file [required] (accepts *.gz)
+  -g|--gff    [FILE] : GFF file [required]
   -n|--names  [FILE] : names of proteins in GFF file, can be fasta of proteins used
   -r|--regex  [STR]  : optional regex to apply to seq headers if -n is a fasta file
   -u|--outgrp [INT]  : threshold hU score for determining 'good' OUTGROUP (HGT) genes [default>=30]
@@ -98,12 +98,7 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) { ##autodetect if names are coming from fa
       my ($start,$end,$introns) = (1e+9,0,-1); ##this will work so long as no start coord is ever >=1Gb!
       my ($chrom,$strand) = ("NULL","NULL");
       ## get coords of all items grepped by $gene
-      my $G;
-      if ($gfffile =~ m/gz$/) {
-        open (my $G, "zcat $gfffile | grep -F CDS | grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
-      } else {
-        open (my $G, "grep -F CDS $gfffile | grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
-      }
+      open (my $G, "grep -F CDS $gfffile | grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
       while (<$G>) {
         chomp;
         my @F = split (/\s+/, $_);
