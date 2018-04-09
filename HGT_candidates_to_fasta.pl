@@ -29,7 +29,7 @@ OUTPUTS
   Default behaviour is to fetch up to 15 ingroup and 15 outgroup sequences, if available, to avoid uneccessarily large and uninformative alignments (set by --limit)
 
 OPTIONS:
-  -i|--in              [FILE]   : taxified diamond/BLAST results file [required]
+  -i|--in              [FILE]   : taxified diamond/BLAST results file (accepts gzipped) [required]
   -c|--candidates      [FILE]   : HGT_candidates.txt file [required]
   -u|--uniref90        [FILE]   : diamond/BLAST database fasta file, e.g. UniRef90.fasta [required]
   -f|--fasta           [FILE]   : fasta file of query proteins [required]
@@ -136,9 +136,9 @@ if ($taxid_skip) {
 }
 my $DIAMOND;
 if ($in =~ m/gz$/) {
-  open (my $DIAMOND, "zcat $in |") or die "Cannot open file '$in': $!\n"; ## open from Gzip
+  open ($DIAMOND, "zcat $in |") or die "Cannot open file '$in': $!\n"; ## open from Gzip
 } else {
-  open (my $DIAMOND, $in) or die "Cannot open file '$in': $!\n";
+  open ($DIAMOND, $in) or die "Cannot open file '$in': $!\n";
 }
 while (<$DIAMOND>) {
   my @F = split (/\s+/, $_);
