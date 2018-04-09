@@ -17,7 +17,7 @@ SYNOPSIS
 OPTIONS:
   -i|--in     [FILE] : HGT_results.txt file [required]
   -g|--gff    [FILE] : GFF file [required]
-  -n|--names  [FILE] : names of proteins in GFF file, can be fasta of proteins used
+  -n|--names  [FILE] : names of proteins in GFF file (see below) [required]
   -r|--regex  [STR]  : optional regex to apply to seq headers if -n is a fasta file
   -u|--outgrp [INT]  : threshold hU score for determining 'good' OUTGROUP (HGT) genes [default>=30]
   -U|--ingrp  [INT]  : threshold hU score for determining 'good' INGROUP genes [default<=0]
@@ -25,6 +25,18 @@ OPTIONS:
   -y|--heavy  [INT]  : threshold for determining 'HGT heavy' scaffolds [default>=95\%]
   -b|--bed           : also write bed file for 'good' HGT genes
   -h|--help          : prints this help message
+
+DETAILS:
+  The option --names specifies a file with protein IDs so CDS coordinates can be grepped from the GFF file.
+  However, there may be cases where the names in the BLAST files (and hence HGT_results file) may differ from
+  those in the GFF (e.g., if you have modified them). In this case it is necessary to provide a mapping to
+  link the protein IDs in the HGT_results file with those in the GFF. This can be done in two ways: (1) if
+  --names specifies a fasta file (fa|faa|fasta) then an optional regex (-r) is applied to the protein IDs in
+  both the fasta and the HGT_results in order to find the corresponding ID in the GFF; (2) alternatively,
+  --names may specify a 2-column mapping file with col1 = protein ID in fasta/HGT_results file and col2 =
+  protein ID in the GFF:
+    #headers ignored
+    some_prefix_you_added|NP_001191392.1 [TAB] NP_001191392.1
 
 OUTPUTS
   (1) HGT_locations: reports gene-by-gene HGT results in pseudo-BED format. Gene
@@ -41,6 +53,7 @@ my $outgrp_threshold = 30;
 my $ingrp_threshold = 0;
 my $CHS_threshold = 90;
 my $heavy = 95;
+my $mapping = 0;
 
 GetOptions (
   'i|in=s'     => \$infile,
@@ -73,7 +86,7 @@ print STDERR "[INFO] Write bedfile: TRUE\n" if ($bed);
 (my $heavyfile = $infile) =~ s/HGT_results.+/HGT_locations.heavy.txt/;
 (my $warningsfile = $infile) =~ s/HGT_results.+/HGT_locations.warnings.txt/;
 (my $bedfile = $infile) =~ s/HGT_results.+/HGT_locations.bed/ if ($bed);
-my ($namesfilesize,%orphans,%locations,%hgt_results,%scaffolds);
+my ($namesfilesize,%orphans,%locations,%hgt_results,%scaffolds,%names_map);
 my $n=1;
 
 ## grep protein names from GFF and get coords of CDS:
@@ -138,8 +151,17 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) { ##autodetect if names are coming from fa
   print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
 
   ## iterate through genes in namesfile:
-  GENE: while (my $gene = <$NAMES>) {
-    chomp $gene;
+  GENE: while (my $line = <$NAMES>) {
+    chomp $line;
+    my @F = split (/\s+/, $line);
+    my $gene;
+    if (scalar(@F)>1) { ## if there are >1 columns in file (it is a mapping file)
+      $mapping = 1;
+      $names_map{$F[0]} = $F[1]; ## key= custom ID; val= GFF ID
+      $gene = $F[1]; ## GFF protein ID is in col2
+    } else {
+      $gene = $F[0];
+    }
     print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
     my ($start,$end,$introns) = (1e+9,0,-1); ##this will work so long as no start coord is ever >=1Gb!
     my ($chrom,$strand) = ("NULL","NULL");
@@ -211,8 +233,18 @@ while (<$RESULTS>) {
     $HGT_evidence = 1; ##intermediate
   }
 
+  ## apply regex to protein ID in $F[0] if specifed:
+  my $protein_id; ## we want this to map to GFF IDs
+  if ($regexstr) {
+    ($protein_id = $F[0]) =~ s/$regexvar//ig; ## apply regex
+  } elsif ($mapping = 1) {
+    $protein_id = $names_map{$F[0]}; ## inherit GFF ID
+  } else {
+    $protein_id = $F[0]; ## do nowt
+  }
+
   ## build HGT_results hash:
-  $hgt_results{$F[0]} = { ##key= query; val= HoH
+  $hgt_results{$protein_id} = { ##key= query; val= HoH
     'hU'       => $F[3],
     'AI'       => $F[6],
     'bbsumcat' => $F[9],
