@@ -134,7 +134,12 @@ if ($taxid_skip) {
 } else {
   print "[WARN] Taxid to skip (-k) is not set! Suggest setting -k to the taxid of the phylum your organism comes from.\n";
 }
-open (my $DIAMOND, $in) or die "Cannot open file '$in': $!\n";
+my $DIAMOND;
+if ($in =~ m/gz$/) {
+  open (my $DIAMOND, "zcat $in |") or die "Cannot open file '$in': $!\n"; ## open from Gzip
+} else {
+  open (my $DIAMOND, $in) or die "Cannot open file '$in': $!\n";
+}
 while (<$DIAMOND>) {
   my @F = split (/\s+/, $_);
   if ( $hgt_candidates{$F[0]} ) {
