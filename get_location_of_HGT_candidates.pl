@@ -87,6 +87,7 @@ print STDERR "[INFO] Write bedfile: TRUE\n" if ($bed);
 (my $warningsfile = $infile) =~ s/HGT_results.+/HGT_locations.warnings.txt/;
 (my $bedfile = $infile) =~ s/HGT_results.+/HGT_locations.bed/ if ($bed);
 my ($namesfilesize,%orphans,%locations,%hgt_results,%scaffolds,%names_map);
+my $regexvar = qr/$regexstr/ if ($regexstr);
 my $n=1;
 
 ## grep protein names from GFF and get coords of CDS:
@@ -99,7 +100,6 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) { ##autodetect if names are coming from fa
   print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
   print STDERR "[INFO] Proteins names file is from fasta (".commify($namesfilesize)." sequences)\n";
 
-  my $regexvar = qr/$regexstr/ if ($regexstr);
   print STDERR "[INFO] Applying regex 's/$regexstr//' to fasta headers...\n" if ($regexstr);
 
   while (my $gene = <$FAA>) {
