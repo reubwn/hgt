@@ -136,6 +136,8 @@ if ($taxid_skip) {
 } else {
   print "[WARN] Taxid to skip (-k) is not set! Suggest setting -k to the taxid of the phylum your organism comes from.\n";
 }
+print "[INFO] Printing alienness format\n" if ($alienness);
+
 my $DIAMOND;
 if ($in =~ m/gz$/) {
   open ($DIAMOND, "zcat $in |") or die "Cannot open file '$in': $!\n"; ## open from Gzip
@@ -342,7 +344,7 @@ sub tax_walk_to_get_rank_to_phylum {
     }
   }
   my $result;
-  if ($superkingdom_only == 1) {
+  if ($superkingdom_only) {
     $result = $superkingdom;
   } else {
     $result = join ("|",$superkingdom,$kingdom,$phylum);
