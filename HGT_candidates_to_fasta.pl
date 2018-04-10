@@ -37,7 +37,7 @@ OPTIONS:
   -t|--taxid_threshold [INT]    : NCBI taxid to recurse up to; i.e., threshold taxid to define 'ingroup' [33208]
   -k|--taxid_skip      [INT]    : NCBI taxid to skip; hits to this taxid will not be considered in any calculations of support
   -d|--dir             [DIR]    : dir name to put fasta files into ['outdir']
-  -l|--limit                    : maximum number of ingroup / outgroup sequences to fetch (if available) [15]
+  -l|--limit                    : maximum number of sequences to fetch [15]
   -a|--alienness                : format sequence headers for alienness phylogeny testing instead [no]
   -v|--verbose                  : say more things
   -h|--help                     : print help
@@ -136,7 +136,7 @@ if ($taxid_skip) {
 } else {
   print "[WARN] Taxid to skip (-k) is not set! Suggest setting -k to the taxid of the phylum your organism comes from.\n";
 }
-print "[INFO] Printing alienness format\n" if ($alienness);
+print "[INFO] Printing sequence headers in alienness format!\n" if ($alienness);
 
 my $DIAMOND;
 if ($in =~ m/gz$/) {
@@ -170,7 +170,7 @@ while (<$DIAMOND>) {
       } else {
         my $phylum = tax_walk_to_get_rank_to_phylum($F[12]);
         if ($alienness) {
-          $new_hit_name = "$F[1]\@TOI-$names_hash{$F[12]}";
+          $new_hit_name = "$F[1]\@TOI-$names_hash{$taxid_threshold}";
         } else {
           $new_hit_name = join ("|", $F[1], "IN", $phylum);
         }
@@ -314,7 +314,7 @@ sub tax_walk {
 
 sub tax_walk_to_get_rank_to_phylum {
   my $taxid = $_[0];
-  my $superkingdom_only = $_[1];
+  my $phylum_only = $_[1];
   my $parent = $nodes_hash{$taxid};
   my $parent_rank = $rank_hash{$parent};
   my ($phylum,$kingdom,$superkingdom) = ("undef","undef","undef");
@@ -344,8 +344,8 @@ sub tax_walk_to_get_rank_to_phylum {
     }
   }
   my $result;
-  if ($superkingdom_only) {
-    $result = $superkingdom;
+  if ($phylum_only) {
+    $result = $phylum;
   } else {
     $result = join ("|",$superkingdom,$kingdom,$phylum);
   }
