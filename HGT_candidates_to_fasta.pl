@@ -29,20 +29,21 @@ OUTPUTS
   Default behaviour is to fetch up to 15 ingroup and 15 outgroup sequences, if available, to avoid uneccessarily large and uninformative alignments (set by --limit)
 
 OPTIONS:
-  -i|--in              [FILE]   : taxified diamond/BLAST results file (accepts gzipped) [required]
+  -i|--in              [FILE]   : taxified diamond/BLAST results file (accepts gzipped) (required)
   -c|--candidates      [FILE]   : HGT_candidates.txt file [required]
-  -u|--uniref90        [FILE]   : diamond/BLAST database fasta file, e.g. UniRef90.fasta [required]
-  -f|--fasta           [FILE]   : fasta file of query proteins [required]
-  -p|--path            [STRING] : path to dir/ containing tax files [required]
-  -t|--taxid_threshold [INT]    : NCBI taxid to recurse up to; i.e., threshold taxid to define 'ingroup' [default = 33208 (Metazoa)]
+  -u|--uniref90        [FILE]   : diamond/BLAST database fasta file, e.g. UniRef90.fasta (required)
+  -f|--fasta           [FILE]   : fasta file of query proteins (required)
+  -p|--path            [STRING] : path to dir/ containing tax files (required)
+  -t|--taxid_threshold [INT]    : NCBI taxid to recurse up to; i.e., threshold taxid to define 'ingroup' [33208]
   -k|--taxid_skip      [INT]    : NCBI taxid to skip; hits to this taxid will not be considered in any calculations of support
-  -d|--dir             [DIR]    : dir name to put fasta files into [default=outdir]
-  -l|--limit                    : maximum number of ingroup / outgroup sequences to fetch (if available) [default = 15]
-  -v|--verbose                  : say more things [default: be quiet]
-  -h|--help                     : prints this help message
+  -d|--dir             [DIR]    : dir name to put fasta files into ['outdir']
+  -l|--limit                    : maximum number of ingroup / outgroup sequences to fetch (if available) [15]
+  -a|--alienness                : format sequence headers for alienness phylogeny testing instead [no]
+  -v|--verbose                  : say more things
+  -h|--help                     : print help
 \n";
 
-my ($in,$candidates,$uniref90,$fasta,$path,$groups,$mafft,$raxml,$prefix,$verbose,$help);
+my ($in,$candidates,$uniref90,$fasta,$path,$alienness,$groups,$mafft,$raxml,$prefix,$verbose,$help);
 my $taxid_threshold = 33208;
 my $taxid_skip = 0; ## default is 0, which is not a valid NCBI taxid and should not affect the tree recursion
 my $outdir = "outdir";
@@ -58,6 +59,7 @@ GetOptions (
   'k|taxid_skip:i'      => \$taxid_skip,
   'l|limit:i'           => \$limit,
   'd|dir:s'             => \$outdir,
+  'a|alienness'         => \$alienness,
   'g|groups:s'          => \$groups,
   'm|mafft'             => \$mafft,
   'x|raxml'             => \$raxml,
@@ -84,7 +86,7 @@ if ($path) {
     $rank_hash{$F[0]} = $F[2]; ## key= taxid; value= rank
   }
   close $NODES;
-  print STDERR "[INFO] Done $path/nodes.dmp\n";
+  print STDERR "[INFO] + ".$path."nodes.dmp\n";
   open (my $NAMES, "$path/names.dmp") or die "[ERROR] names.dmp not found in $path: $!\n";
   while (<$NAMES>) {
     chomp;
@@ -93,7 +95,7 @@ if ($path) {
     $names_hash{$F[0]} = $F[1] if ($F[3] eq "scientific name"); ## key= taxid; value= species name
   }
   close $NAMES;
-  print STDERR "[INFO] Done $path/names.dmp\n";
+  print STDERR "[INFO] + ".$path."names.dmp\n";
   if (-e "$path/merged.dmp") {
     open (my $MERGED, "$path/merged.dmp") or die "[ERROR] merged.dmp not found in $path: $!\n";
     while (<$MERGED>) {
@@ -104,7 +106,7 @@ if ($path) {
       ## this will behave as if old taxid is a child of the new one, which is OK I guess
     }
     close $MERGED;
-    print STDERR "[INFO] Done $path/merged.dmp\n";
+    print STDERR "[INFO] + ".$path."merged.dmp\n";
   }
 } else { die "[ERROR] Path '$path' not found\n" }
 
@@ -165,7 +167,11 @@ while (<$DIAMOND>) {
         next;
       } else {
         my $phylum = tax_walk_to_get_rank_to_phylum($F[12]);
-        $new_hit_name = join ("|", $F[1], "IN", $phylum);
+        if ($alienness) {
+          $new_hit_name = "$F[1]\@TOI-$names_hash{$F[12]}";
+        } else {
+          $new_hit_name = join ("|", $F[1], "IN", $phylum);
+        }
         $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
         #push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
         $hits_hash{$F[0]}{$F[1]} = 1; ## key= query name; value= { hash of UniRef90 hit ids }; use hash to eliminate repeated hit names
@@ -177,8 +183,13 @@ while (<$DIAMOND>) {
       if ( $hits_limit{$F[0]}{"out_limit"} > $limit ) {
         next;
       } else {
-        my $phylum = tax_walk_to_get_rank_to_phylum($F[12]);
-        $new_hit_name = join ("|", $F[1], "OUT", $phylum);
+        if ($alienness) {
+          my $phylum = tax_walk_to_get_rank_to_phylum($F[12], 1);
+          $new_hit_name = "$F[1]\@$phylum";
+        } else {
+          my $phylum = tax_walk_to_get_rank_to_phylum($F[12]);
+          $new_hit_name = join ("|", $F[1], "OUT", $phylum);
+        }
         $hits_name_map{$F[1]} = $new_hit_name; ## key= UniRef90 name; val= suffixed with IN|OUT
         #push @{ $hits_hash{$F[0]} }, $F[1]; ## key= query name; val= [array of UniRef90 hit ids]
         $hits_hash{$F[0]}{$F[1]} = 1; ## key= query name; value= { hash of UniRef90 hit ids }
@@ -227,7 +238,11 @@ while (<$CANDIDATES>) {
     }
   }
   ## print query sequence LAST!
-  print $FA "\>$F[0]\n$seq_hash{$F[0]}\n";
+  if ($alienness) {
+    print $FA "\>$F[0]\@StudiedOrganism\n$seq_hash{$F[0]}\n";
+  } else {
+    print $FA "\>$F[0]\n$seq_hash{$F[0]}\n";
+  }
   close $CMD;
   close $FA;
 
@@ -297,6 +312,7 @@ sub tax_walk {
 
 sub tax_walk_to_get_rank_to_phylum {
   my $taxid = $_[0];
+  my $superkingdom_only = $_[1];
   my $parent = $nodes_hash{$taxid};
   my $parent_rank = $rank_hash{$parent};
   my ($phylum,$kingdom,$superkingdom) = ("undef","undef","undef");
@@ -325,7 +341,12 @@ sub tax_walk_to_get_rank_to_phylum {
       $parent_rank = $rank_hash{$parent};
     }
   }
-  my $result = join ("|",$superkingdom,$kingdom,$phylum);
+  my $result;
+  if ($superkingdom_only == 1) {
+    $result = $superkingdom;
+  } else {
+    $result = join ("|",$superkingdom,$kingdom,$phylum);
+  }
   $result =~ s/\s+/\_/g; ## replace spaces with underscores
   return $result;
 }
