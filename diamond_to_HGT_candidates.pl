@@ -231,6 +231,7 @@ while (<$DIAMOND>) {
   next if /^\#/;
   $total_entries++;
   my @F = split (m/\s+/, $_);
+  print STDERR "[INFO] Diamond file has @F columns\n";
   if (scalar(@F) <= 1) {
     die "[ERROR] File '$in' did not split properly: is it tab or space delimited?\n";
   } elsif ( (scalar(@F)<$taxid_column) or (scalar(@F)<$bitscore_column) or (scalar(@F)<$evalue_column) ) {
