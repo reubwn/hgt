@@ -231,11 +231,10 @@ while (<$DIAMOND>) {
   next if /^\#/;
   $total_entries++;
   my @F = split (m/\s+/, $_);
-  print STDERR "[INFO] Diamond file has @F columns\n";
   if (scalar(@F) <= 1) {
     die "[ERROR] File '$in' did not split properly: is it tab or space delimited?\n";
   } elsif ( (scalar(@F)<$taxid_column) or (scalar(@F)<$bitscore_column) or (scalar(@F)<$evalue_column) ) {
-    die "[ERROR] File '$in' did not split properly: number of columns is too small\n";
+    die "[ERROR] File '$in' line $. did not split properly: number of columns is too small (".@F.")\n";
   }
   if ($F[($taxid_column-1)] !~ m/\d+/) {
     print $WARN join ("\t", $F[0], $., $F[($taxid_column-1)], "invalid/unrecognised/absent taxid", "\n");
