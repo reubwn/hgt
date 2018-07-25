@@ -53,7 +53,8 @@ OPTIONS
   -h|--help                     : this help message
 \n";
 
-my ($in,$nodesfile,$path,$namesfile,$mergedfile,$nodesDBfile,$gff,$prefix,$outfile,$hgtcandidatesfile,$warningsfile,$header,$useai,$verbose,$debug,$help);
+my ($infiles,$nodesfile,$path,$namesfile,$mergedfile,$nodesDBfile,$gff,$prefix,$outfile,$hgtcandidatesfile,$warningsfile,$header,$useai,$verbose,$debug,$help);
+#my $list;
 my $taxid_threshold = 33208; ##metazoa
 my $taxid_skip = 0; ##default is 0, not a valid NCBI taxid and should not affect the tree recursion NB Rotifera = 10190
 my $support_threshold = 90;
@@ -64,7 +65,8 @@ my $bitscore_column = 12;
 my $taxid_column = 13;
 
 GetOptions (
-  'i|in=s'                => \$in,
+  'i|infiles=s'           => \$infiles,
+#  'l|list:s'              => \$list,
   'p|path:s'              => \$path,
   'o|nodes:s'             => \$nodesfile,
   'a|names:s'             => \$namesfile,
@@ -89,7 +91,7 @@ GetOptions (
 );
 
 die $usage if $help;
-die $usage unless ($in);
+die $usage unless ($in or $list);
 
 ############################################## PARSE NODES
 
@@ -177,7 +179,13 @@ if ($taxid_skip) {
 }
 #print STDERR "[INFO] Scoring method set to '$scoring'\n";
 
+############################################ INFILES
+
+my @infiles = split (/\s+/, $infiles); ##split infiles string
+
 ############################################ OUTFILES
+
+foreach my $in (@infiles) { ## iterate over multiple files if required
 
 ## define outfiles:
 if ($prefix) {
@@ -426,6 +434,8 @@ print STDERR "[INFO] Number of queries with HGT Index >= $hU_threshold and CHS >
 #print STDERR "[INFO] Number of queries with Alien Index (AI) >= $hU_threshold: ".commify($AI_supported)."\n";
 #print STDERR "[INFO] NUMBER OF HGT CANDIDATES: ".commify(scalar(keys(%hgt_candidates)))."\n";
 print STDERR "[INFO] Finished on ".`date`."\n";
+
+}##infiles loop
 
 ############################################ SUBS
 
