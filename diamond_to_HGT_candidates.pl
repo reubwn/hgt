@@ -91,7 +91,7 @@ GetOptions (
 );
 
 die $usage if $help;
-die $usage unless ($in or $list);
+die $usage unless ($infiles);
 
 ############################################## PARSE NODES
 
