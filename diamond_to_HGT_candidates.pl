@@ -56,7 +56,7 @@ OPTIONS
 my ($infiles,$nodesfile,$path,$namesfile,$mergedfile,$nodesDBfile,$gff,$prefix,$outfile,$hgtcandidatesfile,$warningsfile,$header,$useai,$verbose,$debug,$help);
 my $list;
 my $taxid_threshold = 33208; ##metazoa
-my $taxid_skip = 0; ##default is 0, not a valid NCBI taxid and should not affect the tree recursion NB Rotifera = 10190
+my $taxid_skip = 0; ##default is 0, not a valid NCBI taxid and should not affect the tree recursion; NB Rotifera = 10190
 my $support_threshold = 90;
 my $hU_threshold = 30;
 my $scoring = "sum";
@@ -172,284 +172,294 @@ if ($path) {
 print STDERR "[INFO] Nodes parsed: ".scalar(keys %nodes_hash)."\n";
 print STDERR "[INFO] Threshold taxid set to '$taxid_threshold' ($names_hash{$taxid_threshold})\n";
 print STDERR "[INFO] INGROUP set to '$names_hash{$taxid_threshold}'; OUTGROUP is therefore 'non-$names_hash{$taxid_threshold}'\n";
-if ($taxid_skip) {
-  print STDERR "[INFO] Skipping any hits to taxid '$taxid_skip' ($names_hash{$taxid_skip})\n";
-} else {
-  print STDERR "[WARN] Taxid to skip (-k) is not set! Suggest setting -k to the taxid of the phylum your organism comes from.\n";
-}
-#print STDERR "[INFO] Scoring method set to '$scoring'\n";
 
 ############################################ INFILES
 
 my @infiles;
+my %taxid_skip_hash;
 if ($list) {
   open (my $LIST, $list) or die $!;
   while (<$LIST>) {
     chomp;
-    if ( -f $_ ) {
-      push (@infiles, $_);
+    my @F = split (/\s+/, $_);
+    if ( -f $F[0] ) {
+      push (@infiles, $F[0]);
     } else {
-      die "[ERROR] File $_ does not exist!\n";
+      die "[ERROR] File $F[0] does not exist!\n";
+    }
+    ## fetch the TaxID to skip from file:
+    if ($F[1]) {
+      $taxid_skip_hash{$F[0]} = $F[1];
     }
   }
   close $LIST;
-  print STDERR "[INFO] Number of files in $list: ".@infiles."\n";
+  print STDERR "[INFO] Number of files in '$list': ".@infiles."\n";
 } else {
   @infiles = split (/\s+/, $infiles); ##split infiles string
-  print STDERR "[INFO] Number of files in $list: ".@infiles."\n";
+  print STDERR "[INFO] Number of files: ".@infiles."\n";
 }
 
 ############################################ OUTFILES
 
 foreach my $in (@infiles) { ## iterate over multiple files if required
-print STDERR "[INFO] Parsing Diamond file '$in'\n";
+  print STDERR "[INFO] Analysing file '$in'\n";
 
-## define outfiles:
-if ($prefix) {
-  $outfile = "$prefix.HGT_results.$names_hash{$taxid_threshold}.txt";
-  $hgtcandidatesfile = "$prefix.HGT_candidates.$names_hash{$taxid_threshold}.hU$hU_threshold.CHS$support_threshold.txt";
-  $warningsfile = "$prefix.HGT_warnings.txt";
-} else {
-  $outfile = "$in.HGT_results.$names_hash{$taxid_threshold}.txt";
-  $hgtcandidatesfile = "$in.HGT_candidates.$names_hash{$taxid_threshold}.hU$hU_threshold.CHS$support_threshold.txt";
-  $warningsfile = "$in.HGT_warnings.txt";
-}
-
-## open outfiles:
-open (my $OUT, ">",$outfile) or die $!;
-open (my $HGT, ">",$hgtcandidatesfile) or die $!;
-open (my $WARN, ">",$warningsfile) or die $!;
-my @header = (
-  "#QUERY",
-  "INGROUP",
-  "OUTGROUP",
-  "hU",
-  "BIT_OUT",
-  "BIT_IN",
-  "AI",
-  "EVAL_OUT",
-  "EVAL_IN",
-  "BBSUMCAT",
-  "CHS",
-  "TAXONOMY"
-);
-print $OUT join ("\t", @header, "\n"); #"\#query\tbestsum_bitscore\talt_bitscore\tingroup_taxname\tdecision\tsupport\tbest_ingroup_evalue\tbest_outgroup_evalue\talien_index\tbesthit_taxonomy\n" unless $header;
-print $HGT join ("\t", @header, "\n"); #"\#query\tbestsum_bitscore\talt_bitscore\tingroup_taxname\tdecision\tsupport\tbest_ingroup_evalue\tbest_outgroup_evalue\talien_index\tbesthit_taxonomy\n" unless $header;
-
-############################################## PARSE DIAMOND
-
-## parse Diamond file:
-my (%bitscores_per_query_hash, %evalues_per_query_hash);
-my ($total_entries,$skipped_entries_because_bad_taxid,$skipped_entries_because_skipped_taxid,$skipped_entries_because_unassigned) = (0,0,0,0);
-
-my $DIAMOND;
-if ($in =~ m/gz$/) {
-  open ($DIAMOND, "zcat $in |") or die $!; ## if gzipped
-  print STDERR "[INFO] Diamond file is gzipped\n";
-} else {
-  open ($DIAMOND, $in) or die $!;
-}
-
-while (<$DIAMOND>) {
-  chomp;
-  next if /^\#/;
-  $total_entries++;
-  my @F = split (m/\s+/, $_);
-  if (scalar(@F) <= 1) {
-    die "[ERROR] File '$in' did not split properly: is it tab or space delimited?\n";
-  } elsif ( (scalar(@F)<$taxid_column) or (scalar(@F)<$bitscore_column) or (scalar(@F)<$evalue_column) ) {
-    die "[ERROR] File '$in' line $. did not split properly: number of columns is too small (".@F.")\n";
-  }
-  if ($F[($taxid_column-1)] !~ m/\d+/) {
-    print $WARN join ("\t", $F[0], $., $F[($taxid_column-1)], "invalid/unrecognised/absent taxid", "\n");
-    $skipped_entries_because_bad_taxid++;
-    next;
-  } elsif (check_taxid_has_parent($F[($taxid_column-1)]) == 1) {
-    print $WARN join ("\t", $F[0], $., $F[($taxid_column-1)], "invalid/unrecognised parent taxid", "\n");
-    $skipped_entries_because_bad_taxid++;
-    next;
-  } elsif ( tax_walk($F[($taxid_column-1)], $taxid_skip) eq "ingroup" ) { ## do not include any hits to within taxid $taxid_skip
-    print $WARN join ("\t", $F[0], $., $F[($taxid_column-1)], "taxid within skipped ($taxid_skip)", "\n") if $verbose;
-    $skipped_entries_because_skipped_taxid++;
-    next;
-  } elsif ( tax_walk($F[($taxid_column-1)]) eq "unassigned" ) {
-    print $WARN join ("\t", $F[0], $., $F[($taxid_column-1)], "taxid unassigned/unclassified", "\n");
-    $skipped_entries_because_unassigned++;
-    next;
+  ## define TaxID to skip:
+  if ($taxid_skip) { ## from command line input
+    print STDERR "[INFO] Skipping any hits to taxid '$taxid_skip' ($names_hash{$taxid_skip})\n";
+  } elsif ($taxid_skip_hash{$in}) {
+    $taxid_skip = $taxid_skip_hash{$in};
+    print STDERR "[INFO] Skipping any hits to taxid '$taxid_skip' ($names_hash{$taxid_skip})\n";
   } else {
-    ## push all bitscores and evalues for every taxid into an array within a hash within a hash:
-    push @{ $bitscores_per_query_hash{$F[0]}{$F[($taxid_column-1)]} }, $F[($bitscore_column-1)]; ## key= query; value= hash{ key= taxid; value= array[ bitscores ]}
-    push @{ $evalues_per_query_hash{$F[0]}{$F[($taxid_column-1)]} }, $F[$evalue_column-1]; ## key= query; value= hash{ key= taxid; value= array [ evalues ]}
+    print STDERR "[WARN] TaxID to skip is not set!\n";
   }
-}
-close $DIAMOND;
-print STDERR "[INFO] Total number of hits parsed: ".commify($total_entries)."\n";
-print STDERR "[WARN] There were ".commify($skipped_entries_because_bad_taxid)." (".percentage($skipped_entries_because_bad_taxid,$total_entries)."\%) invalid taxid entries\n" if $skipped_entries_because_bad_taxid > 0;
-print STDERR "[WARN] There were ".commify($skipped_entries_because_skipped_taxid)." (".percentage($skipped_entries_because_skipped_taxid,$total_entries)."\%) skipped taxid entries\n" if $skipped_entries_because_skipped_taxid > 0;
-print STDERR "[WARN] There were ".commify($skipped_entries_because_unassigned)." (".percentage($skipped_entries_because_unassigned,$total_entries)."\%) unassigned/unclassified taxid entries\n" if $skipped_entries_because_unassigned > 0;
 
-############################################ DEBUG
+  ## define outfiles:
+  if ($prefix) {
+    $outfile = "$prefix.HGT_results.$names_hash{$taxid_threshold}.txt";
+    $hgtcandidatesfile = "$prefix.HGT_candidates.$names_hash{$taxid_threshold}.hU$hU_threshold.CHS$support_threshold.txt";
+    $warningsfile = "$prefix.HGT_warnings.txt";
+  } else {
+    $outfile = "$in.HGT_results.$names_hash{$taxid_threshold}.txt";
+    $hgtcandidatesfile = "$in.HGT_candidates.$names_hash{$taxid_threshold}.hU$hU_threshold.CHS$support_threshold.txt";
+    $warningsfile = "$in.HGT_warnings.txt";
+  }
 
-print Dumper \%bitscores_per_query_hash if $debug;
-print Dumper \%evalues_per_query_hash if $debug;
+  ## open outfiles:
+  open (my $OUT, ">",$outfile) or die $!;
+  open (my $HGT, ">",$hgtcandidatesfile) or die $!;
+  open (my $WARN, ">",$warningsfile) or die $!;
+  my @header = (
+    "#QUERY",
+    "INGROUP",
+    "OUTGROUP",
+    "hU",
+    "BIT_OUT",
+    "BIT_IN",
+    "AI",
+    "EVAL_OUT",
+    "EVAL_IN",
+    "BBSUMCAT",
+    "CHS",
+    "TAXONOMY"
+  );
+  print $OUT join ("\t", @header, "\n"); #"\#query\tbestsum_bitscore\talt_bitscore\tingroup_taxname\tdecision\tsupport\tbest_ingroup_evalue\tbest_outgroup_evalue\talien_index\tbesthit_taxonomy\n" unless $header;
+  print $HGT join ("\t", @header, "\n"); #"\#query\tbestsum_bitscore\talt_bitscore\tingroup_taxname\tdecision\tsupport\tbest_ingroup_evalue\tbest_outgroup_evalue\talien_index\tbesthit_taxonomy\n" unless $header;
 
-############################################ MAIN
+  ############################################## PARSE DIAMOND
 
-## get winning bitscore and taxid; calculate congruence among all taxids for all hits per query:
-my ($processed,$ingroup,$ingroup_supported,$outgroup,$outgroup_supported,$hU_supported,$AI_supported,$unassigned) = (0,0,0,0,0,0,0,0);
-my %hgt_candidates;
-print STDERR "[INFO] Calculating hU, AI and consensus hit support...\n";
-print STDERR "\n" if $verbose;
-foreach my $query (nsort keys %bitscores_per_query_hash) {
-  my %bitscore_hash = %{ $bitscores_per_query_hash{$query} }; ## key= taxid; value= \@array of all bitscores for that taxid
-  my %evalue_hash = %{ $evalues_per_query_hash{$query} }; ## key= taxid; value= \@array of all evalues for that taxid
+  ## parse Diamond file:
+  my (%bitscores_per_query_hash, %evalues_per_query_hash);
+  my ($total_entries,$skipped_entries_because_bad_taxid,$skipped_entries_because_skipped_taxid,$skipped_entries_because_unassigned) = (0,0,0,0);
 
-  ## calculate alien index (AI):
-  my ($ingroup_best_evalue, $outgroup_best_evalue) = (1,1);
-  foreach my $taxid (keys %evalue_hash) {
-    my $min_evalue = min( @{ $evalue_hash{$taxid} } );
-    if (tax_walk($taxid) eq "ingroup") {
-      $ingroup_best_evalue = $min_evalue if ($min_evalue < $ingroup_best_evalue); ## only accept it if it's LOWER (better) than current Evalue
-    } elsif (tax_walk($taxid) eq "outgroup") {
-      $outgroup_best_evalue = $min_evalue if ($min_evalue < $outgroup_best_evalue);
+  my $DIAMOND;
+  if ($in =~ m/gz$/) {
+    open ($DIAMOND, "zcat $in |") or die $!; ## if gzipped
+    print STDERR "[INFO] Diamond file is gzipped\n";
+  } else {
+    open ($DIAMOND, $in) or die $!;
+  }
+
+  while (<$DIAMOND>) {
+    chomp;
+    next if /^\#/;
+    $total_entries++;
+    my @F = split (m/\s+/, $_);
+    if (scalar(@F) <= 1) {
+      die "[ERROR] File '$in' did not split properly: is it tab or space delimited?\n";
+    } elsif ( (scalar(@F)<$taxid_column) or (scalar(@F)<$bitscore_column) or (scalar(@F)<$evalue_column) ) {
+      die "[ERROR] File '$in' line $. did not split properly: number of columns is too small (".@F.")\n";
+    }
+    if ($F[($taxid_column-1)] !~ m/\d+/) {
+      print $WARN join ("\t", $F[0], $., $F[($taxid_column-1)], "invalid/unrecognised/absent taxid", "\n");
+      $skipped_entries_because_bad_taxid++;
+      next;
+    } elsif (check_taxid_has_parent($F[($taxid_column-1)]) == 1) {
+      print $WARN join ("\t", $F[0], $., $F[($taxid_column-1)], "invalid/unrecognised parent taxid", "\n");
+      $skipped_entries_because_bad_taxid++;
+      next;
+    } elsif ( tax_walk($F[($taxid_column-1)], $taxid_skip) eq "ingroup" ) { ## do not include any hits to within taxid $taxid_skip
+      print $WARN join ("\t", $F[0], $., $F[($taxid_column-1)], "taxid within skipped ($taxid_skip)", "\n") if $verbose;
+      $skipped_entries_because_skipped_taxid++;
+      next;
+    } elsif ( tax_walk($F[($taxid_column-1)]) eq "unassigned" ) {
+      print $WARN join ("\t", $F[0], $., $F[($taxid_column-1)], "taxid unassigned/unclassified", "\n");
+      $skipped_entries_because_unassigned++;
+      next;
+    } else {
+      ## push all bitscores and evalues for every taxid into an array within a hash within a hash:
+      push @{ $bitscores_per_query_hash{$F[0]}{$F[($taxid_column-1)]} }, $F[($bitscore_column-1)]; ## key= query; value= hash{ key= taxid; value= array[ bitscores ]}
+      push @{ $evalues_per_query_hash{$F[0]}{$F[($taxid_column-1)]} }, $F[$evalue_column-1]; ## key= query; value= hash{ key= taxid; value= array [ evalues ]}
     }
   }
-  ## AI = log(AI_in+constant) - log(AI_out+constant):
-  my $AI = ( log10($ingroup_best_evalue + 1e-200) - log10($outgroup_best_evalue + 1e-200) );
-  $AI_supported++ if $AI >= $hU_threshold;
+  close $DIAMOND;
+  print STDERR "[INFO] Total number of hits parsed: ".commify($total_entries)."\n";
+  print STDERR "[WARN] There were ".commify($skipped_entries_because_bad_taxid)." (".percentage($skipped_entries_because_bad_taxid,$total_entries)."\%) invalid taxid entries\n" if $skipped_entries_because_bad_taxid > 0;
+  print STDERR "[WARN] There were ".commify($skipped_entries_because_skipped_taxid)." (".percentage($skipped_entries_because_skipped_taxid,$total_entries)."\%) skipped taxid entries\n" if $skipped_entries_because_skipped_taxid > 0;
+  print STDERR "[WARN] There were ".commify($skipped_entries_because_unassigned)." (".percentage($skipped_entries_because_unassigned,$total_entries)."\%) unassigned/unclassified taxid entries\n" if $skipped_entries_because_unassigned > 0;
 
-  ## calculate HGT index (hU):
-  my ($ingroup_best_bitscore, $outgroup_best_bitscore) = (0,0);
-  foreach my $taxid (keys %bitscore_hash) {
-    my $max_bitscore = max( @{ $bitscore_hash{$taxid} } );
-    if (tax_walk($taxid) eq "ingroup") {
-      $ingroup_best_bitscore = $max_bitscore if ($max_bitscore > $ingroup_best_bitscore); ## only accept it if it's HIGHER (better) than current bitscore
-    } elsif (tax_walk($taxid) eq "outgroup") {
-      $outgroup_best_bitscore = $max_bitscore if ($max_bitscore > $outgroup_best_bitscore);
-    }
-  }
-  ## hU = B_out - B_in:
-  my $hU = ($outgroup_best_bitscore - $ingroup_best_bitscore);
-  $hU_supported++ if $hU >= $hU_threshold;
+  ############################################ DEBUG
 
-  ## calculate bitscoresums per taxid; get taxid of highest bitscoresum; get support for winning taxid from other hits:
-  my (%bitscoresum_hash, %count_categories, %support_categories);
-  my ($ingroup_bitscoresum, $outgroup_bitscoresum) = (0,0);
+  print Dumper \%bitscores_per_query_hash if $debug;
+  print Dumper \%evalues_per_query_hash if $debug;
 
-  foreach my $taxid (keys %bitscore_hash) {
-    if ($scoring eq "sum") {
+  ############################################ MAIN
+
+  ## get winning bitscore and taxid; calculate congruence among all taxids for all hits per query:
+  my ($processed,$ingroup,$ingroup_supported,$outgroup,$outgroup_supported,$hU_supported,$AI_supported,$unassigned) = (0,0,0,0,0,0,0,0);
+  my %hgt_candidates;
+  print STDERR "[INFO] Calculating hU, AI and consensus hit support...\n";
+  print STDERR "\n" if $verbose;
+  foreach my $query (nsort keys %bitscores_per_query_hash) {
+    my %bitscore_hash = %{ $bitscores_per_query_hash{$query} }; ## key= taxid; value= \@array of all bitscores for that taxid
+    my %evalue_hash = %{ $evalues_per_query_hash{$query} }; ## key= taxid; value= \@array of all evalues for that taxid
+
+    ## calculate alien index (AI):
+    my ($ingroup_best_evalue, $outgroup_best_evalue) = (1,1);
+    foreach my $taxid (keys %evalue_hash) {
+      my $min_evalue = min( @{ $evalue_hash{$taxid} } );
       if (tax_walk($taxid) eq "ingroup") {
-        $ingroup_bitscoresum += sum( @{ $bitscore_hash{$taxid} } );
-        #print STDERR join "\t", "\t", $query, $taxid, tax_walk($taxid), sum( @{ $bitscore_hash{$taxid} } ),"\n"; ## uncomment to see info for each each hit
+        $ingroup_best_evalue = $min_evalue if ($min_evalue < $ingroup_best_evalue); ## only accept it if it's LOWER (better) than current Evalue
       } elsif (tax_walk($taxid) eq "outgroup") {
-        $outgroup_bitscoresum += sum( @{ $bitscore_hash{$taxid} } );
-        #print STDERR join "\t", "\t", $query, $taxid, tax_walk($taxid), sum( @{ $bitscore_hash{$taxid} } ),"\n"; ## uncomment to see info for each each hit
+        $outgroup_best_evalue = $min_evalue if ($min_evalue < $outgroup_best_evalue);
       }
-      my $bitscoresum = sum( @{ $bitscore_hash{$taxid} } );
-      $bitscoresum_hash{$taxid} = $bitscoresum; ## key= taxid; value= bitscoresum
-    } elsif ($scoring eq "individual") {
-      my $bitscoresum = sum( @{ $bitscore_hash{$taxid} } );
-      $bitscoresum_hash{$taxid} = $bitscoresum; ## key= taxid; value= bitscoresum
     }
-    $count_categories{tax_walk($taxid)}++; ## count categories; if each hit's taxid falls within/outwith the $taxid_threshold
+    ## AI = log(AI_in+constant) - log(AI_out+constant):
+    my $AI = ( log10($ingroup_best_evalue + 1e-200) - log10($outgroup_best_evalue + 1e-200) );
+    $AI_supported++ if $AI >= $hU_threshold;
+
+    ## calculate HGT index (hU):
+    my ($ingroup_best_bitscore, $outgroup_best_bitscore) = (0,0);
+    foreach my $taxid (keys %bitscore_hash) {
+      my $max_bitscore = max( @{ $bitscore_hash{$taxid} } );
+      if (tax_walk($taxid) eq "ingroup") {
+        $ingroup_best_bitscore = $max_bitscore if ($max_bitscore > $ingroup_best_bitscore); ## only accept it if it's HIGHER (better) than current bitscore
+      } elsif (tax_walk($taxid) eq "outgroup") {
+        $outgroup_best_bitscore = $max_bitscore if ($max_bitscore > $outgroup_best_bitscore);
+      }
+    }
+    ## hU = B_out - B_in:
+    my $hU = ($outgroup_best_bitscore - $ingroup_best_bitscore);
+    $hU_supported++ if $hU >= $hU_threshold;
+
+    ## calculate bitscoresums per taxid; get taxid of highest bitscoresum; get support for winning taxid from other hits:
+    my (%bitscoresum_hash, %count_categories, %support_categories);
+    my ($ingroup_bitscoresum, $outgroup_bitscoresum) = (0,0);
+
+    foreach my $taxid (keys %bitscore_hash) {
+      if ($scoring eq "sum") {
+        if (tax_walk($taxid) eq "ingroup") {
+          $ingroup_bitscoresum += sum( @{ $bitscore_hash{$taxid} } );
+          #print STDERR join "\t", "\t", $query, $taxid, tax_walk($taxid), sum( @{ $bitscore_hash{$taxid} } ),"\n"; ## uncomment to see info for each each hit
+        } elsif (tax_walk($taxid) eq "outgroup") {
+          $outgroup_bitscoresum += sum( @{ $bitscore_hash{$taxid} } );
+          #print STDERR join "\t", "\t", $query, $taxid, tax_walk($taxid), sum( @{ $bitscore_hash{$taxid} } ),"\n"; ## uncomment to see info for each each hit
+        }
+        my $bitscoresum = sum( @{ $bitscore_hash{$taxid} } );
+        $bitscoresum_hash{$taxid} = $bitscoresum; ## key= taxid; value= bitscoresum
+      } elsif ($scoring eq "individual") {
+        my $bitscoresum = sum( @{ $bitscore_hash{$taxid} } );
+        $bitscoresum_hash{$taxid} = $bitscoresum; ## key= taxid; value= bitscoresum
+      }
+      $count_categories{tax_walk($taxid)}++; ## count categories; if each hit's taxid falls within/outwith the $taxid_threshold
+    }
+    print "$query:\n" if $debug; ## debug
+    print Dumper \%bitscoresum_hash if $debug; ## debug
+
+    foreach my $cat (keys %count_categories) {
+      $support_categories{$cat} = percentage($count_categories{$cat}, scalar(keys %bitscore_hash)); ## calculate proportion of support for the category of the winner
+    }
+
+    ## get taxid with highest bitscore:
+    my ($taxid_with_highest_bitscore,$taxid_with_highest_bitscore_category,$taxid_with_highest_bitscore_category_support);
+    if ($scoring eq "sum") {
+      $taxid_with_highest_bitscore_category = $ingroup_bitscoresum > $outgroup_bitscoresum ? "ingroup" : "outgroup"; ## define query category based on bitscoresums of ingroup vs outgroup
+      $taxid_with_highest_bitscore_category_support = $support_categories{$taxid_with_highest_bitscore_category}; ## % support from other hits
+      $taxid_with_highest_bitscore = List::Util::reduce { $bitscoresum_hash{$b} > $bitscoresum_hash{$a} ? $b : $a } keys %bitscoresum_hash; ## winning taxid
+      print STDERR "[INFO] [$query] Bitscoresum for INGROUP ($names_hash{$taxid_threshold}): $ingroup_bitscoresum\n" if $verbose;
+      print STDERR "[INFO] [$query] Bitscoresum for OUTGROUP (non-$names_hash{$taxid_threshold}): $outgroup_bitscoresum\n" if $verbose;
+      ## PRINT TO OUT:
+      print $OUT join (
+        "\t",
+        $query, ##QUERY
+        $names_hash{$taxid_threshold}, ##INGROUP
+        "non-$names_hash{$taxid_threshold}", ##OUTGROUP
+        $hU, ##hU
+        $outgroup_best_bitscore, ##BIT_OUT
+        $ingroup_best_bitscore, ##BIT_IN
+        $AI, ##AI
+        $outgroup_best_evalue, ##EVAL_OUT
+        $ingroup_best_evalue, ##EVAL_IN
+        ($ingroup_bitscoresum > $outgroup_bitscoresum ? "INGROUP" : "OUTGROUP"), ##BBSUMCAT
+        $taxid_with_highest_bitscore_category_support, ##CHS
+        tax_walk_to_get_rank_to_phylum($taxid_with_highest_bitscore), ##TAXONOMY
+         "\n"
+      );
+
+    } elsif ($scoring eq "individual") {
+      die "[ERROR] Sorry, individual scoring not supported, please change to 'sum'\n";
+    }
+
+    print STDERR "[INFO] [$query] Decision of bestsum bitscore: '$taxid_with_highest_bitscore_category' (support = $taxid_with_highest_bitscore_category_support)\n" if $verbose;
+    print STDERR "[INFO] [$query] Best evalue for INGROUP ($names_hash{$taxid_threshold}): $ingroup_best_evalue\n" if $verbose;
+    print STDERR "[INFO] [$query] Best evalue for OUTGROUP (non-$names_hash{$taxid_threshold}): $outgroup_best_evalue\n" if $verbose;
+    print STDERR "[INFO] [$query] Alien Index = $AI\n[----]\n" if $verbose;
+
+    ## count genes in various categories:
+    if ( $taxid_with_highest_bitscore_category eq "unassigned" ) {
+      $unassigned++;
+    } elsif ( $taxid_with_highest_bitscore_category eq "ingroup" ) {
+      $ingroup++;
+      $ingroup_supported++ if ( $taxid_with_highest_bitscore_category_support >= $support_threshold );
+    } elsif ( $taxid_with_highest_bitscore_category eq "outgroup" ) {
+      $outgroup++;
+      $outgroup_supported++ if ( $taxid_with_highest_bitscore_category_support >= $support_threshold );
+    }
+
+    ## PRINT TO HGT_CANDIDATES:
+    ## print all queries with hU>=threshold AND CHS>=threshold to HGT_candidates file:
+    if ( ($hU >= $hU_threshold) && ($taxid_with_highest_bitscore_category eq "outgroup") && ($taxid_with_highest_bitscore_category_support >= $support_threshold) ) {
+      print $HGT join (
+        "\t",
+        $query, ##QUERY
+        $names_hash{$taxid_threshold}, ##INGROUP
+        "non-$names_hash{$taxid_threshold}", ##OUTGROUP
+        $hU, ##hU
+        $outgroup_best_bitscore, ##BIT_OUT
+        $ingroup_best_bitscore, ##BIT_IN
+        $AI, ##AI
+        $outgroup_best_evalue, ##EVAL_OUT
+        $ingroup_best_evalue, ##EVAL_IN
+        ($ingroup_bitscoresum > $outgroup_bitscoresum ? "INGROUP" : "OUTGROUP"), ##BBSUMCAT
+        $taxid_with_highest_bitscore_category_support, ##CHS
+        tax_walk_to_get_rank_to_phylum($taxid_with_highest_bitscore), ##TAXONOMY
+        "\n"
+      );
+      $hgt_candidates{$query} = ();
+    }
+
+    ## progress:
+    $processed++;
+    if ($processed % 1000 == 0){
+      print STDERR "\r[INFO] Processed ".commify($processed)." queries...";
+      $| = 1;
+    }
   }
-  print "$query:\n" if $debug; ## debug
-  print Dumper \%bitscoresum_hash if $debug; ## debug
+  close $OUT;
+  close $HGT;
+  close $WARN;
 
-  foreach my $cat (keys %count_categories) {
-    $support_categories{$cat} = percentage($count_categories{$cat}, scalar(keys %bitscore_hash)); ## calculate proportion of support for the category of the winner
-  }
-
-  ## get taxid with highest bitscore:
-  my ($taxid_with_highest_bitscore,$taxid_with_highest_bitscore_category,$taxid_with_highest_bitscore_category_support);
-  if ($scoring eq "sum") {
-    $taxid_with_highest_bitscore_category = $ingroup_bitscoresum > $outgroup_bitscoresum ? "ingroup" : "outgroup"; ## define query category based on bitscoresums of ingroup vs outgroup
-    $taxid_with_highest_bitscore_category_support = $support_categories{$taxid_with_highest_bitscore_category}; ## % support from other hits
-    $taxid_with_highest_bitscore = List::Util::reduce { $bitscoresum_hash{$b} > $bitscoresum_hash{$a} ? $b : $a } keys %bitscoresum_hash; ## winning taxid
-    print STDERR "[INFO] [$query] Bitscoresum for INGROUP ($names_hash{$taxid_threshold}): $ingroup_bitscoresum\n" if $verbose;
-    print STDERR "[INFO] [$query] Bitscoresum for OUTGROUP (non-$names_hash{$taxid_threshold}): $outgroup_bitscoresum\n" if $verbose;
-    ## PRINT TO OUT:
-    print $OUT join (
-      "\t",
-      $query, ##QUERY
-      $names_hash{$taxid_threshold}, ##INGROUP
-      "non-$names_hash{$taxid_threshold}", ##OUTGROUP
-      $hU, ##hU
-      $outgroup_best_bitscore, ##BIT_OUT
-      $ingroup_best_bitscore, ##BIT_IN
-      $AI, ##AI
-      $outgroup_best_evalue, ##EVAL_OUT
-      $ingroup_best_evalue, ##EVAL_IN
-      ($ingroup_bitscoresum > $outgroup_bitscoresum ? "INGROUP" : "OUTGROUP"), ##BBSUMCAT
-      $taxid_with_highest_bitscore_category_support, ##CHS
-      tax_walk_to_get_rank_to_phylum($taxid_with_highest_bitscore), ##TAXONOMY
-       "\n"
-    );
-
-  } elsif ($scoring eq "individual") {
-    die "[ERROR] Sorry, individual scoring not supported, please change to 'sum'\n";
-  }
-
-  print STDERR "[INFO] [$query] Decision of bestsum bitscore: '$taxid_with_highest_bitscore_category' (support = $taxid_with_highest_bitscore_category_support)\n" if $verbose;
-  print STDERR "[INFO] [$query] Best evalue for INGROUP ($names_hash{$taxid_threshold}): $ingroup_best_evalue\n" if $verbose;
-  print STDERR "[INFO] [$query] Best evalue for OUTGROUP (non-$names_hash{$taxid_threshold}): $outgroup_best_evalue\n" if $verbose;
-  print STDERR "[INFO] [$query] Alien Index = $AI\n[----]\n" if $verbose;
-
-  ## count genes in various categories:
-  if ( $taxid_with_highest_bitscore_category eq "unassigned" ) {
-    $unassigned++;
-  } elsif ( $taxid_with_highest_bitscore_category eq "ingroup" ) {
-    $ingroup++;
-    $ingroup_supported++ if ( $taxid_with_highest_bitscore_category_support >= $support_threshold );
-  } elsif ( $taxid_with_highest_bitscore_category eq "outgroup" ) {
-    $outgroup++;
-    $outgroup_supported++ if ( $taxid_with_highest_bitscore_category_support >= $support_threshold );
-  }
-
-  ## PRINT TO HGT_CANDIDATES:
-  ## print all queries with hU>=threshold AND CHS>=threshold to HGT_candidates file:
-  if ( ($hU >= $hU_threshold) && ($taxid_with_highest_bitscore_category eq "outgroup") && ($taxid_with_highest_bitscore_category_support >= $support_threshold) ) {
-    print $HGT join (
-      "\t",
-      $query, ##QUERY
-      $names_hash{$taxid_threshold}, ##INGROUP
-      "non-$names_hash{$taxid_threshold}", ##OUTGROUP
-      $hU, ##hU
-      $outgroup_best_bitscore, ##BIT_OUT
-      $ingroup_best_bitscore, ##BIT_IN
-      $AI, ##AI
-      $outgroup_best_evalue, ##EVAL_OUT
-      $ingroup_best_evalue, ##EVAL_IN
-      ($ingroup_bitscoresum > $outgroup_bitscoresum ? "INGROUP" : "OUTGROUP"), ##BBSUMCAT
-      $taxid_with_highest_bitscore_category_support, ##CHS
-      tax_walk_to_get_rank_to_phylum($taxid_with_highest_bitscore), ##TAXONOMY
-      "\n"
-    );
-    $hgt_candidates{$query} = ();
-  }
-
-  ## progress:
-  $processed++;
-  if ($processed % 1000 == 0){
-    print STDERR "\r[INFO] Processed ".commify($processed)." queries...";
-    $| = 1;
-  }
-}
-close $OUT;
-close $HGT;
-close $WARN;
-
-print STDERR "\r[INFO] Processed ".commify($processed)." queries\n";
-print STDERR "[INFO] All results are printed to '$outfile'\n";
-print STDERR "[INFO] HGT candidates are printed to '$hgtcandidatesfile'\n";
-#print STDERR "[INFO] Number of queries in unassigned/unclassified category: ".commify($unassigned)."\n" if $unassigned > 0;
-#print STDERR "[INFO] Number of queries in OUTGROUP category ('non-$names_hash{$taxid_threshold}'): ".commify($outgroup)."\n";
-#print STDERR "[INFO] Number of queries in OUTGROUP category ('non-$names_hash{$taxid_threshold}') with CHS >= $support_threshold\%: ".commify($outgroup_supported)."\n";
-print STDERR "[INFO] Number of queries with HGT Index >= $hU_threshold: ".commify($hU_supported)."\n";
-print STDERR "[INFO] Number of queries with HGT Index >= $hU_threshold and CHS >= $support_threshold\% to non-$names_hash{$taxid_threshold}: ".commify(scalar(keys(%hgt_candidates)))." (".percentage(scalar(keys(%hgt_candidates)),$processed)."\%)\n";
-#print STDERR "[INFO] Number of queries with Alien Index (AI) >= $hU_threshold: ".commify($AI_supported)."\n";
-#print STDERR "[INFO] NUMBER OF HGT CANDIDATES: ".commify(scalar(keys(%hgt_candidates)))."\n";
-print STDERR "[INFO] Finished on ".`date`."\n";
+  print STDERR "\r[INFO] Processed ".commify($processed)." queries\n";
+  print STDERR "[INFO] All results are printed to '$outfile'\n";
+  print STDERR "[INFO] HGT candidates are printed to '$hgtcandidatesfile'\n";
+  #print STDERR "[INFO] Number of queries in unassigned/unclassified category: ".commify($unassigned)."\n" if $unassigned > 0;
+  #print STDERR "[INFO] Number of queries in OUTGROUP category ('non-$names_hash{$taxid_threshold}'): ".commify($outgroup)."\n";
+  #print STDERR "[INFO] Number of queries in OUTGROUP category ('non-$names_hash{$taxid_threshold}') with CHS >= $support_threshold\%: ".commify($outgroup_supported)."\n";
+  print STDERR "[INFO] Number of queries with HGT Index >= $hU_threshold: ".commify($hU_supported)."\n";
+  print STDERR "[INFO] Number of queries with HGT Index >= $hU_threshold and CHS >= $support_threshold\% to non-$names_hash{$taxid_threshold}: ".commify(scalar(keys(%hgt_candidates)))." (".percentage(scalar(keys(%hgt_candidates)),$processed)."\%)\n";
+  #print STDERR "[INFO] Number of queries with Alien Index (AI) >= $hU_threshold: ".commify($AI_supported)."\n";
+  #print STDERR "[INFO] NUMBER OF HGT CANDIDATES: ".commify(scalar(keys(%hgt_candidates)))."\n";
+  print STDERR "[INFO] Finished on ".`date`."\n";
 
 }##infiles loop
 
