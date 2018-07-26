@@ -1,5 +1,5 @@
 # hgt
-scripts for the analysis of HGT in genome sequence data.
+Scripts for the analysis of HGT in genome sequence data.
 
 ## Note
 
@@ -69,7 +69,11 @@ The latest UniRef90 database now contains the taxids in the fasta headers (thank
     if(@F==2){
       $tax{$F[0]}=$F[1];
     }else{
-      print join("\t",@F,$tax{$F[1]});
+      if(exists($tax{$F[1]})){
+        print join("\t",@F,$tax{$F[1]});
+      } else {
+        print join("\t",@F,"NA");
+      }
     }
    ' | gzip > ${QUERY}.vs.uniref90.k500.1e5.daa.taxid.gz
    ```
@@ -81,8 +85,9 @@ The latest UniRef90 database now contains the taxids in the fasta headers (thank
 Type `-h` to see help and options.
 
 ```
-  -i|--in              [FILE]   : taxified diamond/BLAST results file [required] (accepts gzipped)
-  -p|--path            [STRING] : path to dir/ containing tax files
+  -i|--in              [FILE]   : taxified diamond/blast results file (accepts gzipped)
+  -l|--list            [FILE]   : list of diamond/blast files to analyse [-i or -l required]
+  -p|--path            [PATH]   : path to dir/ containing tax files
   -o|--nodes           [FILE]   : path to nodes.dmp
   -a|--names           [FILE]   : path to names.dmp
   -m|--merged          [FILE]   : path to merged.dmp
@@ -110,6 +115,10 @@ Type `-h` to see help and options.
   ```
   >> diamond_to_HGT_candidates.pl -i diamond_results.daa.taxid -p $TAXPATH -k 6231
   ```
+### Input
+
+1. `-i` flag can read single file or string of filenames whitespace delimited: `-i "file1 file2 file3"`
+2. `-l` flag can read a list of filenames in a textfile, one per line. In this case the `-k` flag can be specified on the command line (applied to all files) or as a second column in the list of filenames: `file1 6231` etc. 
 
 ### Outputs
 

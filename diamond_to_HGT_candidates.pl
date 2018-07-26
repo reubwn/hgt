@@ -264,7 +264,7 @@ foreach my $in (@infiles) { ## iterate over multiple files if required
   my $DIAMOND;
   if ($in =~ m/gz$/) {
     open ($DIAMOND, "zcat $in |") or die $!; ## if gzipped
-    print STDERR "[INFO] Diamond file is gzipped\n";
+    print STDERR "[INFO] File is gzipped\n";
   } else {
     open ($DIAMOND, $in) or die $!;
   }
