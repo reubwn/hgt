@@ -81,9 +81,9 @@ print STDERR "[INFO] Proportion of genes >= hU threshold to determine 'HGT heavy
 print STDERR "[INFO] Write bedfile: TRUE\n" if ($bed);
 
 ## detect system LANG
-my $sys_lang = `echo $ENV{LANG}`;
+my $sys_lang = `echo $ENV{LANG}`; chomp($sys_lang);
 if ($sys_lang !~ m/^C$/) {
-  print STDERR "[INFO] Detected locale '".chomp($sys_lang)."', setting to 'C'\n";
+  print STDERR "[INFO] Detected locale '$sys_lang', setting to 'C'\n";
   $ENV{'LANG'} = 'C';
 }
 
