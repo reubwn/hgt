@@ -54,7 +54,7 @@ OPTIONS
 \n";
 
 my ($infiles,$nodesfile,$path,$namesfile,$mergedfile,$nodesDBfile,$gff,$prefix,$outfile,$hgtcandidatesfile,$warningsfile,$header,$useai,$verbose,$debug,$help);
-#my $list;
+my $list;
 my $taxid_threshold = 33208; ##metazoa
 my $taxid_skip = 0; ##default is 0, not a valid NCBI taxid and should not affect the tree recursion NB Rotifera = 10190
 my $support_threshold = 90;
@@ -65,8 +65,8 @@ my $bitscore_column = 12;
 my $taxid_column = 13;
 
 GetOptions (
-  'i|infiles=s'           => \$infiles,
-#  'l|list:s'              => \$list,
+  'i|infiles:s'           => \$infiles,
+  'l|list:s'              => \$list,
   'p|path:s'              => \$path,
   'o|nodes:s'             => \$nodesfile,
   'a|names:s'             => \$namesfile,
@@ -91,7 +91,7 @@ GetOptions (
 );
 
 die $usage if $help;
-die $usage unless ($infiles);
+die $usage unless ($infiles or $list);
 
 ############################################## PARSE NODES
 
@@ -181,11 +181,28 @@ if ($taxid_skip) {
 
 ############################################ INFILES
 
-my @infiles = split (/\s+/, $infiles); ##split infiles string
+my @infiles;
+if ($list) {
+  open (my $LIST, $list) or die $!;
+  while (<$LIST>) {
+    chomp;
+    if ( -f $_ ) {
+      push (@infiles, $_);
+    } else {
+      die "[ERROR] File $_ does not exist!\n";
+    }
+  }
+  close $LIST;
+  print STDERR "[INFO] Number of files in $list: ".@infiles."\n";
+} else {
+  @infiles = split (/\s+/, $infiles); ##split infiles string
+  print STDERR "[INFO] Number of files in $list: ".@infiles."\n";
+}
 
 ############################################ OUTFILES
 
 foreach my $in (@infiles) { ## iterate over multiple files if required
+print STDERR "[INFO] Parsing Diamond file '$in'\n";
 
 ## define outfiles:
 if ($prefix) {
@@ -222,7 +239,6 @@ print $HGT join ("\t", @header, "\n"); #"\#query\tbestsum_bitscore\talt_bitscore
 ############################################## PARSE DIAMOND
 
 ## parse Diamond file:
-print STDERR "[INFO] Parsing Diamond file '$in'\n";
 my (%bitscores_per_query_hash, %evalues_per_query_hash);
 my ($total_entries,$skipped_entries_because_bad_taxid,$skipped_entries_because_skipped_taxid,$skipped_entries_because_unassigned) = (0,0,0,0);
 
