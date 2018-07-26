@@ -30,13 +30,19 @@ DEFINITIONS
     Alien Index (AI) = log10((Best-hit Evalue for Metazoa) + 1e-200) - log10((Best-hit Evalue for non-Metazoa) + 1e-200)
     Consesus Hit Support (CHS) = Proportion of all hits that agree with hU classification
 
+INPUT
+  Taxified diamond/blast text file, default is to have TaxID in the 13th column.
+  OR a list of files to analyse, one per line. This is quicker for multiple files as taxonomy databases will only need build once.
+  If list is provided, TaxID to skip (-k) can be specified as a second column in the list file.
+
 OUTPUTS
   A \"\*.HGT_results.txt\" file with the support values for each query; a \"\*.HGT_candidates.txt\" file with queries
   showing support over the specified thresholds.
 
 OPTIONS
-  -i|--in              [FILE]   : taxified diamond/BLAST results file [required] (accepts gzipped)
-  -p|--path            [STRING] : path to dir/ containing tax files [required]
+  -i|--in              [FILE]   : taxified diamond/blast results file (accepts gzipped)
+  -l|--list            [FILE]   : list of diamond/blast files to analyse [-i or -l required]
+  -p|--path            [PATH]   : path to dir/ containing tax files [required]
   -o|--nodes           [FILE]   : path to nodes.dmp
   -a|--names           [FILE]   : path to names.dmp
   -m|--merged          [FILE]   : path to merged.dmp
@@ -56,7 +62,7 @@ OPTIONS
 my ($infiles,$nodesfile,$path,$namesfile,$mergedfile,$nodesDBfile,$gff,$prefix,$outfile,$hgtcandidatesfile,$warningsfile,$header,$useai,$verbose,$debug,$help);
 my $list;
 my $taxid_threshold = 33208; ##metazoa
-my $taxid_skip = 0; ##default is 0, not a valid NCBI taxid and should not affect the tree recursion; NB Rotifera = 10190
+my $taxid_skip_cmd = 0; ##default is 0, not a valid NCBI taxid and should not affect the tree recursion; NB Rotifera = 10190
 my $support_threshold = 90;
 my $hU_threshold = 30;
 my $scoring = "sum";
@@ -74,7 +80,7 @@ GetOptions (
   'n|nodesDB:s'           => \$nodesDBfile,
   'g|gff:s'               => \$gff,
   't|taxid_threshold:i'   => \$taxid_threshold,
-  'k|taxid_skip:i'        => \$taxid_skip,
+  'k|taxid_skip:i'        => \$taxid_skip_cmd,
   's|support_threshold:f' => \$support_threshold,
   'u|hU_threshold:i'      => \$hU_threshold,
 #  'scoring|r:s'           => \$scoring,
@@ -171,7 +177,7 @@ if ($path) {
 ## print some info to STDERR:
 print STDERR "[INFO] Nodes parsed: ".scalar(keys %nodes_hash)."\n";
 print STDERR "[INFO] Threshold taxid set to '$taxid_threshold' ($names_hash{$taxid_threshold})\n";
-print STDERR "[INFO] INGROUP set to '$names_hash{$taxid_threshold}'; OUTGROUP is therefore 'non-$names_hash{$taxid_threshold}'\n";
+print STDERR "[INFO] INGROUP set to '$names_hash{$taxid_threshold}'; OUTGROUP is therefore 'non-$names_hash{$taxid_threshold}'\n\n";
 
 ############################################ INFILES
 
@@ -205,8 +211,11 @@ foreach my $in (@infiles) { ## iterate over multiple files if required
   print STDERR "[INFO] Analysing file '$in'\n";
 
   ## define TaxID to skip:
-  if ($taxid_skip) { ## from command line input
+  my $taxid_skip;
+  if ($taxid_skip_cmd) { ## from command line input
+    $taxid_skip = $taxid_skip_cmd;
     print STDERR "[INFO] Skipping any hits to taxid '$taxid_skip' ($names_hash{$taxid_skip})\n";
+    last; ## command line takes precidence over any taxids found in listfile
   } elsif ($taxid_skip_hash{$in}) {
     $taxid_skip = $taxid_skip_hash{$in};
     print STDERR "[INFO] Skipping any hits to taxid '$taxid_skip' ($names_hash{$taxid_skip})\n";
