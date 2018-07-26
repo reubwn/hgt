@@ -79,8 +79,19 @@ print STDERR "[INFO] hU threshold to determine strong evidence for INGROUP: <= $
 print STDERR "[INFO] CHS threshold to determine strong evidence for OUTGROUP: >= $CHS_threshold\%\n";
 print STDERR "[INFO] Proportion of genes >= hU threshold to determine 'HGT heavy' scaffolds: $heavy\%\n";
 print STDERR "[INFO] Write bedfile: TRUE\n" if ($bed);
-print STDERR "[INFO] Set LANG=C\n" if (system("LANG=C")==0);
-`echo $ENV{LANG}`;
+
+## detect system LANG
+my $sys_lang = `echo $ENV{LANG}`;
+if ($sys_lang =~ m/UTF-8/) {
+  print STDERR "[INFO] Detected locale $sys_lang\n";
+  if (system("LANG=C")==0) {
+    print STDERR "[INFO] Setting locale to C for grep speedup\n" ;
+  } else {
+    print STDERR "[WARN] Could not change locale\n";
+  }
+  $sys_lang = `echo $ENV{LANG}`;
+  print STDERR "[INFO] Detected locale $sys_lang\n";
+}
 
 (my $locationsfile = $infile) =~ s/HGT_results.+/HGT_locations.txt/;
 (my $summaryfile = $infile) =~ s/HGT_results.+/HGT_locations.scaffold_summary.txt/;
