@@ -82,11 +82,10 @@ print STDERR "[INFO] Write bedfile: TRUE\n" if ($bed);
 
 ## detect system LANG
 my $sys_lang = `echo $ENV{LANG}`;
-print STDERR "[INFO] Detected locale $sys_lang\n";
-`LANG=C`;
-#print STDERR "[INFO] Setting locale to C for grep speedup\n" if (system("LANG","=","C")==0);
-my $sys_lang_new = `echo $ENV{LANG}`;
-print STDERR "[INFO] Detected locale $sys_lang_new\n";
+if ($sys_lang !~ m/^C$/) {
+  print STDERR "[INFO] Detected locale '$sys_lang', setting to 'C'\n";
+  $ENV{'LANG'} = 'C';
+}
 
 (my $locationsfile = $infile) =~ s/HGT_results.+/HGT_locations.txt/;
 (my $summaryfile = $infile) =~ s/HGT_results.+/HGT_locations.scaffold_summary.txt/;
@@ -367,11 +366,6 @@ print $OVER "[RESULT] Number of 'HGT heavy' scaffolds: ".commify($is_heavy)."\n"
 print $OVER "[RESULT] Number of genes on 'HGT heavy' scaffolds: ".commify($num_genes_on_heavy_total)." (total); ".commify($num_genes_on_heavy_HGT)." (HGT candidates)\n";
 print $OVER "[INFO] Finished on ".`date`."\n";
 close $OVER;
-
-## reset locale
-if (system("LANG=$sys_lang") != 0) {
-  print STDERR "[WARN] Could not reset locale\n" ;
-}
 
 ################################################################################
 
