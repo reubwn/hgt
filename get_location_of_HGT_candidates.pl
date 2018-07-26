@@ -80,7 +80,7 @@ print STDERR "[INFO] CHS threshold to determine strong evidence for OUTGROUP: >=
 print STDERR "[INFO] Proportion of genes >= hU threshold to determine 'HGT heavy' scaffolds: $heavy\%\n";
 print STDERR "[INFO] Write bedfile: TRUE\n" if ($bed);
 print STDERR "[INFO] Set LANG=C\n" if (system("LANG=C")==0);
-`echo $LANG`;
+`echo $ENV{LANG}`;
 
 (my $locationsfile = $infile) =~ s/HGT_results.+/HGT_locations.txt/;
 (my $summaryfile = $infile) =~ s/HGT_results.+/HGT_locations.scaffold_summary.txt/;
