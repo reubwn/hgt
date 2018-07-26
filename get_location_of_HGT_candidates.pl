@@ -83,7 +83,8 @@ print STDERR "[INFO] Write bedfile: TRUE\n" if ($bed);
 ## detect system LANG
 my $sys_lang = `echo $ENV{LANG}`;
 print STDERR "[INFO] Detected locale $sys_lang\n";
-print STDERR "[INFO] Setting locale to C for grep speedup\n" if (system("LANG","=","C")==0);
+`LANG=C`;
+#print STDERR "[INFO] Setting locale to C for grep speedup\n" if (system("LANG","=","C")==0);
 my $sys_lang_new = `echo $ENV{LANG}`;
 print STDERR "[INFO] Detected locale $sys_lang_new\n";
 
