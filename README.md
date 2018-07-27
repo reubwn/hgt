@@ -5,9 +5,10 @@ Scripts for the analysis of HGT in genome sequence data.
 
 **Disclaimer.** These methods are predictive! Finding a candidate gene with high hU or AI or attached to a 'real' metazoan gene or with introns etc. does not necessarily mean that that gene has been acquired horizontally. Further tests would be required to provide further evidence for the evolutionary origin of each gene.
 
-### Citing
+### Cite
 
 If you use these scripts and find them useful, please cite our bdelloid comparative genomics paper in [PLoS Biology](http://dx.doi.org/10.1371/journal.pbio.2004830).
+
 [![DOI](https://zenodo.org/badge/76456664.svg)](https://zenodo.org/badge/latestdoi/76456664)
 
 ---
