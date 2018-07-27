@@ -7,6 +7,7 @@ use strict;
 use warnings;
 
 use Getopt::Long;
+use Term::ANSIColor;
 use Sort::Naturally;
 use Data::Dumper qw(Dumper);
 use List::Util qw(reduce sum min max);
@@ -104,7 +105,7 @@ die $usage unless ($infiles or $list);
 ## parse nodes and names:
 my (%nodes_hash, %names_hash, %rank_hash);
 if ($path) {
-  print STDERR "[INFO] Building taxonomy databases from tax files in '$path'...\n";
+  print STDERR "[INFO] Building taxonomy databases from tax files in ".colored($path, 'white on_blue')."...\n";
   open(my $NODES, "$path/nodes.dmp") or die $!;
   while (<$NODES>) {
     chomp;
@@ -133,7 +134,7 @@ if ($path) {
     }
   }
 } elsif ($nodesfile && $namesfile) {
-  print STDERR "[INFO] Building taxonomy databases from '$nodesfile' and '$namesfile'...";
+  print STDERR "[INFO] Building taxonomy databases from ".colored($nodesfile, 'white on_blue')." and ".colored($namesfile, 'white on_blue')."...";
   open(my $NODES, $nodesfile) or die $!;
   while (<$NODES>) {
     chomp;
@@ -162,7 +163,7 @@ if ($path) {
     }
   }
 } elsif ($nodesDBfile) {
-  print STDERR "[INFO] Building taxonomy databases from '$nodesDBfile'...";
+  print STDERR "[INFO] Building taxonomy databases from ".colored($nodesDBfile, 'white on_blue')."...";
   open(my $NODES, $nodesDBfile) or die $!;
   while (<$NODES>) {
     chomp;
@@ -464,8 +465,8 @@ foreach my $in (@infiles) { ## iterate over multiple files if required
   #print STDERR "[INFO] Number of queries in unassigned/unclassified category: ".commify($unassigned)."\n" if $unassigned > 0;
   #print STDERR "[INFO] Number of queries in OUTGROUP category ('non-$names_hash{$taxid_threshold}'): ".commify($outgroup)."\n";
   #print STDERR "[INFO] Number of queries in OUTGROUP category ('non-$names_hash{$taxid_threshold}') with CHS >= $support_threshold\%: ".commify($outgroup_supported)."\n";
-  print STDERR "[INFO] Number of queries with HGT Index >= $hU_threshold: ".commify($hU_supported)."\n";
-  print STDERR "[INFO] Number of queries with HGT Index >= $hU_threshold and CHS >= $support_threshold\% to non-$names_hash{$taxid_threshold}: ".commify(scalar(keys(%hgt_candidates)))." (".percentage(scalar(keys(%hgt_candidates)),$processed)."\%)\n";
+  print STDERR "[INFO] Number of queries with HGT Index >= $hU_threshold: ".colored(commify($hU_supported), 'green bold')."\n";
+  print STDERR "[INFO] Number of queries with HGT Index >= $hU_threshold and CHS >= $support_threshold\% to non-$names_hash{$taxid_threshold}: ".colored(commify(scalar(keys(%hgt_candidates))), 'green bold underscore')." (".colored(percentage(scalar(keys(%hgt_candidates)),$processed)."\%", 'green bold underscore').")\n";
   #print STDERR "[INFO] Number of queries with Alien Index (AI) >= $hU_threshold: ".commify($AI_supported)."\n";
   #print STDERR "[INFO] NUMBER OF HGT CANDIDATES: ".commify(scalar(keys(%hgt_candidates)))."\n";
   print STDERR "[INFO] Finished on ".`date`."\n";
