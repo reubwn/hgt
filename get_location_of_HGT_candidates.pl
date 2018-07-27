@@ -72,13 +72,13 @@ GetOptions (
 die $usage if $help;
 die $usage unless ($infile && $gfffile);
 
-print STDERR "[INFO] Infile: $infile\n";
-print STDERR "[INFO] GFF file: $gfffile\n";
-print STDERR "[INFO] Proteins names file: $namesfile\n";
-print STDERR "[INFO] hU threshold to determine strong evidence for OUTGROUP: >= $outgrp_threshold\n";
-print STDERR "[INFO] hU threshold to determine strong evidence for INGROUP: <= $ingrp_threshold\n";
-print STDERR "[INFO] CHS threshold to determine strong evidence for OUTGROUP: >= $CHS_threshold\%\n";
-print STDERR "[INFO] Proportion of genes >= hU threshold to determine 'HGT heavy' scaffolds: $heavy\%\n";
+print STDERR "[INFO] Infile: ".color($infile, 'white on_blue')."\n";
+print STDERR "[INFO] GFF file: ".color($gfffile, 'white on_blue')."\n";
+print STDERR "[INFO] Proteins names file: ".color($namesfile, 'white on_blue')."\n";
+print STDERR "[INFO] hU threshold to determine strong evidence for OUTGROUP: >= ".color($outgrp_threshold, 'white on_blue')."\n";
+print STDERR "[INFO] hU threshold to determine strong evidence for INGROUP: <= ".color($ingrp_threshold, 'white on_blue')."\n";
+print STDERR "[INFO] CHS threshold to determine strong evidence for OUTGROUP: >= ".color($CHS_threshold\%, 'white on_blue')."\n";
+print STDERR "[INFO] Proportion of genes >= hU threshold to determine 'HGT heavy' scaffolds: ".color($heavy\%, 'white on_blue')."\n";
 print STDERR "[INFO] Write bedfile: TRUE\n" if ($bed);
 
 ## detect system LANG
@@ -347,10 +347,10 @@ print STDERR "\n";
 #print STDERR "[RESULT] Number of good OUTGROUP genes (HGT candidates): ".commify($good_outgrp_total)."\n";
 #print STDERR "[RESULT] Number of genes with intermediate score: ".commify($intermediate_total)."\n";
 #print STDERR "[RESULT] Number of genes with no assignment (no-hitters or hit-to-skippers): ".commify($na_total)."\n";
-print STDERR "[RESULT] Bad scaffolds: ".commify($is_heavy)."\n";
-print STDERR "[RESULT] Genes on bad scaffolds: ".commify($num_genes_on_heavy_total)." (total); ".commify($num_genes_on_heavy_HGT)." (HGT candidates)\n";
-print STDERR colored("[RESULT] HGTc with intron: ".commify($intronized)."\n", 'green');
-print STDERR colored("[RESULT] HGTc linked: ".commify($linked_total)."\n", 'green underscore');
+print STDERR "[RESULT] Bad scaffolds: ".colored(commify($is_heavy), 'green')."\n";
+print STDERR "[RESULT] Genes on bad scaffolds: ".colored(commify($num_genes_on_heavy_total), 'green')." (total); ".colored(commify($num_genes_on_heavy_HGT), 'green')." (HGT candidates)\n";
+print STDERR "[RESULT] HGTc with intron: ".colored(commify($intronized), 'green bold')."\n";
+print STDERR "[RESULT] HGTc linked: ".colored(commify($linked_total), 'green bold underscore')."\n";
 print STDERR "\n[INFO] Finished on ".`date`."\n";
 
 open (my $OVER, ">$oversummaryfile") or die "[ERROR] Cannot open file $oversummaryfile: $!\n";
