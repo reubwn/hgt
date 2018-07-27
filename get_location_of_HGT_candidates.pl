@@ -90,11 +90,12 @@ if ($sys_lang !~ m/^C$/) {
 
 (my $locationsfile = $infile) =~ s/HGT_results.+/HGT_locations.txt/;
 (my $summaryfile = $infile) =~ s/HGT_results.+/HGT_locations.scaffold_summary.txt/;
+(my $genesfile = $infile) =~ s/HGT_results.+/HGT_locations.HGT_linked.genelist.txt/;
 (my $oversummaryfile = $infile) =~ s/HGT_results.+/HGT_locations.overall_summary.txt/;
 (my $heavyfile = $infile) =~ s/HGT_results.+/HGT_locations.heavy.txt/;
 (my $warningsfile = $infile) =~ s/HGT_results.+/HGT_locations.warnings.txt/;
 (my $bedfile = $infile) =~ s/HGT_results.+/HGT_locations.bed/ if ($bed);
-my ($namesfilesize,%orphans,%locations,%hgt_results,%scaffolds,%names_map);
+my ($namesfilesize,%orphans,%locations,%hgt_results,%scaffolds,%names_map,%protein_hash,%protein_hash_map);
 my $regexvar = qr/$regexstr/ if ($regexstr);
 my $n=1;
 
@@ -110,11 +111,13 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) { ##autodetect if names are coming from fa
 
   print STDERR "[INFO] Applying regex 's/$regexstr//' to fasta headers...\n" if ($regexstr);
 
-  while (my $gene = <$FAA>) {
-    if ($gene =~ m/^>/) {
-      chomp $gene;
-      $gene =~ s/^>//;
+  while (my $line = <$FAA>) {
+    if ($line =~ m/^>/) {
+      chomp $line;
+      $line =~ s/^>//;
+      my $gene = $line;
       $gene =~ s/$regexvar//ig if ($regexstr); ##apply regex if specified
+      $protein_hash_map{$gene} = $line; ##map old name (val) to new REGEXP name (key)
       print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
       my ($start,$end,$introns) = (1e+9,0,-1); ##this will work so long as no start coord is ever >=1Gb!
       my ($chrom,$strand) = ("NULL","NULL");
@@ -269,6 +272,7 @@ print STDERR "[INFO] Evaluating results...\n";
 ## iterate through pseudo-GFF:
 open (my $LOC, ">$locationsfile") or die "[ERROR] Cannot open file $locationsfile: $!\n";
 open (my $SUM, ">$summaryfile") or die "[ERROR] Cannot open file $summaryfile: $!\n";
+open (my $GENE, ">$genesfile") or die "[ERROR] Cannot open file $genesfile: $!\n";
 open (my $HEV, ">$heavyfile") or die "[ERROR] Cannot open file $heavyfile: $!\n";
 open (my $BED, ">$bedfile") or die "[ERROR] Cannot open file $bedfile: $!\n" if ($bed);
 #print $LOC "## HGT_locations\n##".`date`."\n";
@@ -284,6 +288,7 @@ foreach my $chrom (nsort keys %scaffolds) {
 
   ## sort by start coord within the %locations hash:
   my ($good_outgrp,$good_ingrp,$intermediate,$na,$is_linked) = (0,0,0,0,0);
+  my (%good_outgrp_hash);
   foreach my $gene ( sort {$locations{$a}{start}<=>$locations{$b}{start}} @{$scaffolds{$chrom}} ) {
     ## evaluate if protein name was not found in the GFF (if protein file and GFF dont match up exactly):
     # unless (exists($locations{$gene}{chrom})) {
@@ -294,14 +299,15 @@ foreach my $chrom (nsort keys %scaffolds) {
     ## then evaluate if gene has associated hU:
     if ( exists($hgt_results{$gene}{hU}) ) {
       if ($hgt_results{$gene}{evidence} == 2) {
-        print $LOC join ("\t", $chrom,$locations{$gene}{start},$locations{$gene}{end},$gene,".",$locations{$gene}{strand},$locations{$gene}{introns},$hgt_results{$gene}{hU},$hgt_results{$gene}{evidence},$hgt_results{$gene}{taxonomy},"\n");
-        print $BED join ("\t", $chrom,$locations{$gene}{start},$locations{$gene}{end},$gene,".",$locations{$gene}{strand},"\n") if ($bed);
+        $good_outgrp_hash{$gene} = (); ##add all HGTc to this hash
         $good_outgrp++;
         $intronized++ if $locations{$gene}{introns} > 0;
+        print $LOC join ("\t", $chrom,$locations{$gene}{start},$locations{$gene}{end},$gene,".",$locations{$gene}{strand},$locations{$gene}{introns},$hgt_results{$gene}{hU},$hgt_results{$gene}{evidence},$hgt_results{$gene}{taxonomy},"\n");
+        print $BED join ("\t", $chrom,$locations{$gene}{start},$locations{$gene}{end},$gene,".",$locations{$gene}{strand},"\n") if ($bed);
       } else {
-        print $LOC join ("\t", $chrom,$locations{$gene}{start},$locations{$gene}{end},$gene,".",$locations{$gene}{strand},$locations{$gene}{introns},$hgt_results{$gene}{hU},$hgt_results{$gene}{evidence},"\n");
         $good_ingrp++ if $hgt_results{$gene}{evidence} == 0;
         $intermediate++ if $hgt_results{$gene}{evidence} == 1;
+        print $LOC join ("\t", $chrom,$locations{$gene}{start},$locations{$gene}{end},$gene,".",$locations{$gene}{strand},$locations{$gene}{introns},$hgt_results{$gene}{hU},$hgt_results{$gene}{evidence},"\n");
       }
     } else {
       ## NA if either no hit or if hit to 'skipped' taxon (usually self-phylum):
@@ -318,9 +324,10 @@ foreach my $chrom (nsort keys %scaffolds) {
 
   ## evaluate if HGT candidate gene is encoded on a scaffold which also encodes a 'good_ingrp' gene:
   if ( ($good_outgrp>0) && ($good_ingrp>0) ) { ##must have at least one strong evidence for both on the same scaffold
-    print $SUM join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$na,$good_ingrp,$intermediate,$good_outgrp,(percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))),"1","\n");
     $linked_total += $good_outgrp; ##sum total linked HGT candidates
     $is_linked = 1;
+    print $GENES join ("\n", keys %good_outgrp_hash); ##print as a list all linked HGTc genes
+    print $SUM join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$na,$good_ingrp,$intermediate,$good_outgrp,(percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))),"1","\n");
   } else {
     print $SUM join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$na,$good_ingrp,$intermediate,$good_outgrp,(percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))),"0","\n");
   }
