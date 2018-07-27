@@ -72,13 +72,13 @@ GetOptions (
 die $usage if $help;
 die $usage unless ($infile && $gfffile);
 
-print STDERR "[INFO] Infile: ".color($infile, 'white on_blue')."\n";
-print STDERR "[INFO] GFF file: ".color($gfffile, 'white on_blue')."\n";
-print STDERR "[INFO] Proteins names file: ".color($namesfile, 'white on_blue')."\n";
-print STDERR "[INFO] hU threshold to determine strong evidence for OUTGROUP: >= ".color($outgrp_threshold, 'white on_blue')."\n";
-print STDERR "[INFO] hU threshold to determine strong evidence for INGROUP: <= ".color($ingrp_threshold, 'white on_blue')."\n";
-print STDERR "[INFO] CHS threshold to determine strong evidence for OUTGROUP: >= ".color($CHS_threshold, 'white on_blue')."\%\n";
-print STDERR "[INFO] Proportion of genes >= hU threshold to determine 'HGT heavy' scaffolds: ".color($heavy, 'white on_blue')."\%\n";
+print STDERR "[INFO] Infile: ".colored($infile, 'white on_blue')."\n";
+print STDERR "[INFO] GFF file: ".colored($gfffile, 'white on_blue')."\n";
+print STDERR "[INFO] Proteins names file: ".colored($namesfile, 'white on_blue')."\n";
+print STDERR "[INFO] hU threshold to determine strong evidence for OUTGROUP: >= ".colored($outgrp_threshold, 'white on_blue')."\n";
+print STDERR "[INFO] hU threshold to determine strong evidence for INGROUP: <= ".colored($ingrp_threshold, 'white on_blue')."\n";
+print STDERR "[INFO] CHS threshold to determine strong evidence for OUTGROUP: >= ".colored($CHS_threshold, 'white on_blue')."\%\n";
+print STDERR "[INFO] Proportion of genes >= hU threshold to determine 'HGT heavy' scaffolds: ".colored($heavy, 'white on_blue')."\%\n";
 print STDERR "[INFO] Write bedfile: TRUE\n" if ($bed);
 
 ## detect system LANG
