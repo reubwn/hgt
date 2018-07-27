@@ -6,7 +6,7 @@ use strict;
 use warnings;
 
 use Getopt::Long;
-use Term::ANSIColor::Simple;
+use Term::ANSIColor;
 use Sort::Naturally;
 use Data::Dumper qw(Dumper);
 
