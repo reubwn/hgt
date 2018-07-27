@@ -6,7 +6,7 @@ use strict;
 use warnings;
 
 use Getopt::Long;
-use Term::ANSIColor;
+use Term::ANSIColor::Simple;
 use Sort::Naturally;
 use Data::Dumper qw(Dumper);
 
@@ -349,8 +349,8 @@ print STDERR "\n";
 #print STDERR "[RESULT] Number of genes with no assignment (no-hitters or hit-to-skippers): ".commify($na_total)."\n";
 print STDERR "[RESULT] Bad scaffolds: ".commify($is_heavy)."\n";
 print STDERR "[RESULT] Genes on bad scaffolds: ".commify($num_genes_on_heavy_total)." (total); ".commify($num_genes_on_heavy_HGT)." (HGT candidates)\n";
-print STDERR colored("[RESULT] HGTc with intron: ".commify($intronized)."\n", 'bold');
-print STDERR colored("[RESULT] HGTc linked: ".commify($linked_total)."\n", 'bold');
+print STDERR colored("[RESULT] HGTc with intron: ".commify($intronized)."\n", 'green');
+print STDERR colored("[RESULT] HGTc linked: ".commify($linked_total)."\n", 'green underscore');
 print STDERR "\n[INFO] Finished on ".`date`."\n";
 
 open (my $OVER, ">$oversummaryfile") or die "[ERROR] Cannot open file $oversummaryfile: $!\n";
