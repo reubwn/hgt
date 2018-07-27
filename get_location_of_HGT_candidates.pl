@@ -326,7 +326,7 @@ foreach my $chrom (nsort keys %scaffolds) {
   if ( ($good_outgrp>0) && ($good_ingrp>0) ) { ##must have at least one strong evidence for both on the same scaffold
     $linked_total += $good_outgrp; ##sum total linked HGT candidates
     $is_linked = 1;
-    print $GENES join ("\n", keys %good_outgrp_hash); ##print as a list all linked HGTc genes
+    print $GENE join ("\n", keys %good_outgrp_hash); ##print as a list all linked HGTc genes
     print $SUM join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$na,$good_ingrp,$intermediate,$good_outgrp,(percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))),"1","\n");
   } else {
     print $SUM join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$na,$good_ingrp,$intermediate,$good_outgrp,(percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))),"0","\n");
