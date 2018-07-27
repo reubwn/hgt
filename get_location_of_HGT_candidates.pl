@@ -77,8 +77,8 @@ print STDERR "[INFO] GFF file: ".color($gfffile, 'white on_blue')."\n";
 print STDERR "[INFO] Proteins names file: ".color($namesfile, 'white on_blue')."\n";
 print STDERR "[INFO] hU threshold to determine strong evidence for OUTGROUP: >= ".color($outgrp_threshold, 'white on_blue')."\n";
 print STDERR "[INFO] hU threshold to determine strong evidence for INGROUP: <= ".color($ingrp_threshold, 'white on_blue')."\n";
-print STDERR "[INFO] CHS threshold to determine strong evidence for OUTGROUP: >= ".color($CHS_threshold\%, 'white on_blue')."\n";
-print STDERR "[INFO] Proportion of genes >= hU threshold to determine 'HGT heavy' scaffolds: ".color($heavy\%, 'white on_blue')."\n";
+print STDERR "[INFO] CHS threshold to determine strong evidence for OUTGROUP: >= ".color($CHS_threshold, 'white on_blue')."\%\n";
+print STDERR "[INFO] Proportion of genes >= hU threshold to determine 'HGT heavy' scaffolds: ".color($heavy, 'white on_blue')."\%\n";
 print STDERR "[INFO] Write bedfile: TRUE\n" if ($bed);
 
 ## detect system LANG
