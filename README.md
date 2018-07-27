@@ -3,10 +3,11 @@ Scripts for the analysis of HGT in genome sequence data.
 
 ## Note
 
-These methods are predictive! Finding a candidate gene with high hU or AI or attached to a 'real' metazoan gene or with introns etc. does not necessarily mean that that gene has been acquired horizontally. Further tests would be required to provide further evidence for the evolutionary origin of each gene. You have been warned :-)
+**Disclaimer.** These methods are predictive! Finding a candidate gene with high hU or AI or attached to a 'real' metazoan gene or with introns etc. does not necessarily mean that that gene has been acquired horizontally. Further tests would be required to provide further evidence for the evolutionary origin of each gene.
 
-### doi
+### Citing
 
+If you use these scripts and find them useful, please cite our bdelloid comparative genomics paper in [PLoS Biology](http://dx.doi.org/10.1371/journal.pbio.2004830).
 [![DOI](https://zenodo.org/badge/76456664.svg)](https://zenodo.org/badge/latestdoi/76456664)
 
 ---
@@ -23,7 +24,9 @@ This script analyses the output of Diamond/BLAST files and calculates 3 measures
 
 ### Prerequisites
 
-1. **Download NCBI Taxonomy:** These scripts rely on the NCBI taxonomy databases to assign taxonomic info to proteins. In particular the files "nodes.dmp" and "names.dmp" are required, while "merged.dmp" is recommended.
+1. Perl libraries: `Getopt::Long`, `Term::ANSIColor`, `Sort::Naturally`, `Data::Dumper`, and `List::Util`.
+
+2. **Download NCBI Taxonomy:** These scripts rely on the NCBI taxonomy databases to assign taxonomic info to proteins. In particular the files "nodes.dmp" and "names.dmp" are required, while "merged.dmp" is recommended.
    ```
    >> wget ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz
    >> tar xzvf taxdump.tar.gz
@@ -32,7 +35,7 @@ This script analyses the output of Diamond/BLAST files and calculates 3 measures
 
    It's also possible to use the "nodesDB.txt" file from [Blobtools](https://blobtools.readme.io/docs/what-is-blobtools) software.
 
-2. **Taxify your BLAST/Diamond file:** Diamond is great for speed, but adding the taxid information to each hit requires an additional step. See [this Gist](https://gist.github.com/sujaikumar/9ad04e62449a2d7025b17144de67038b) by Sujai Kumar on how to set this up for the UniRef90 database.
+3. **Taxify your BLAST/Diamond file:** Diamond is great for speed, but adding the taxid information to each hit requires an additional step. See [this Gist](https://gist.github.com/sujaikumar/9ad04e62449a2d7025b17144de67038b) by Sujai Kumar on how to set this up for the UniRef90 database.
 
    A typical Diamond script might then look like:
 
@@ -118,7 +121,7 @@ Type `-h` to see help and options.
 ### Input
 
 1. `-i` flag can read single file or string of filenames whitespace delimited: `-i "file1 file2 file3"`
-2. `-l` flag can read a list of filenames in a textfile, one per line. In this case the `-k` flag can be specified on the command line (applied to all files) or as a second column in the list of filenames: `file1 6231` etc. 
+2. `-l` flag can read a list of filenames in a textfile, one per line. In this case the `-k` flag can be specified on the command line (applied to all files) or as a second column in the list of filenames: `file1 6231` etc.
 
 ### Outputs
 
