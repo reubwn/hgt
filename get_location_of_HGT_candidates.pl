@@ -6,6 +6,7 @@ use strict;
 use warnings;
 
 use Getopt::Long;
+use Term::ANSIColor;
 use Sort::Naturally;
 use Data::Dumper qw(Dumper);
 
@@ -342,28 +343,28 @@ close $HEV;
 close $BED if ($bed);
 
 print STDERR "\n";
-print STDERR "[RESULT] Number of good INGROUP genes: ".commify($good_ingrp_total)."\n";
-print STDERR "[RESULT] Number of good OUTGROUP genes (HGT candidates): ".commify($good_outgrp_total)."\n";
-print STDERR "[RESULT] Number of HGT candidates with (at least one) intron: ".commify($intronized)."\n";
-print STDERR "[RESULT] Number of HGT candidates linked to good INGROUP gene: ".commify($linked_total)."\n";
-print STDERR "[RESULT] Number of genes with intermediate score: ".commify($intermediate_total)."\n";
-print STDERR "[RESULT] Number of genes with no assignment (no-hitters or hit-to-skippers): ".commify($na_total)."\n";
-print STDERR "[RESULT] Number of 'HGT heavy' scaffolds: ".commify($is_heavy)."\n";
-print STDERR "[RESULT] Number of genes on 'HGT heavy' scaffolds: ".commify($num_genes_on_heavy_total)." (total); ".commify($num_genes_on_heavy_HGT)." (HGT candidates)\n";
+#print STDERR "[RESULT] Number of good INGROUP genes: ".commify($good_ingrp_total)."\n";
+#print STDERR "[RESULT] Number of good OUTGROUP genes (HGT candidates): ".commify($good_outgrp_total)."\n";
+#print STDERR "[RESULT] Number of genes with intermediate score: ".commify($intermediate_total)."\n";
+#print STDERR "[RESULT] Number of genes with no assignment (no-hitters or hit-to-skippers): ".commify($na_total)."\n";
+print STDERR "[RESULT] Bad scaffolds: ".commify($is_heavy)."\n";
+print STDERR "[RESULT] Genes on bad scaffolds: ".commify($num_genes_on_heavy_total)." (total); ".commify($num_genes_on_heavy_HGT)." (HGT candidates)\n";
+print STDERR colored("[RESULT] HGTc with intron: ".commify($intronized)."\n", 'bold');
+print STDERR colored("[RESULT] HGTc linked: ".commify($linked_total)."\n", 'bold');
 print STDERR "\n[INFO] Finished on ".`date`."\n";
 
 open (my $OVER, ">$oversummaryfile") or die "[ERROR] Cannot open file $oversummaryfile: $!\n";
 print $OVER "[INFO] Infile: $infile\n";
 print $OVER "[INFO] GFF file: $gfffile\n";
 print $OVER "[INFO] Proteins names file: $namesfile\n";
-print $OVER "[RESULT] Number of good INGROUP genes: ".commify($good_ingrp_total)."\n";
-print $OVER "[RESULT] Number of good OUTGROUP genes (HGT candidates): ".commify($good_outgrp_total)."\n";
-print $OVER "[RESULT] Number of HGT candidates with (at least one) intron: ".commify($intronized)."\n";
-print $OVER "[RESULT] Number of HGT candidates linked to good INGROUP gene: ".commify($linked_total)."\n";
-print $OVER "[RESULT] Number of genes with intermediate score: ".commify($intermediate_total)."\n";
-print $OVER "[RESULT] Number of genes with no assignment (no-hitters or hit-to-skippers): ".commify($na_total)."\n";
-print $OVER "[RESULT] Number of 'HGT heavy' scaffolds: ".commify($is_heavy)."\n";
-print $OVER "[RESULT] Number of genes on 'HGT heavy' scaffolds: ".commify($num_genes_on_heavy_total)." (total); ".commify($num_genes_on_heavy_HGT)." (HGT candidates)\n";
+#print $OVER "[RESULT] Number of good INGROUP genes: ".commify($good_ingrp_total)."\n";
+#print $OVER "[RESULT] Number of good OUTGROUP genes (HGT candidates): ".commify($good_outgrp_total)."\n";
+#print $OVER "[RESULT] Number of genes with intermediate score: ".commify($intermediate_total)."\n";
+#print $OVER "[RESULT] Number of genes with no assignment (no-hitters or hit-to-skippers): ".commify($na_total)."\n";
+print $OVER "[RESULT] Bad scaffolds: ".commify($is_heavy)."\n";
+print $OVER "[RESULT] Genes on bad scaffolds: ".commify($num_genes_on_heavy_total)." (total); ".commify($num_genes_on_heavy_HGT)." (HGT candidates)\n";
+print $OVER "[RESULT] HGTc with intron: ".commify($intronized)."\n";
+print $OVER "[RESULT] HGTc linked: ".commify($linked_total)."\n";
 print $OVER "[INFO] Finished on ".`date`."\n";
 close $OVER;
 
