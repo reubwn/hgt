@@ -36,7 +36,7 @@ This script analyses the output of Diamond/BLAST files and calculates 3 measures
 
    It's also possible to use the "nodesDB.txt" file from [Blobtools](https://blobtools.readme.io/docs/what-is-blobtools) software.
 
-3. **Taxify your BLAST/Diamond file:** Diamond is great for speed, but adding the taxid information to each hit requires an additional step. See [this Gist](https://gist.github.com/sujaikumar/9ad04e62449a2d7025b17144de67038b) by Sujai Kumar on how to set this up for the UniRef90 database.
+3. [See update below] **Taxify your BLAST/Diamond file:** Diamond is great for speed, but adding the taxid information to each hit requires an additional step. See [this Gist](https://gist.github.com/sujaikumar/9ad04e62449a2d7025b17144de67038b) by Sujai Kumar on how to set this up for the UniRef90 database.
 
    A typical Diamond script might then look like:
 
