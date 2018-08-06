@@ -216,7 +216,6 @@ foreach my $in (@infiles) { ## iterate over multiple files if required
   if ($taxid_skip_cmd) { ## from command line input
     $taxid_skip = $taxid_skip_cmd;
     print STDERR "[INFO] Skipping any hits to taxid '$taxid_skip' ($names_hash{$taxid_skip})\n";
-    last; ## command line takes precidence over any taxids found in listfile
   } elsif ($taxid_skip_hash{$in}) {
     $taxid_skip = $taxid_skip_hash{$in};
     print STDERR "[INFO] Skipping any hits to taxid '$taxid_skip' ($names_hash{$taxid_skip})\n";
