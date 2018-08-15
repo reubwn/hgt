@@ -10,6 +10,7 @@ Scripts for the analysis of HGT in genome sequence data.
 If you use these scripts and find them useful, please cite [Nowell, R. W. et al. Comparative genomics of bdelloid rotifers: Insights from desiccating and nondesiccating species. PLoS Biol. 16, e2004830 (2018)](http://dx.doi.org/10.1371/journal.pbio.2004830).
 
 The software also has a DOI:
+
 [![DOI](https://zenodo.org/badge/76456664.svg)](https://zenodo.org/badge/latestdoi/76456664)
 
 ---
