@@ -38,53 +38,36 @@ This script analyses the output of Diamond/BLAST files and calculates 3 measures
 
    It's also possible to use the "nodesDB.txt" file from [Blobtools](https://blobtools.readme.io/docs/what-is-blobtools) software.
 
-3. [See update below] **Taxify your BLAST/Diamond file:** Diamond is great for speed, but adding the taxid information to each hit requires an additional step. See [this Gist](https://gist.github.com/sujaikumar/9ad04e62449a2d7025b17144de67038b) by Sujai Kumar on how to set this up for the UniRef90 database.
+3. **Taxify your BLAST/Diamond file:** Diamond is great for speed, but adding the taxid information to each hit requires an additional step. The latest UniRef90 database now contains the taxids in the fasta headers (thanks [@evolgenomology](https://github.com/evolgenomology)!), which makes generating the required taxlists a bit easier (no need to download and parse the XML file; see [here](https://gist.github.com/sujaikumar/9ad04e62449a2d7025b17144de67038b) for how to do that). You still need to add the taxid post-hoc as there is no option in Diamond to add this to the output file.
 
-   A typical Diamond script might then look like:
-
-   ```
-   ## run diamond
-   >> diamond blastp --sensitive --index-chunks 1 -k 500 -e 1e-5 -p 100 -q $QUERY -d $DB -a ${QUERY}.vs.uniref90.k500.1e5
-
-   ## taxify output
-   >> diamond view -a ${PREFIX}.daa | perl -lne 'BEGIN{open UT, "</path/to//uniref90.taxlist" or die $!; while (<UT>) { $ut{$1}=$2 if /^(\S+)\t(\S+)$/ } } {print "$_\t$ut{$1}" if /^\S+\t(\S+)/ and exists $ut{$1}}' > ${QUERY}.vs.uniref90.k500.1e5.daa.taxid;
-   ```
-
+   1. Download the UniRef90 fasta database (~15 Gb):
+      ```
+      wget ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref90/uniref90.fasta.gz
+      ```
+   2. Generate taxlist somehow (can be as simple as):
+      ```
+      >> perl -lane 'if(/^>(\w+)\s.+TaxID\=(\d+)/){print "$1 $2"}' <(zcat uniref90.fasta.gz) | gzip > uniref90.fasta.taxlist.gz
+      ```
+   3. Run Diamond as above:
+      ```
+      >> diamond blastp --sensitive --index-chunks 1 -k 500 -e 1e-5 -p 100 -q $QUERY -d /path/to/uniref90.fasta.dmnd -a ${QUERY}.vs.uniref90.k500.1e5
+      ```
+   4. Taxify output:
+      ```
+      >> cat <(zcat /path/to/uniref90.fasta.taxlist.gz) <(diamond view -a ${QUERY}.vs.uniref90.k500.1e5.daa) \
+      | perl -lane '
+       if(@F==2){
+         $tax{$F[0]}=$F[1];
+       }else{
+         if(exists($tax{$F[1]})){
+           print join("\t",@F,$tax{$F[1]});
+         } else {
+           print join("\t",@F,"NA");
+         }
+       }
+      ' | gzip > ${QUERY}.vs.uniref90.k500.1e5.daa.taxid.gz
+      ```
    The taxified file has the usual 12 columns but with an additional 13th column containing the taxid of the hit protein.
-
----
-### UPDATE Feb 2018
-The latest UniRef90 database now contains the taxids in the fasta headers (thanks [@evolgenomology](https://github.com/evolgenomology)!), which makes generating the required taxlists a bit easier (no need to download and parse the XML file). Unfortunately you'll still need to add the taxid post-hoc as there is no option in Diamond to add this to the output file.
-
-1. Download the UniRef90 fasta database (~15 Gb):
-   ```
-   wget ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref90/uniref90.fasta.gz
-   ```
-2. Generate taxlist somehow (can be as simple as):
-   ```
-   >> perl -lane 'if(/^>(\w+)\s.+TaxID\=(\d+)/){print "$1 $2"}' <(zcat uniref90.fasta.gz) | gzip > uniref90.fasta.taxlist.gz
-   ```
-3. Run Diamond as above:
-   ```
-   >> diamond blastp --sensitive --index-chunks 1 -k 500 -e 1e-5 -p 100 -q $QUERY -d /path/to/uniref90.fasta.dmnd -a ${QUERY}.vs.uniref90.k500.1e5
-   ```
-4. Taxify output:
-   ```
-   >> cat <(zcat /path/to/uniref90.fasta.taxlist.gz) <(diamond view -a ${QUERY}.vs.uniref90.k500.1e5.daa) \
-   | perl -lane '
-    if(@F==2){
-      $tax{$F[0]}=$F[1];
-    }else{
-      if(exists($tax{$F[1]})){
-        print join("\t",@F,$tax{$F[1]});
-      } else {
-        print join("\t",@F,"NA");
-      }
-    }
-   ' | gzip > ${QUERY}.vs.uniref90.k500.1e5.daa.taxid.gz
-   ```
-   This will insert the taxid into a 13th column as above.
----
 
 ### Options
 
