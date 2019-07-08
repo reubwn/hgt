@@ -34,7 +34,8 @@ DEFINITIONS
 INPUT
   Taxified diamond/blast text file, default is to have TaxID in the 13th column.
   OR a list of files to analyse, one per line. This is quicker for multiple files as taxonomy databases will only need build once.
-  If list is provided, TaxID to skip (-k) can be specified as a second column in the list file.
+  If list is provided, TaxID to skip (-k) can be specified as a second column in the list file and the path to the input proteins (-f)
+  in the third column.
 
 OUTPUTS
   A \"\*.HGT_results.txt\" file with the support values for each query; a \"\*.HGT_candidates.txt\" file with queries
@@ -65,7 +66,7 @@ OPTIONS
   -h|--help                     : this help message
 \n";
 
-my ($infiles,$nodesfile,$path,$namesfile,$mergedfile,$nodesDBfile,$protsfile,$gff,$prefix,$outfile,$hgtcandidatesfile,$warningsfile,$header,$useai,$verbose,$debug,$help);
+my ($infiles,$nodesfile,$path,$namesfile,$mergedfile,$nodesDBfile,$protsfiles,$gff,$prefix,$outfile,$hgtcandidatesfile,$warningsfile,$header,$useai,$verbose,$debug,$help);
 my $list;
 my $taxid_threshold = 33208; ##metazoa
 my $taxid_skip_cmd = 0; ##default is 0, not a valid NCBI taxid and should not affect the tree recursion; NB Rotifera = 10190
@@ -84,7 +85,7 @@ GetOptions (
   'a|names:s'             => \$namesfile,
   'm|merged:s'            => \$mergedfile,
   'n|nodesDB:s'           => \$nodesDBfile,
-  'f|fasta:s'             => \$protsfile,
+  'f|fasta:s'             => \$protsfiles,
   'g|gff:s'               => \$gff,
   't|taxid_threshold:i'   => \$taxid_threshold,
   'k|taxid_skip:i'        => \$taxid_skip_cmd,
@@ -208,20 +209,31 @@ if ($list) {
     ## count number of prots in each original input file
     if ( -f $F[2] ) {
       my $num_prots = `grep -c ">" $F[2]`;
-      $prots_file_hash{$F[0]} = $num_prots;
+      $prots_file_hash{$F[0]} = {'file' => $F[2], 'num' => $num_prots};
     }
   }
   close $LIST;
   print STDERR "[INFO] Number of files in '$list': ".@infiles."\n";
 } else {
-  @infiles = split (/\s+/, $infiles); ##split infiles string
+  @infiles = split (/\s+/, $infiles); ## split infiles string
   print STDERR "[INFO] Number of files: ".@infiles."\n";
+  ## get number of prots in each original input file
+  my @prots_files = split (/\s+/, $protsfiles);
+  if (scalar(@prots_files) == scalar(@infiles)) {
+    for my $i (0 .. $#prots_files) {
+      my $num_prots = `grep -c ">" $prots_files[$i]`;
+      $prots_file_hash{$infiles[$i]} = {'file' => $prots_files[$i], 'num' => $num_prots};
+    }
+  } else {
+    die "[ERROR] Number of hits files (".scalar(@infiles).") not equal to number of proteins files ".scalar(@prots_files)."!\n";
+  }
 }
 
 ############################################ OUTFILES
 
 foreach my $in (@infiles) { ## iterate over multiple files if required
-  print STDERR "[INFO] Analysing file '$in'\n";
+  print STDERR "[INFO] Analysing DIAMOND hits file '$in'\n";
+  print STDERR "[INFO] Based on proteins in '$prots_file_hash{$in}{'file'}' (".commify($prots_file_hash{$in}{'num'}).")\n";
 
   ## define TaxID to skip:
   my $taxid_skip;
