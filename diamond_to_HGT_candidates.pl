@@ -243,7 +243,7 @@ if ($list) {
 
 foreach my $in (@infiles) { ## iterate over multiple files if required
   print STDERR "[INFO] Analysing DIAMOND hits file '$in'\n";
-  print STDERR "[INFO] Based on proteins in '$prots_file_hash{$in}{'file'}' (".commify($prots_file_hash{$in}{'num'}).")\n";
+  print STDERR "[INFO] Based on proteins in '$prots_file_hash{$in}{'file'}' (".commify($prots_file_hash{$in}{'num'})." total input queries)\n";
 
   ## define TaxID to skip:
   my $taxid_skip;
