@@ -99,15 +99,24 @@ my ($namesfilesize,%orphans,%locations,%hgt_results,%scaffolds,%names_map,%prote
 my $regexvar = qr/$regexstr/ if ($regexstr);
 my $n=1;
 
+print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
+
 ## grep protein names from GFF and get coords of CDS:
-if ($namesfile =~ m/(fa|faa|fasta)$/) { ##autodetect if names are coming from fasta
-  ## get filesize:
-  chomp ($namesfilesize = `grep -c ">" $namesfile`);
+if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.gz)$/) ) { ## autodetect if names are coming from fasta
 
-  open (my $FAA, $namesfile) or die "[ERROR] Cannot open $namesfile: $!\n";
-  print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
-  print STDERR "[INFO] Proteins names file is from fasta (".commify($namesfilesize)." sequences)\n";
-
+  my $FAA;
+  ## handle gzipped:
+  if ($namesfile =~ m/gz$/) {
+    ## get filesize:
+    chomp ($namesfilesize = `zgrep -c ">" $namesfile`);
+    open ($FAA, "zcat $namesfile |") or die "[ERROR] Cannot open $namesfile: $!\n";
+    print STDERR "[INFO] Proteins names file is from gzipped fasta (".commify($namesfilesize)." sequences)\n";
+  } else {
+    ## get filesize:
+    chomp ($namesfilesize = `grep -c ">" $namesfile`);
+    open ($FAA, $namesfile) or die "[ERROR] Cannot open $namesfile: $!\n";
+    print STDERR "[INFO] Proteins names file is from fasta (".commify($namesfilesize)." sequences)\n";
+  }
   print STDERR "[INFO] Applying regex 's/$regexstr//' to fasta headers...\n" if ($regexstr);
 
   while (my $line = <$FAA>) {
@@ -158,7 +167,7 @@ if ($namesfile =~ m/(fa|faa|fasta)$/) { ##autodetect if names are coming from fa
   $namesfilesize =~ s/\s.+\n//;
 
   open (my $NAMES, $namesfile) or die "[ERROR] Cannot open $namesfile: $!\n";
-  print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
+  # print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
 
   ## iterate through genes in namesfile:
   GENE: while (my $line = <$NAMES>) {
@@ -224,7 +233,7 @@ if (scalar(keys %orphans) > 0) {
 ## parse HGT_results file:
 print STDERR "[INFO] Parsing HGT_results file...";
 my $RESULTS;
-if ($infile =~ m/gz$/) { ## can handle gzipped 
+if ($infile =~ m/gz$/) { ## can handle gzipped
   open ($RESULTS, "zcat $infile |") or die "[ERROR] Cannot open $infile: $!\n";
 } else {
   open ($RESULTS, $infile) or die "[ERROR] Cannot open $infile: $!\n";
