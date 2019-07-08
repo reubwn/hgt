@@ -208,7 +208,12 @@ if ($list) {
     }
     ## count number of prots in each original input file
     if ( -f $F[2] ) {
-      chomp (my $num_prots = `grep -c ">" $F[2]`);
+      my $num_prots;
+      if ($F[2] =~ m/gz$/) { ## can grep from gzipped
+        chomp ($num_prots = `zgrep -c ">"`);
+      } else {
+        chomp ($num_prots = `grep -c ">" $F[2]`);
+      }
       $prots_file_hash{$F[0]} = {'file' => $F[2], 'num' => $num_prots};
     }
   }
@@ -221,7 +226,12 @@ if ($list) {
   my @prots_files = split (/\s+/, $protsfiles);
   if (scalar(@prots_files) == scalar(@infiles)) {
     for my $i (0 .. $#prots_files) {
-      chomp (my $num_prots = `grep -c ">" $prots_files[$i]`);
+      my $num_prots;
+      if ($F[2] =~ m/gz$/) { ## can grep from gzipped
+        chomp ($num_prots = `zgrep -c ">" $prots_files[$i]`);
+      } else {
+        chomp ($num_prots = `grep -c ">" $prots_files[$i]`);
+      }
       $prots_file_hash{$infiles[$i]} = {'file' => $prots_files[$i], 'num' => $num_prots};
     }
   } else {
