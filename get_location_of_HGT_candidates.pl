@@ -16,16 +16,16 @@ SYNOPSIS
   specifying the location on each chromosome of HGT candidates.
 
 OPTIONS:
-  -i|--in     [FILE] : HGT_results.txt file [required]
-  -g|--gff    [FILE] : GFF file [required]
-  -n|--names  [FILE] : names of proteins in GFF file (see below) [required]
+  -i|--in     [FILE] : HGT_results.txt file (supports gzipped) [required]
+  -g|--gff    [FILE] : GFF file (supports gzipped) [required]
+  -n|--names  [FILE] : names of proteins in GFF file (see below) (supports gzipped) [required]
   -r|--regex  [STR]  : optional regex to apply to seq headers if -n is a fasta file
-  -u|--outgrp [INT]  : threshold hU score for determining 'good' OUTGROUP (HGT) genes [default>=30]
-  -U|--ingrp  [INT]  : threshold hU score for determining 'good' INGROUP genes [default<=0]
-  -c|--CHS    [INT]  : threshold CHS score for determining 'good' OUTGROUP (HGT) genes [default>=90\%]
-  -y|--heavy  [INT]  : threshold for determining 'HGT heavy' scaffolds [default>=95\%]
-  -b|--bed           : also write bed file for 'good' HGT genes
-  -h|--help          : prints this help message
+  -u|--outgrp [INT]  : hU threshold to determine strong evidence for 'outgroup' [default>=30]
+  -U|--ingrp  [INT]  : hU threshold to determine strong evidence for 'ingroup' [default<=0]
+  -c|--CHS    [INT]  : CHS threshold to determine strong evidence for 'outgroup' [default>=90\%]
+  -y|--heavy  [INT]  : Proportion of genes >= hU threshold to find contaminant scaffolds [default>=95\%]
+  -b|--bed           : also write bed file for HGTc
+  -h|--help          : this help message
 
 DETAILS:
   The option --names specifies a file with protein IDs so CDS coordinates can be grepped from the GFF file.
@@ -40,13 +40,10 @@ DETAILS:
     some_prefix_you_added|NP_001191392.1 [TAB] NP_001191392.1
 
 OUTPUTS
-  (1) HGT_locations: reports gene-by-gene HGT results in pseudo-BED format. Gene
-      positions on scaffolds inherited from gene coordinates in input GFF.
-  (2) HGT_locations.summary: reports per-scaffold summary of number of HGT candidates
-  (3) HGT_locations.heavy: reports scaffolds with a high proportion (dictated by --heavy)
-      of HGT candidates
-  (4) HGT_locations.bed: BED format file of HGT candidates. Useful for intersection
-      with RNASeq mapping data.
+  (1) HGT_locations: reports gene-by-gene HGT results in pseudo-BED format; HGTc coords inherited from GFF
+  (2) HGT_locations.summary: reports per-scaffold summary of number of HGTc
+  (3) HGT_locations.heavy: reports scaffolds with a suspicously high \%HGTc (possible contaminant)
+  (4) HGT_locations.bed: BED format file of HGT candidates; useful for intersection with RNASeq mapping data
 \n";
 
 my ($infile,$gfffile,$namesfile,$regexstr,$bed,$help);
@@ -78,7 +75,7 @@ print STDERR "[INFO] Proteins names file: '$namesfile'\n";
 print STDERR "[INFO] hU threshold to determine strong evidence for OUTGROUP: >= ".colored($outgrp_threshold, 'yellow')."\n";
 print STDERR "[INFO] hU threshold to determine strong evidence for INGROUP: <= ".colored($ingrp_threshold, 'yellow')."\n";
 print STDERR "[INFO] CHS threshold to determine strong evidence for OUTGROUP: >= ".colored("$CHS_threshold\%", 'yellow')."\n";
-print STDERR "[INFO] Proportion of genes >= hU threshold to determine 'HGT heavy' scaffolds: ".colored("$heavy\%", 'yellow')."\n";
+print STDERR "[INFO] Proportion of genes >= hU threshold to find contaminant scaffolds: ".colored("$heavy\%", 'yellow')."\n";
 print STDERR "[INFO] Write bedfile: TRUE\n" if ($bed);
 
 ## detect system LANG
