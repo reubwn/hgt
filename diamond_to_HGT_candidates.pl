@@ -491,7 +491,7 @@ foreach my $in (@infiles) { ## iterate over multiple files if required
   print STDERR "[INFO] Number of queries with HGT Index >= $hU_threshold: ".colored(commify($hU_supported), 'green bold')."\n";
   print STDERR "[INFO] Number of queries with HGT Index >= $hU_threshold and CHS >= $support_threshold\% to non-$names_hash{$taxid_threshold}: ".colored(commify(scalar(keys(%hgt_candidates))), 'green bold underscore')." (".percentage(scalar(keys(%hgt_candidates)),$processed)."\% of $processed processed)\n";
   if ($prots_file_hash{$in}) {
-    print STDERR "[INFO] Proportion of queries with HGT Index >= $hU_threshold and CHS >= $support_threshold\% to non-$names_hash{$taxid_threshold}: ".colored(commify(scalar(keys(%hgt_candidates))), 'green bold underscore')." (".colored(percentage(scalar(keys(%hgt_candidates)),$prots_file_hash{$in})."\%", 'green bold underscore')." of $prots_file_hash{$in} total input queries)\n";
+    print STDERR "[INFO] Proportion of queries with HGT Index >= $hU_threshold and CHS >= $support_threshold\% to non-$names_hash{$taxid_threshold}: ".colored(commify(scalar(keys(%hgt_candidates))), 'green bold underscore')." (".colored(percentage(scalar(keys(%hgt_candidates)),$prots_file_hash{$in}{'num'})."\%", 'green bold underscore')." of $prots_file_hash{$in} total input queries)\n";
   }
   #print STDERR "[INFO] Number of queries with Alien Index (AI) >= $hU_threshold: ".commify($AI_supported)."\n";
   #print STDERR "[INFO] NUMBER OF HGT CANDIDATES: ".commify(scalar(keys(%hgt_candidates)))."\n";
