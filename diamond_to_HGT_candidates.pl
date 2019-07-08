@@ -112,7 +112,7 @@ die $usage unless (($infiles or $list) and ($path or $nodesDBfile or ($nodesfile
 ## parse nodes and names:
 my (%nodes_hash, %names_hash, %rank_hash);
 if ($path) {
-  print STDERR "[INFO] Building taxonomy databases from tax files in ".colored($path, 'white bold')."...\n";
+  print STDERR "[INFO] Building taxonomy databases from tax files in '$path'...\n";
   open(my $NODES, "$path/nodes.dmp") or die $!;
   while (<$NODES>) {
     chomp;
@@ -141,7 +141,7 @@ if ($path) {
     }
   }
 } elsif ($nodesfile && $namesfile) {
-  print STDERR "[INFO] Building taxonomy databases from ".colored($nodesfile, 'white bold')." and ".colored($namesfile, 'white bold')."...";
+  print STDERR "[INFO] Building taxonomy databases from '$nodesfile' and '$namesfile'...";
   open(my $NODES, $nodesfile) or die $!;
   while (<$NODES>) {
     chomp;
@@ -170,7 +170,7 @@ if ($path) {
     }
   }
 } elsif ($nodesDBfile) {
-  print STDERR "[INFO] Building taxonomy databases from ".colored($nodesDBfile, 'white bold')."...";
+  print STDERR "[INFO] Building taxonomy databases from '$nodesDBfile'...";
   open(my $NODES, $nodesDBfile) or die $!;
   while (<$NODES>) {
     chomp;
