@@ -72,13 +72,13 @@ GetOptions (
 die $usage if $help;
 die $usage unless ($infile && $gfffile);
 
-print STDERR "[INFO] Infile: ".colored($infile, 'white on_blue')."\n";
-print STDERR "[INFO] GFF file: ".colored($gfffile, 'white on_blue')."\n";
-print STDERR "[INFO] Proteins names file: ".colored($namesfile, 'white on_blue')."\n";
-print STDERR "[INFO] hU threshold to determine strong evidence for OUTGROUP: >= ".colored($outgrp_threshold, 'black on_yellow')."\n";
-print STDERR "[INFO] hU threshold to determine strong evidence for INGROUP: <= ".colored($ingrp_threshold, 'black on_yellow')."\n";
-print STDERR "[INFO] CHS threshold to determine strong evidence for OUTGROUP: >= ".colored("$CHS_threshold\%", 'black on_yellow')."\n";
-print STDERR "[INFO] Proportion of genes >= hU threshold to determine 'HGT heavy' scaffolds: ".colored("$heavy\%", 'black on_yellow')."\n";
+print STDERR "[INFO] Infile: '$infile'\n";
+print STDERR "[INFO] GFF file: '$gfffile'\n";
+print STDERR "[INFO] Proteins names file: '$namesfile'\n";
+print STDERR "[INFO] hU threshold to determine strong evidence for OUTGROUP: >= ".colored($outgrp_threshold, 'yellow')."\n";
+print STDERR "[INFO] hU threshold to determine strong evidence for INGROUP: <= ".colored($ingrp_threshold, 'yellow')."\n";
+print STDERR "[INFO] CHS threshold to determine strong evidence for OUTGROUP: >= ".colored("$CHS_threshold\%", 'yellow')."\n";
+print STDERR "[INFO] Proportion of genes >= hU threshold to determine 'HGT heavy' scaffolds: ".colored("$heavy\%", 'yellow')."\n";
 print STDERR "[INFO] Write bedfile: TRUE\n" if ($bed);
 
 ## detect system LANG
@@ -102,8 +102,7 @@ my $n=1;
 ## grep protein names from GFF and get coords of CDS:
 if ($namesfile =~ m/(fa|faa|fasta)$/) { ##autodetect if names are coming from fasta
   ## get filesize:
-  $namesfilesize = `grep -c ">" $namesfile`;
-  chomp $namesfilesize;
+  chomp ($namesfilesize = `grep -c ">" $namesfile`);
 
   open (my $FAA, $namesfile) or die "[ERROR] Cannot open $namesfile: $!\n";
   print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
@@ -224,7 +223,12 @@ if (scalar(keys %orphans) > 0) {
 
 ## parse HGT_results file:
 print STDERR "[INFO] Parsing HGT_results file...";
-open (my $RESULTS, $infile) or die "[ERROR] Cannot open $infile: $!\n";
+my $RESULTS;
+if ($infile =~ m/gz$/) { ## can handle gzipped 
+  open ($RESULTS, "zcat $infile |") or die "[ERROR] Cannot open $infile: $!\n";
+} else {
+  open ($RESULTS, $infile) or die "[ERROR] Cannot open $infile: $!\n";
+}
 while (<$RESULTS>) {
   chomp;
   next if /^\#/;
