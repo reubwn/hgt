@@ -112,7 +112,7 @@ die $usage unless (($infiles or $list) and ($path or $nodesDBfile or ($nodesfile
 ## parse nodes and names:
 my (%nodes_hash, %names_hash, %rank_hash);
 if ($path) {
-  print STDERR "[INFO] Building taxonomy databases from tax files in ".colored($path, 'white on_blue')."...\n";
+  print STDERR "[INFO] Building taxonomy databases from tax files in ".colored($path, 'white bold')."...\n";
   open(my $NODES, "$path/nodes.dmp") or die $!;
   while (<$NODES>) {
     chomp;
