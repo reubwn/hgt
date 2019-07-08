@@ -227,7 +227,7 @@ if ($list) {
   if (scalar(@prots_files) == scalar(@infiles)) {
     for my $i (0 .. $#prots_files) {
       my $num_prots;
-      if ($F[2] =~ m/gz$/) { ## can grep from gzipped
+      if ($prots_files[$i] =~ m/gz$/) { ## can grep from gzipped
         chomp ($num_prots = `zgrep -c ">" $prots_files[$i]`);
       } else {
         chomp ($num_prots = `grep -c ">" $prots_files[$i]`);
