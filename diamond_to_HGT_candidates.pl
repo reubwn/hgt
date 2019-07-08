@@ -27,9 +27,9 @@ SYNOPSIS
      is to print candidates passing both hU and CHS thresholds)
 
 DEFINITIONS
-    HGT Index (hU) = (Best-hit bitscore for non-Metazoa) - (Best-hit bitscore for Metazoa)
-    Alien Index (AI) = log10((Best-hit Evalue for Metazoa) + 1e-200) - log10((Best-hit Evalue for non-Metazoa) + 1e-200)
-    Consesus Hit Support (CHS) = Proportion of all hits that agree with hU classification
+  HGT Index (hU) = (Best-hit bitscore for non-Metazoa) - (Best-hit bitscore for Metazoa)
+  Alien Index (AI) = log10((Best-hit Evalue for Metazoa) + 1e-200) - log10((Best-hit Evalue for non-Metazoa) + 1e-200)
+  Consesus Hit Support (CHS) = Proportion of all hits that agree with hU classification
 
 INPUT
   Taxified diamond/blast text file, default is to have TaxID in the 13th column.
@@ -40,14 +40,19 @@ OUTPUTS
   A \"\*.HGT_results.txt\" file with the support values for each query; a \"\*.HGT_candidates.txt\" file with queries
   showing support over the specified thresholds.
 
+NOTES
+  Please supply input fasta file to get accurate proportion HGTc, as queries with no hits to UniRef90 are
+  excluded from the diamond hits file
+
 OPTIONS
-  -i|--in              [FILE]   : taxified diamond/blast results file (accepts gzipped)
-  -l|--list            [FILE]   : list of diamond/blast files to analyse [-i or -l required]
-  -p|--path            [PATH]   : path to dir/ containing tax files [required]
+  -i|--in              [FILE]   : taxified diamond/blast results file (accepts gzipped) [-i or -l required]
+  -l|--list            [FILE]   : list of diamond/blast files to analyse
+  -p|--path            [PATH]   : path to dir of taxonomy files [-p, -o/-a/-m, or -n required]
   -o|--nodes           [FILE]   : path to nodes.dmp
   -a|--names           [FILE]   : path to names.dmp
   -m|--merged          [FILE]   : path to merged.dmp
   -n|--nodesDB         [FILE]   : nodesDB.txt file from blobtools
+  -f|--fasta           [FILE]   : fasta file of protein sequences under investigation
   -t|--taxid_ingroup   [INT]    : NCBI taxid to define 'ingroup' [default=33208 (Metazoa)]
   -k|--taxid_skip      [INT]    : NCBI taxid to skip; hits to this taxid will not be considered
   -s|--CHS_threshold   [FLOAT]  : Consesus Hits Support threshold [default>=90\%]
@@ -60,7 +65,7 @@ OPTIONS
   -h|--help                     : this help message
 \n";
 
-my ($infiles,$nodesfile,$path,$namesfile,$mergedfile,$nodesDBfile,$gff,$prefix,$outfile,$hgtcandidatesfile,$warningsfile,$header,$useai,$verbose,$debug,$help);
+my ($infiles,$nodesfile,$path,$namesfile,$mergedfile,$nodesDBfile,$protsfile,$gff,$prefix,$outfile,$hgtcandidatesfile,$warningsfile,$header,$useai,$verbose,$debug,$help);
 my $list;
 my $taxid_threshold = 33208; ##metazoa
 my $taxid_skip_cmd = 0; ##default is 0, not a valid NCBI taxid and should not affect the tree recursion; NB Rotifera = 10190
@@ -79,6 +84,7 @@ GetOptions (
   'a|names:s'             => \$namesfile,
   'm|merged:s'            => \$mergedfile,
   'n|nodesDB:s'           => \$nodesDBfile,
+  'f|fasta:s'             => \$protsfile,
   'g|gff:s'               => \$gff,
   't|taxid_threshold:i'   => \$taxid_threshold,
   'k|taxid_skip:i'        => \$taxid_skip_cmd,
@@ -98,7 +104,7 @@ GetOptions (
 );
 
 die $usage if $help;
-die $usage unless ($infiles or $list);
+die $usage unless (($infiles or $list) and ($path or $nodesDBfile or ($nodesfile and $namesfile and $mergedfile)));
 
 ############################################## PARSE NODES
 
@@ -184,6 +190,7 @@ print STDERR "[INFO] INGROUP set to '$names_hash{$taxid_threshold}'; OUTGROUP is
 
 my @infiles;
 my %taxid_skip_hash;
+my %prots_file_hash;
 if ($list) {
   open (my $LIST, $list) or die $!;
   while (<$LIST>) {
@@ -197,6 +204,11 @@ if ($list) {
     ## fetch the TaxID to skip from file:
     if ($F[1]) {
       $taxid_skip_hash{$F[0]} = $F[1];
+    }
+    ## count number of prots in each original input file
+    if ( -f $F[2] ) {
+      my $num_prots = `grep -c ">" $F[2]`;
+      $prots_file_hash{$F[0]} = $num_prots;
     }
   }
   close $LIST;
@@ -465,7 +477,10 @@ foreach my $in (@infiles) { ## iterate over multiple files if required
   #print STDERR "[INFO] Number of queries in OUTGROUP category ('non-$names_hash{$taxid_threshold}'): ".commify($outgroup)."\n";
   #print STDERR "[INFO] Number of queries in OUTGROUP category ('non-$names_hash{$taxid_threshold}') with CHS >= $support_threshold\%: ".commify($outgroup_supported)."\n";
   print STDERR "[INFO] Number of queries with HGT Index >= $hU_threshold: ".colored(commify($hU_supported), 'green bold')."\n";
-  print STDERR "[INFO] Number of queries with HGT Index >= $hU_threshold and CHS >= $support_threshold\% to non-$names_hash{$taxid_threshold}: ".colored(commify(scalar(keys(%hgt_candidates))), 'green bold underscore')." (".colored(percentage(scalar(keys(%hgt_candidates)),$processed)."\%", 'green bold underscore').")\n";
+  print STDERR "[INFO] Number of queries with HGT Index >= $hU_threshold and CHS >= $support_threshold\% to non-$names_hash{$taxid_threshold}: ".colored(commify(scalar(keys(%hgt_candidates))), 'green bold underscore')." (".percentage(scalar(keys(%hgt_candidates)),$processed)."\% of $processed processed)\n";
+  if ($prots_file_hash{$in}) {
+    print STDERR "[INFO] Proportion of queries with HGT Index >= $hU_threshold and CHS >= $support_threshold\% to non-$names_hash{$taxid_threshold}: ".colored(commify(scalar(keys(%hgt_candidates))), 'green bold underscore')." (".colored(percentage(scalar(keys(%hgt_candidates)),$prots_file_hash{$in})."\%", 'green bold underscore')." of $prots_file_hash{$in} total input queries)\n";
+  }
   #print STDERR "[INFO] Number of queries with Alien Index (AI) >= $hU_threshold: ".commify($AI_supported)."\n";
   #print STDERR "[INFO] NUMBER OF HGT CANDIDATES: ".commify(scalar(keys(%hgt_candidates)))."\n";
   print STDERR "[INFO] Finished on ".`date`."\n";
