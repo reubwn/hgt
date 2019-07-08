@@ -141,7 +141,7 @@ if ($path) {
     }
   }
 } elsif ($nodesfile && $namesfile) {
-  print STDERR "[INFO] Building taxonomy databases from ".colored($nodesfile, 'white on_blue')." and ".colored($namesfile, 'white on_blue')."...";
+  print STDERR "[INFO] Building taxonomy databases from ".colored($nodesfile, 'white bold')." and ".colored($namesfile, 'white bold')."...";
   open(my $NODES, $nodesfile) or die $!;
   while (<$NODES>) {
     chomp;
@@ -170,7 +170,7 @@ if ($path) {
     }
   }
 } elsif ($nodesDBfile) {
-  print STDERR "[INFO] Building taxonomy databases from ".colored($nodesDBfile, 'white on_blue')."...";
+  print STDERR "[INFO] Building taxonomy databases from ".colored($nodesDBfile, 'white bold')."...";
   open(my $NODES, $nodesDBfile) or die $!;
   while (<$NODES>) {
     chomp;
@@ -183,9 +183,9 @@ if ($path) {
   close $NODES;
 }
 ## print some info to STDERR:
-print STDERR "[INFO] Nodes parsed: ".scalar(keys %nodes_hash)."\n";
+print STDERR "[INFO] Nodes parsed: ".commify(scalar(keys %nodes_hash))."\n";
 print STDERR "[INFO] Threshold taxid set to '$taxid_threshold' ($names_hash{$taxid_threshold})\n";
-print STDERR "[INFO] INGROUP set to '$names_hash{$taxid_threshold}'; OUTGROUP is therefore 'non-$names_hash{$taxid_threshold}'\n\n";
+print STDERR "[INFO] INGROUP set to '$names_hash{$taxid_threshold}'; OUTGROUP is therefore 'non-$names_hash{$taxid_threshold}'\n";
 
 ############################################ INFILES
 
@@ -501,7 +501,7 @@ foreach my $in (@infiles) { ## iterate over multiple files if required
   print STDERR "[INFO] Number of queries with HGT Index >= $hU_threshold: ".colored(commify($hU_supported), 'green bold')."\n";
   print STDERR "[INFO] Number of queries with HGT Index >= $hU_threshold and CHS >= $support_threshold\% to non-$names_hash{$taxid_threshold}: ".colored(commify(scalar(keys(%hgt_candidates))), 'green bold underscore')." (".percentage(scalar(keys(%hgt_candidates)),$processed)."\% of $processed processed";
   if ($prots_file_hash{$in}) {
-    print STDERR "or ".colored(percentage(scalar(keys(%hgt_candidates)),$prots_file_hash{$in}{'num'})."\%", 'green bold underscore')." of $prots_file_hash{$in}{'num'} total input queries)\n";
+    print STDERR "or ".colored(percentage(scalar(keys(%hgt_candidates)),$prots_file_hash{$in}{'num'})."\%", 'green bold underscore')." of ".commify($prots_file_hash{$in}{'num'})." total input queries)\n";
   } else {
     print STDERR ")\n";
   }
