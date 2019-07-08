@@ -130,7 +130,12 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
       my ($start,$end,$introns) = (1e+9,0,-1); ##this will work so long as no start coord is ever >=1Gb!
       my ($chrom,$strand) = ("NULL","NULL");
       ## get coords of all items grepped by $gene
-      open (my $G, "grep -F CDS $gfffile | grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
+      my $G;
+      if ($gfffile =~ m/gz$/) {
+        open ($G, "zcat $gfffile | grep -F CDS | grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
+      } else {
+        open ($G, "grep -F CDS $gfffile | grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
+      }
       while (<$G>) {
         chomp;
         my @F = split (/\s+/, $_);
