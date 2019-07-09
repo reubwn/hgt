@@ -156,17 +156,7 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
       ## get coords of all items grepped by $gene
       # my @a = grep { m/\Q$gene\E/ } @GFF_array;
       foreach ( grep { m/\Q$gene\E/ } @GFF_array ) {
-        print STDOUT "$_\n";
-      }
-
-      my $G;
-      if ($gff_file =~ m/gz$/) {
-        open ($G, "zcat $gff_file | LC_ALL=C grep -F CDS | LC_ALL=C grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
-        print STDERR "[WARN] File '$gff_file' is gzipped, but decompressing first will be much faster\n";
-      } else {
-        open ($G, "LC_ALL=C grep -F CDS $gff_file | LC_ALL=C grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
-      }
-      while (<$G>) {
+        # print STDOUT "$_\n";
         chomp;
         my @F = split (/\s+/, $_);
         $start = $F[3] if $F[3] < $start; ##then get ONLY the 1st
@@ -182,7 +172,31 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
                         'introns' => $introns
                        };
       }
-      close $G;
+
+      # my $G;
+      # if ($gff_file =~ m/gz$/) {
+      #   open ($G, "zcat $gff_file | LC_ALL=C grep -F CDS | LC_ALL=C grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
+      #   print STDERR "[WARN] File '$gff_file' is gzipped, but decompressing first will be much faster\n";
+      # } else {
+      #   open ($G, "LC_ALL=C grep -F CDS $gff_file | LC_ALL=C grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
+      # }
+      # while (<$G>) {
+      #   chomp;
+      #   my @F = split (/\s+/, $_);
+      #   $start = $F[3] if $F[3] < $start; ##then get ONLY the 1st
+      #   $end = $F[4] if $F[4] > $end; ##... and last coords across all CDS
+      #   $introns++; ##the number of iterations of through <$G> corresponds to the num exons; therefore introns is -1 this
+      #   $chrom = $F[0];
+      #   $strand = $F[6];
+      #   $locations{$gene} = { ##key= gene; val= HoH
+      #                   'chrom'   => $chrom,
+      #                   'start'   => $start, ##this should cover the 'gene region'
+      #                   'end'     => $end, ##... encoded by the protein name
+      #                   'strand'  => $strand,
+      #                   'introns' => $introns
+      #                  };
+      # }
+      # close $G;
       unless (exists($locations{$gene}{chrom})) { ##all genes should have a chrom...
         print STDERR "\n[WARN] Nothing found for gene $gene in GFF $gff_file!\n";
         $orphans{$gene} = ();
