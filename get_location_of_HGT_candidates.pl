@@ -47,7 +47,7 @@ OUTPUTS
   (4) HGT_locations.bed: BED format file of HGT candidates; useful for intersection with RNASeq mapping data
 \n";
 
-my ($infile,$gfffile,$namesfile,$regexstr,$bed,$help);
+my ($infile,$gff_file,$namesfile,$regexstr,$bed,$help);
 my $outgrp_threshold = 30;
 my $ingrp_threshold = 0;
 my $CHS_threshold = 90;
@@ -56,7 +56,7 @@ my $mapping = 0;
 
 GetOptions (
   'i|in=s'     => \$infile,
-  'g|gff=s'    => \$gfffile,
+  'g|gff=s'    => \$gff_file,
   'n|names=s'  => \$namesfile,
   'r|regex:s'  => \$regexstr,
   'u|outgrp:i' => \$outgrp_threshold,
@@ -68,10 +68,10 @@ GetOptions (
 );
 
 die $usage if $help;
-die $usage unless ($infile && $gfffile);
+die $usage unless ($infile && $gff_file);
 
 print STDERR "[INFO] Infile: '$infile'\n";
-print STDERR "[INFO] GFF file: '$gfffile'\n";
+print STDERR "[INFO] GFF file: '$gff_file'\n";
 print STDERR "[INFO] Proteins names file: '$namesfile'\n";
 print STDERR "[INFO] hU threshold to determine strong evidence for OUTGROUP: >= ".colored($outgrp_threshold, 'yellow')."\n";
 print STDERR "[INFO] hU threshold to determine strong evidence for INGROUP: <= ".colored($ingrp_threshold, 'yellow')."\n";
@@ -96,6 +96,33 @@ if ($sys_lang !~ m/^C$/) {
 my ($namesfilesize,%orphans,%locations,%hgt_results,%scaffolds,%names_map,%protein_hash,%protein_hash_map);
 my $regexvar = qr/$regexstr/ if ($regexstr);
 my $n=1;
+
+##################### parse CDS entries from GFF into memory
+my $GFF_fh;
+my %GFF_hash;
+if ($gff_file =~ m/gz$/) {
+  print STDERR "[INFO] Parsing gzipped '$gff_file' GFF file...\n";
+  open ($GFF_fh, "zcat $gff_file | grep -F CDS |") or die "$!\n"; ## pulls out CDS lines ONLY!
+  while (<$GFF_fh>) {
+    chomp;
+    $GFF_hash{$.} = $_;
+  }
+  # @GFF_array = <$GFF_fh>; ## read into array
+  close $GFF_fh;
+} else {
+  print STDERR "[INFO] Parsing '$gff_file' GFF file...\n";
+  open ($GFF_fh, "grep -F CDS $gff_file |") or die "$!\n"; ## pulls out CDS lines ONLY!
+  while (<$GFF_fh>) {
+    chomp;
+    $GFF_hash{$.} = $_;
+  }
+  # @GFF_array = <$GFF_fh>; ## read into array
+  close $GFF_fh;
+}
+
+foreach (sort keys %GFF_hash) {
+  print STDERR "$_ $GFF_hash{$_}\n";
+}
 
 print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
 
@@ -130,11 +157,11 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
       my ($chrom,$strand) = ("NULL","NULL");
       ## get coords of all items grepped by $gene
       my $G;
-      if ($gfffile =~ m/gz$/) {
-        open ($G, "zcat $gfffile | LC_ALL=C grep -F CDS | LC_ALL=C grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
-        print STDERR "[WARN] File '$gfffile' is gzipped, but decompressing first will be much faster\n";
+      if ($gff_file =~ m/gz$/) {
+        open ($G, "zcat $gff_file | LC_ALL=C grep -F CDS | LC_ALL=C grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
+        print STDERR "[WARN] File '$gff_file' is gzipped, but decompressing first will be much faster\n";
       } else {
-        open ($G, "LC_ALL=C grep -F CDS $gfffile | LC_ALL=C grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
+        open ($G, "LC_ALL=C grep -F CDS $gff_file | LC_ALL=C grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
       }
       while (<$G>) {
         chomp;
@@ -154,7 +181,7 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
       }
       close $G;
       unless (exists($locations{$gene}{chrom})) { ##all genes should have a chrom...
-        print STDERR "\n[WARN] Nothing found for gene $gene in GFF $gfffile!\n";
+        print STDERR "\n[WARN] Nothing found for gene $gene in GFF $gff_file!\n";
         $orphans{$gene} = ();
       }
 
@@ -166,6 +193,7 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
     }
   }
   close $FAA;
+
 } else {
   ## get filesize:
   $namesfilesize = `wc -l $namesfile`;
@@ -190,7 +218,7 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
     my ($start,$end,$introns) = (1e+12,0,-1); ##this will work so long as no start coord is ever >=1Tb!
     my ($chrom,$strand) = ("NULL","NULL");
     ## get coords of all items grepped by $gene
-    open (my $G, "LC_ALL=C grep -F CDS $gfffile | LC_ALL=C grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
+    open (my $G, "LC_ALL=C grep -F CDS $gff_file | LC_ALL=C grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
     while (<$G>) {
       chomp;
       my @F = split (/\s+/, $_);
@@ -211,7 +239,7 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
 
     ## evaluate GFF grep results - gene name may not be present if there is a mismatch in protein faa and GFF used:
     unless (exists($locations{$gene}{chrom})) { ##all genes should have a chrom...
-      print STDERR "\n[WARN] Nothing found for gene $gene in GFF $gfffile!\n";
+      print STDERR "\n[WARN] Nothing found for gene $gene in GFF $gff_file!\n";
       $orphans{$gene} = (); ##count
       next GENE; ##move on
     }
@@ -228,7 +256,7 @@ print STDERR "\n";
 if (scalar(keys %orphans) > 0) {
   print STDERR "[WARN] Orphans found! ".scalar(keys %orphans)." gene names not in GFF\n";
   open (my $WARN, ">$warningsfile") or die "[ERROR] Cannot open file $warningsfile: $!\n";
-  print $WARN "Following gene names not found in $gfffile (".scalar(keys %orphans)." genes):\n";
+  print $WARN "Following gene names not found in $gff_file (".scalar(keys %orphans)." genes):\n";
   foreach (nsort keys %orphans) {
     print $WARN "$_\n";
   }
@@ -284,8 +312,7 @@ while (<$RESULTS>) {
 }
 close $RESULTS;
 print STDERR " found ".commify(scalar(keys %hgt_results))." queries\n";
-print STDERR "[INFO] Evaluating results...\n";
- $n=1;
+print STDERR "[INFO] Evaluating results...\n"; $n=1;
 
 ## iterate through pseudo-GFF:
 open (my $LOC, ">$locationsfile") or die "[ERROR] Cannot open file $locationsfile: $!\n";
@@ -311,7 +338,7 @@ foreach my $chrom (nsort keys %scaffolds) {
     ## evaluate if protein name was not found in the GFF (if protein file and GFF dont match up exactly):
     # unless (exists($locations{$gene}{chrom})) {
     #   open (my $WARN, ">$warningsfile") or die "[ERROR] Cannot open file $warningsfile: $!\n";
-    #   print $WARN join ("\t", $gene,"No chrom found in GFF $gfffile","\n");
+    #   print $WARN join ("\t", $gene,"No chrom found in GFF $gff_file","\n");
     #   next GENE; ##skip to next gene
     # }
     ## then evaluate if gene has associated hU:
@@ -380,7 +407,7 @@ print STDERR "\n[INFO] Finished on ".`date`."\n";
 
 open (my $OVER, ">$oversummaryfile") or die "[ERROR] Cannot open file $oversummaryfile: $!\n";
 print $OVER "[INFO] Infile: $infile\n";
-print $OVER "[INFO] GFF file: $gfffile\n";
+print $OVER "[INFO] GFF file: $gff_file\n";
 print $OVER "[INFO] Proteins names file: $namesfile\n";
 #print $OVER "[RESULT] Number of good INGROUP genes: ".commify($good_ingrp_total)."\n";
 #print $OVER "[RESULT] Number of good OUTGROUP genes (HGT candidates): ".commify($good_outgrp_total)."\n";
