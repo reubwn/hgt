@@ -156,7 +156,6 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
       ## get coords of all items grepped by $gene
       # my @a = grep { m/\Q$gene\E/ } @GFF_array;
       foreach ( grep { m/\Q$gene\E/ } @GFF_array ) {
-        # print STDOUT "$_\n";
         chomp;
         my @F = split (/\s+/, $_);
         $start = $F[3] if $F[3] < $start; ##then get ONLY the 1st
@@ -235,8 +234,7 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
     my ($start,$end,$introns) = (1e+12,0,-1); ##this will work so long as no start coord is ever >=1Tb!
     my ($chrom,$strand) = ("NULL","NULL");
     ## get coords of all items grepped by $gene
-    open (my $G, "LC_ALL=C grep -F CDS $gff_file | LC_ALL=C grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
-    while (<$G>) {
+    foreach ( grep { m/\Q$gene\E/ } @GFF_array ) {
       chomp;
       my @F = split (/\s+/, $_);
       $start = $F[3] if $F[3] < $start; ##then get ONLY the 1st
@@ -252,7 +250,24 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
                       'introns' => $introns
                      };
     }
-    close $G;
+    # open (my $G, "LC_ALL=C grep -F CDS $gff_file | LC_ALL=C grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
+    # while (<$G>) {
+    #   chomp;
+    #   my @F = split (/\s+/, $_);
+    #   $start = $F[3] if $F[3] < $start; ##then get ONLY the 1st
+    #   $end = $F[4] if $F[4] > $end; ##... and last coords across all CDS
+    #   $introns++; ##the number of iterations of through <$G> corresponds to the num exons; therefore introns is -1 this
+    #   $chrom = $F[0];
+    #   $strand = $F[6];
+    #   $locations{$gene} = { ##key= gene; val= HoH
+    #                   'chrom'   => $chrom,
+    #                   'start'   => $start, ##this should cover the 'gene region'
+    #                   'end'     => $end, ##... encoded by the protein name
+    #                   'strand'  => $strand,
+    #                   'introns' => $introns
+    #                  };
+    # }
+    # close $G;
 
     ## evaluate GFF grep results - gene name may not be present if there is a mismatch in protein faa and GFF used:
     unless (exists($locations{$gene}{chrom})) { ##all genes should have a chrom...
@@ -310,13 +325,10 @@ while (<$RESULTS>) {
   ## apply regex to protein ID in $F[0] if specifed:
   my $protein_id; ## we want this to map to GFF IDs
   if ($regexstr) {
-    print STDOUT "I am here?\n";
     ($protein_id = $F[0]) =~ s/$regexvar//ig; ## apply regex
   } elsif ($mapping == 1) {
-    print STDOUT "Hang on, here??\n";
     $protein_id = $names_map{$F[0]}; ## inherit GFF ID
   } else {
-    print STDOUT "No I am here!\n";
     $protein_id = $F[0]; ## do nowt
   }
 
