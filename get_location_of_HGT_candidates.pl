@@ -108,7 +108,7 @@ if ($gff_file =~ m/gz$/) {
   #   chomp;
   #   $GFF_hash{$.} = $_;
   # }
-  @GFF_array = <$GFF_fh>; ## read into array
+  chomp (@GFF_array = <$GFF_fh>); ## read into array
   close $GFF_fh;
 } else {
   print STDERR "[INFO] Parsing '$gff_file' GFF file...\n";
@@ -117,7 +117,7 @@ if ($gff_file =~ m/gz$/) {
   #   chomp;
   #   $GFF_hash{$.} = $_;
   # }
-  @GFF_array = <$GFF_fh>; ## read into array
+  chomp (@GFF_array = <$GFF_fh>); ## read into array
   close $GFF_fh;
 }
 
