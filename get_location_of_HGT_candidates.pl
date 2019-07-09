@@ -120,10 +120,6 @@ if ($gff_file =~ m/gz$/) {
   close $GFF_fh;
 }
 
-foreach (sort keys %GFF_hash) {
-  print STDERR "$_ $GFF_hash{$_}\n";
-}
-
 print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
 
 ## grep protein names from GFF and get coords of CDS:
@@ -148,7 +144,8 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
   while (my $line = <$FAA>) {
     if ($line =~ m/^>/) {
       chomp $line;
-      $line =~ s/^>//;
+      $line =~ s/^>//; ## trim ">"
+      $line =~ s/\s.*//; ## trim anything after 1st whitespace
       my $gene = $line;
       $gene =~ s/$regexvar//ig if ($regexstr); ##apply regex if specified
       $protein_hash_map{$gene} = $line; ##map old name (val) to new REGEXP name (key)
@@ -156,6 +153,9 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
       my ($start,$end,$introns) = (1e+12,0,-1); ##this will work so long as no start coord is ever >=1Tb!
       my ($chrom,$strand) = ("NULL","NULL");
       ## get coords of all items grepped by $gene
+      my @a = grep { $GFF_hash{$_} =~ m/\Q$gene\E/ } sort {$GFF_hash{$a}<=>$GFF_hash{$b}} keys %GFF_hash;
+      foreach (@a) { print STDOUT "$_" };
+
       my $G;
       if ($gff_file =~ m/gz$/) {
         open ($G, "zcat $gff_file | LC_ALL=C grep -F CDS | LC_ALL=C grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
