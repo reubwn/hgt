@@ -99,24 +99,25 @@ my $n=1;
 
 ##################### parse CDS entries from GFF into memory
 my $GFF_fh;
-my %GFF_hash;
+my @GFF_array;
+# my %GFF_hash;
 if ($gff_file =~ m/gz$/) {
   print STDERR "[INFO] Parsing gzipped '$gff_file' GFF file...\n";
   open ($GFF_fh, "zcat $gff_file | grep -F CDS |") or die "$!\n"; ## pulls out CDS lines ONLY!
-  while (<$GFF_fh>) {
-    chomp;
-    $GFF_hash{$.} = $_;
-  }
-  # @GFF_array = <$GFF_fh>; ## read into array
+  # while (<$GFF_fh>) {
+  #   chomp;
+  #   $GFF_hash{$.} = $_;
+  # }
+  @GFF_array = <$GFF_fh>; ## read into array
   close $GFF_fh;
 } else {
   print STDERR "[INFO] Parsing '$gff_file' GFF file...\n";
   open ($GFF_fh, "grep -F CDS $gff_file |") or die "$!\n"; ## pulls out CDS lines ONLY!
-  while (<$GFF_fh>) {
-    chomp;
-    $GFF_hash{$.} = $_;
-  }
-  # @GFF_array = <$GFF_fh>; ## read into array
+  # while (<$GFF_fh>) {
+  #   chomp;
+  #   $GFF_hash{$.} = $_;
+  # }
+  @GFF_array = <$GFF_fh>; ## read into array
   close $GFF_fh;
 }
 
@@ -153,7 +154,7 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
       my ($start,$end,$introns) = (1e+12,0,-1); ##this will work so long as no start coord is ever >=1Tb!
       my ($chrom,$strand) = ("NULL","NULL");
       ## get coords of all items grepped by $gene
-      my @a = grep { m/\Q$gene\E/ } values %GFF_hash;
+      my @a = grep { m/\Q$gene\E/ } @GFF_array;
       foreach (@a) { print STDOUT "$_\n" };
 
       my $G;
