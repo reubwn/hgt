@@ -310,6 +310,7 @@ while (<$RESULTS>) {
   ## apply regex to protein ID in $F[0] if specifed:
   my $protein_id; ## we want this to map to GFF IDs
   if ($regexstr) {
+    print STDOUT "I am here?\n";
     ($protein_id = $F[0]) =~ s/$regexvar//ig; ## apply regex
   } elsif ($mapping = 1) {
     $protein_id = $names_map{$F[0]}; ## inherit GFF ID
