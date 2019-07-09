@@ -9,6 +9,7 @@ use Getopt::Long;
 use Term::ANSIColor;
 use Sort::Naturally;
 use Data::Dumper qw(Dumper);
+use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
 
 my $usage = "
 SYNOPSIS
@@ -82,7 +83,7 @@ print STDERR "[INFO] Write bedfile: TRUE\n" if ($bed);
 my $sys_lang = `echo $ENV{LANG}`; chomp($sys_lang);
 if ($sys_lang !~ m/^C$/) {
   print STDERR "[INFO] Detected locale '$sys_lang', setting to 'C' for grep speedup\n";
-  $ENV{'LANG'} = 'C';
+  $ENV{'LC_ALL'} = 'C';
 }
 
 (my $locationsfile = $infile) =~ s/HGT_results.+/HGT_locations.txt/;
@@ -108,6 +109,7 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
     chomp ($namesfilesize = `zgrep -c ">" $namesfile`);
     open ($FAA, "zcat $namesfile |") or die "[ERROR] Cannot open $namesfile: $!\n";
     print STDERR "[INFO] Proteins names file is from gzipped fasta (".commify($namesfilesize)." sequences)\n";
+    print STDERR "[WARN] File '$namesfile' is gzipped, but decompressing first will be much faster\n";
   } else {
     ## get filesize:
     chomp ($namesfilesize = `grep -c ">" $namesfile`);
@@ -124,14 +126,15 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
       $gene =~ s/$regexvar//ig if ($regexstr); ##apply regex if specified
       $protein_hash_map{$gene} = $line; ##map old name (val) to new REGEXP name (key)
       print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
-      my ($start,$end,$introns) = (1e+9,0,-1); ##this will work so long as no start coord is ever >=1Gb!
+      my ($start,$end,$introns) = (1e+12,0,-1); ##this will work so long as no start coord is ever >=1Tb!
       my ($chrom,$strand) = ("NULL","NULL");
       ## get coords of all items grepped by $gene
       my $G;
       if ($gfffile =~ m/gz$/) {
-        open ($G, "zcat $gfffile | grep -F CDS | grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
+        open ($G, "zcat $gfffile | LC_ALL=C grep -F CDS | LC_ALL=C grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
+        print STDERR "[WARN] File '$gfffile' is gzipped, but decompressing first will be much faster\n";
       } else {
-        open ($G, "grep -F CDS $gfffile | grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
+        open ($G, "LC_ALL=C grep -F CDS $gfffile | LC_ALL=C grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
       }
       while (<$G>) {
         chomp;
@@ -184,10 +187,10 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
       $gene = $F[0];
     }
     print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
-    my ($start,$end,$introns) = (1e+9,0,-1); ##this will work so long as no start coord is ever >=1Gb!
+    my ($start,$end,$introns) = (1e+12,0,-1); ##this will work so long as no start coord is ever >=1Tb!
     my ($chrom,$strand) = ("NULL","NULL");
     ## get coords of all items grepped by $gene
-    open (my $G, "grep -F CDS $gfffile | grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
+    open (my $G, "LC_ALL=C grep -F CDS $gfffile | LC_ALL=C grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
     while (<$G>) {
       chomp;
       my @F = split (/\s+/, $_);
@@ -390,7 +393,7 @@ print $OVER "[RESULT] HGTc linked: ".commify($linked_total)."\n";
 print $OVER "[INFO] Finished on ".`date`."\n";
 close $OVER;
 
-################################################################################
+################################################################################ SUBS
 
 sub percentage {
     my $numerator = $_[0];
