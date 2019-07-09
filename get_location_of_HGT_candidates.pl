@@ -154,8 +154,10 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
       my ($start,$end,$introns) = (1e+12,0,-1); ##this will work so long as no start coord is ever >=1Tb!
       my ($chrom,$strand) = ("NULL","NULL");
       ## get coords of all items grepped by $gene
-      my @a = grep { m/\Q$gene\E/ } @GFF_array;
-      foreach (@a) { print STDOUT "$_\n" };
+      # my @a = grep { m/\Q$gene\E/ } @GFF_array;
+      foreach ( grep { m/\Q$gene\E/ } @GFF_array ) {
+        print STDOUT "$_\n";
+      }
 
       my $G;
       if ($gff_file =~ m/gz$/) {
