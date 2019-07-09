@@ -176,8 +176,8 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
       ## get indices
       my @to_splice = indexes { m/\Q$gene\E/ } @GFF_array;
       ## and splice them out of @GFF_array
-      print STDOUT "Length of \@GFF_array: ".scalar(@GFF_array)."\n";
-      print STDOUT "Deleting indices @to_splice\n";
+      # print STDOUT "Length of \@GFF_array: ".scalar(@GFF_array)."\n";
+      # print STDOUT "Deleting indices @to_splice\n";
       splice (@GFF_array, $to_splice[0], scalar(@to_splice));
 
       # my $G;
