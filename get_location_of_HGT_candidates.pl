@@ -315,6 +315,7 @@ while (<$RESULTS>) {
   } elsif ($mapping = 1) {
     $protein_id = $names_map{$F[0]}; ## inherit GFF ID
   } else {
+    print STDOUT "No I am here!\n";
     $protein_id = $F[0]; ## do nowt
   }
 
