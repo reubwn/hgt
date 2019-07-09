@@ -312,7 +312,7 @@ while (<$RESULTS>) {
   if ($regexstr) {
     print STDOUT "I am here?\n";
     ($protein_id = $F[0]) =~ s/$regexvar//ig; ## apply regex
-  } elsif ($mapping = 1) {
+  } elsif ($mapping == 1) {
     print STDOUT "Hang on, here??\n";
     $protein_id = $names_map{$F[0]}; ## inherit GFF ID
   } else {
