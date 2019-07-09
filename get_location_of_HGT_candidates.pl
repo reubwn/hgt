@@ -83,7 +83,8 @@ print STDERR "[INFO] Write bedfile: TRUE\n" if ($bed);
 my $sys_lang = `echo $ENV{LANG}`; chomp($sys_lang);
 if ($sys_lang !~ m/^C$/) {
   print STDERR "[INFO] Detected locale '$sys_lang', setting to 'C' for grep speedup\n";
-  $ENV{'LC_ALL'} = 'C';
+  `export LC_ALL=C`;
+  # $ENV{'LC_ALL'} = 'C';
 }
 
 (my $locationsfile = $infile) =~ s/HGT_results.+/HGT_locations.txt/;
@@ -100,23 +101,23 @@ my $n=1;
 ##################### parse CDS entries from GFF into memory
 my $GFF_fh;
 my @GFF_array;
-# my %GFF_hash;
+my %GFF_hash;
 if ($gff_file =~ m/gz$/) {
   print STDERR "[INFO] Parsing gzipped '$gff_file' GFF file...\n";
   open ($GFF_fh, "zcat $gff_file | grep -F CDS |") or die "$!\n"; ## pulls out CDS lines ONLY!
-  # while (<$GFF_fh>) {
-  #   chomp;
-  #   $GFF_hash{$.} = $_;
-  # }
+  while (<$GFF_fh>) {
+    chomp;
+    $GFF_hash{$_} = $_;
+  }
   chomp (@GFF_array = <$GFF_fh>); ## read into array
   close $GFF_fh;
 } else {
   print STDERR "[INFO] Parsing '$gff_file' GFF file...\n";
   open ($GFF_fh, "grep -F CDS $gff_file |") or die "$!\n"; ## pulls out CDS lines ONLY!
-  # while (<$GFF_fh>) {
-  #   chomp;
-  #   $GFF_hash{$.} = $_;
-  # }
+  while (<$GFF_fh>) {
+    chomp;
+    $GFF_hash{$_} = $_;
+  }
   chomp (@GFF_array = <$GFF_fh>); ## read into array
   close $GFF_fh;
 }
@@ -154,23 +155,25 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
       my ($start,$end,$introns) = (1e+12,0,-1); ##this will work so long as no start coord is ever >=1Tb!
       my ($chrom,$strand) = ("NULL","NULL");
       ## get coords of all items grepped by $gene
-      # my @a = grep { m/\Q$gene\E/ } @GFF_array;
-      foreach ( grep { m/\Q$gene\E/ } @GFF_array ) {
-        chomp;
-        my @F = split (/\s+/, $_);
-        $start = $F[3] if $F[3] < $start; ##then get ONLY the 1st
-        $end = $F[4] if $F[4] > $end; ##... and last coords across all CDS
-        $introns++; ##the number of iterations of through <$G> corresponds to the num exons; therefore introns is -1 this
-        $chrom = $F[0];
-        $strand = $F[6];
-        $locations{$gene} = { ##key= gene; val= HoH
-                        'chrom'   => $chrom,
-                        'start'   => $start, ##this should cover the 'gene region'
-                        'end'     => $end, ##... encoded by the protein name
-                        'strand'  => $strand,
-                        'introns' => $introns
-                       };
+      foreach ( $GFF_hash{ m/\Q$gene\E/ } ) {
+        print "$_\n";
       }
+      # foreach ( grep { m/\Q$gene\E/ } @GFF_array ) {
+      #   chomp;
+      #   my @F = split (/\s+/, $_);
+      #   $start = $F[3] if $F[3] < $start; ##then get ONLY the 1st
+      #   $end = $F[4] if $F[4] > $end; ##... and last coords across all CDS
+      #   $introns++; ##the number of iterations of through <$G> corresponds to the num exons; therefore introns is -1 this
+      #   $chrom = $F[0];
+      #   $strand = $F[6];
+      #   $locations{$gene} = { ##key= gene; val= HoH
+      #                   'chrom'   => $chrom,
+      #                   'start'   => $start, ##this should cover the 'gene region'
+      #                   'end'     => $end, ##... encoded by the protein name
+      #                   'strand'  => $strand,
+      #                   'introns' => $introns
+      #                  };
+      # }
 
       # my $G;
       # if ($gff_file =~ m/gz$/) {
