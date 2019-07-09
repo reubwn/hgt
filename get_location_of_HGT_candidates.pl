@@ -9,6 +9,7 @@ use Getopt::Long;
 use Term::ANSIColor;
 use Sort::Naturally;
 use Data::Dumper qw(Dumper);
+use List::MoreUtils qw(indexes);
 use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
 
 my $usage = "
@@ -155,25 +156,32 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
       my ($start,$end,$introns) = (1e+12,0,-1); ##this will work so long as no start coord is ever >=1Tb!
       my ($chrom,$strand) = ("NULL","NULL");
       ## get coords of all items grepped by $gene
-      foreach ( $GFF_hash{ m/\Q$gene\E/ } ) {
-        print "$_\n";
-      }
-      # foreach ( grep { m/\Q$gene\E/ } @GFF_array ) {
-      #   chomp;
-      #   my @F = split (/\s+/, $_);
-      #   $start = $F[3] if $F[3] < $start; ##then get ONLY the 1st
-      #   $end = $F[4] if $F[4] > $end; ##... and last coords across all CDS
-      #   $introns++; ##the number of iterations of through <$G> corresponds to the num exons; therefore introns is -1 this
-      #   $chrom = $F[0];
-      #   $strand = $F[6];
-      #   $locations{$gene} = { ##key= gene; val= HoH
-      #                   'chrom'   => $chrom,
-      #                   'start'   => $start, ##this should cover the 'gene region'
-      #                   'end'     => $end, ##... encoded by the protein name
-      #                   'strand'  => $strand,
-      #                   'introns' => $introns
-      #                  };
+      # foreach ( $GFF_hash{ m/\Q$gene\E/ } ) {
+      #   print "$_\n";
       # }
+      foreach ( grep { m/\Q$gene\E/ } @GFF_array ) {
+        chomp;
+        my @F = split (/\s+/, $_);
+        $start = $F[3] if $F[3] < $start; ##then get ONLY the 1st
+        $end = $F[4] if $F[4] > $end; ##... and last coords across all CDS
+        $introns++; ##the number of iterations of through <$G> corresponds to the num exons; therefore introns is -1 this
+        $chrom = $F[0];
+        $strand = $F[6];
+        $locations{$gene} = { ##key= gene; val= HoH
+                        'chrom'   => $chrom,
+                        'start'   => $start, ##this should cover the 'gene region'
+                        'end'     => $end, ##... encoded by the protein name
+                        'strand'  => $strand,
+                        'introns' => $introns
+                       };
+      }
+
+      ## get indices
+      my @to_splice = indexes { m/\Q$gene\E/ } @GFF_array;
+      ## and splice them out of @GFF_array
+      print STDOUT "Length of \@GFF_array: ".scalar(@GFF_array)."\n";
+      print STDOUT "Deleting indices @to_splice\n";
+      splice (@GFF_array, $to_splice[0], scalar(@to_splice));
 
       # my $G;
       # if ($gff_file =~ m/gz$/) {
