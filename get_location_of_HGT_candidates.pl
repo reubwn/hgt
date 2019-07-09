@@ -81,12 +81,12 @@ print STDERR "[INFO] Proportion of genes >= hU threshold to find contaminant sca
 print STDERR "[INFO] Write bedfile: TRUE\n" if ($bed);
 
 ## detect system LANG
-my $sys_lang = `echo $ENV{LANG}`; chomp($sys_lang);
-if ($sys_lang !~ m/^C$/) {
-  print STDERR "[INFO] Detected locale '$sys_lang', setting to 'C' for grep speedup\n";
-  `export LC_ALL=C`;
-  # $ENV{'LC_ALL'} = 'C';
-}
+# my $sys_lang = `echo $ENV{LANG}`; chomp($sys_lang);
+# if ($sys_lang !~ m/^C$/) {
+#   print STDERR "[INFO] Detected locale '$sys_lang', setting to 'C' for grep speedup\n";
+#   `export LC_ALL=C`;
+#   # $ENV{'LC_ALL'} = 'C';
+# }
 
 (my $locationsfile = $infile) =~ s/HGT_results.+/HGT_locations.txt/;
 (my $summaryfile = $infile) =~ s/HGT_results.+/HGT_locations.scaffold_summary.txt/;
@@ -102,23 +102,23 @@ my $n=1;
 ##################### parse CDS entries from GFF into memory
 my $GFF_fh;
 my @GFF_array;
-my %GFF_hash;
+# my %GFF_hash;
 if ($gff_file =~ m/gz$/) {
   print STDERR "[INFO] Parsing gzipped '$gff_file' GFF file...\n";
   open ($GFF_fh, "zcat $gff_file | grep -F CDS |") or die "$!\n"; ## pulls out CDS lines ONLY!
-  while (<$GFF_fh>) {
-    chomp;
-    $GFF_hash{$_} = $_;
-  }
+  # while (<$GFF_fh>) {
+  #   chomp;
+  #   $GFF_hash{$_} = $_;
+  # }
   chomp (@GFF_array = <$GFF_fh>); ## read into array
   close $GFF_fh;
 } else {
   print STDERR "[INFO] Parsing '$gff_file' GFF file...\n";
   open ($GFF_fh, "grep -F CDS $gff_file |") or die "$!\n"; ## pulls out CDS lines ONLY!
-  while (<$GFF_fh>) {
-    chomp;
-    $GFF_hash{$_} = $_;
-  }
+  # while (<$GFF_fh>) {
+  #   chomp;
+  #   $GFF_hash{$_} = $_;
+  # }
   chomp (@GFF_array = <$GFF_fh>); ## read into array
   close $GFF_fh;
 }
@@ -156,9 +156,6 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
       my ($start,$end,$introns) = (1e+12,0,-1); ##this will work so long as no start coord is ever >=1Tb!
       my ($chrom,$strand) = ("NULL","NULL");
       ## get coords of all items grepped by $gene
-      # foreach ( $GFF_hash{ m/\Q$gene\E/ } ) {
-      #   print "$_\n";
-      # }
       foreach ( grep { m/\Q$gene\E/ } @GFF_array ) {
         chomp;
         my @F = split (/\s+/, $_);
