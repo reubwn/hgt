@@ -141,11 +141,11 @@ if ( ($names_file =~ m/(fa|faa|fasta)$/) or ($names_file =~ m/(fa.gz|faa.gz|fast
       my ($start,$end,$introns) = (1e+12,0,-1); ## this will work so long as no start coord is ever >=1Tb!
       my ($chrom,$strand) = ("NULL","NULL");
       ## get coords of all items grepped by $gene
-      foreach ( grep { m/\Q$gene\E\;*/ } @GFF_array ) { ## assumes $gene is bounded by a ';', or nothing if EOL
-        chomp;
-        print STDOUT "\nGrepped for '$gene': $_\n" if ( $debug );
+      foreach my $line ( grep { m/\Q$gene\E\;*/ } @GFF_array ) { ## assumes $gene is bounded by a ';', or nothing if EOL
+        chomp ($line);
+        print STDOUT "\nGrepped for '$gene': $line\n" if ( $debug );
 
-        my @F = split (/\s+/, $_);
+        my @F = split (/\s+/, $line);
         $start = $F[3] if $F[3] < $start; ##then get ONLY the 1st
         $end = $F[4] if $F[4] > $end; ##... and last coords across all CDS
         $introns++; ## the number of iterations of through <$G> corresponds to the num exons; therefore introns is -1 this
