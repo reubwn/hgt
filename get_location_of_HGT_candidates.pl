@@ -141,7 +141,7 @@ if ( ($names_file =~ m/(fa|faa|fasta)$/) or ($names_file =~ m/(fa.gz|faa.gz|fast
       my ($start,$end,$introns) = (1e+12,0,-1); ## this will work so long as no start coord is ever >=1Tb!
       my ($chrom,$strand) = ("NULL","NULL");
       ## get coords of all items grepped by $gene
-      foreach ( grep { m/\Q$gene\E\;/ } @GFF_array ) { ## assumes $gene is bounded by a ';'
+      foreach ( grep { m/\Q$gene\E\;*/ } @GFF_array ) { ## assumes $gene is bounded by a ';'
         print STDOUT "\nGrepped for '$gene': $_\n" if ( $debug );
         chomp;
         my @F = split (/\s+/, $_);
@@ -163,7 +163,7 @@ if ( ($names_file =~ m/(fa|faa|fasta)$/) or ($names_file =~ m/(fa.gz|faa.gz|fast
 
       ## dynamically shrink @GFF_array so search should get faster as parsing progresses?
       ## first get indices...
-      my @to_splice = indexes { m/\Q$gene\E\;/ } @GFF_array; ## assumes $gene is bounded by a ';'
+      my @to_splice = indexes { m/\Q$gene\E\;*/ } @GFF_array; ## assumes $gene is bounded by a ';'
       ## and splice them out of @GFF_array
       print STDOUT "Deleting ".scalar(@to_splice)." indices (@to_splice)\n" if ( $debug );
       print STDOUT "Length of \@GFF_array: ".scalar(@GFF_array)."\n" if ( $debug );
