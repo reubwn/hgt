@@ -143,7 +143,7 @@ if ( ($names_file =~ m/(fa|faa|fasta)$/) or ($names_file =~ m/(fa.gz|faa.gz|fast
       ## get coords of all items grepped by $gene
       foreach my $line ( grep { m/\Q$gene\E\;*/ } @GFF_array ) { ## assumes $gene is bounded by a ';', or nothing if EOL
         chomp ($line);
-        print STDOUT "\nGrepped for '$gene': $line" if ( $debug );
+        print STDOUT "Grepped for '$gene': $line\n" if ( $debug );
 
         my @F = split (/\s+/, $line);
         $start = $F[3] if $F[3] < $start; ##then get ONLY the 1st
