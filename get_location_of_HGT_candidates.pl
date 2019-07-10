@@ -48,7 +48,7 @@ OUTPUTS
   (4) HGT_locations.bed: BED format file of HGT candidates; useful for intersection with RNASeq mapping data
 \n";
 
-my ($in_file,$gff_file,$names_file,$regexstr,$bed,$help);
+my ($in_file,$gff_file,$names_file,$regexstr,$bed,$help,$debug);
 my $outgrp_threshold = 30;
 my $ingrp_threshold = 0;
 my $CHS_threshold = 90;
@@ -66,6 +66,7 @@ GetOptions (
   'y|heavy:i'  => \$heavy,
   'b|bed'      => \$bed,
   'h|help'     => \$help,
+  'd|debug'    => \$debug
 );
 
 die $usage if $help;
@@ -158,7 +159,7 @@ if ( ($names_file =~ m/(fa|faa|fasta)$/) or ($names_file =~ m/(fa.gz|faa.gz|fast
                        };
       }
 
-      print STDOUT Dumper (%locations) if ( $verbose );
+      print STDOUT Dumper (%locations) if ( $debug );
 
       ## dynamically shrink @GFF_array so search should get faster as parsing progresses?
       ## first get indices...
