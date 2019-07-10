@@ -163,10 +163,10 @@ if ( ($names_file =~ m/(fa|faa|fasta)$/) or ($names_file =~ m/(fa.gz|faa.gz|fast
 
       ## dynamically shrink @GFF_array so search should get faster as parsing progresses?
       ## first get indices...
-      my @to_splice = indexes { m/\Q$gene\E\;/ } @GFF_array;
+      my @to_splice = indexes { m/\Q$gene\E\;/ } @GFF_array; ## assumes $gene is bounded by a ';'
       ## and splice them out of @GFF_array
+      print STDOUT "Deleting ".scalar(@to_splice)." indices (@to_splice)\n" if ( $debug );
       print STDOUT "Length of \@GFF_array: ".scalar(@GFF_array)."\n" if ( $debug );
-      print STDOUT "Deleting indices @to_splice\n" if ( $debug );
       splice (@GFF_array, $to_splice[0], scalar(@to_splice)); ## this should be OK, as CDS will always be consecutive in GFF
 
       ## old way of grepping directly from GFF using system grep
