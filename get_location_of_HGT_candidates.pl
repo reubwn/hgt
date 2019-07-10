@@ -48,7 +48,7 @@ OUTPUTS
   (4) HGT_locations.bed: BED format file of HGT candidates; useful for intersection with RNASeq mapping data
 \n";
 
-my ($infile,$gff_file,$namesfile,$regexstr,$bed,$help);
+my ($in_file,$gff_file,$names_file,$regexstr,$bed,$help);
 my $outgrp_threshold = 30;
 my $ingrp_threshold = 0;
 my $CHS_threshold = 90;
@@ -56,9 +56,9 @@ my $heavy = 95;
 my $mapping = 0;
 
 GetOptions (
-  'i|in=s'     => \$infile,
+  'i|in=s'     => \$in_file,
   'g|gff=s'    => \$gff_file,
-  'n|names=s'  => \$namesfile,
+  'n|names=s'  => \$names_file,
   'r|regex:s'  => \$regexstr,
   'u|outgrp:i' => \$outgrp_threshold,
   'U|ingrp:i'  => \$ingrp_threshold,
@@ -69,56 +69,40 @@ GetOptions (
 );
 
 die $usage if $help;
-die $usage unless ($infile && $gff_file);
+die $usage unless ($in_file && $gff_file);
 
-print STDERR "[INFO] Infile: '$infile'\n";
+print STDERR "[INFO] Infile: '$in_file'\n";
 print STDERR "[INFO] GFF file: '$gff_file'\n";
-print STDERR "[INFO] Proteins names file: '$namesfile'\n";
+print STDERR "[INFO] Protein ID file: '$names_file'\n";
 print STDERR "[INFO] hU threshold to determine strong evidence for OUTGROUP: >= ".colored($outgrp_threshold, 'yellow')."\n";
 print STDERR "[INFO] hU threshold to determine strong evidence for INGROUP: <= ".colored($ingrp_threshold, 'yellow')."\n";
 print STDERR "[INFO] CHS threshold to determine strong evidence for OUTGROUP: >= ".colored("$CHS_threshold\%", 'yellow')."\n";
 print STDERR "[INFO] Proportion of genes >= hU threshold to find contaminant scaffolds: ".colored("$heavy\%", 'yellow')."\n";
-print STDERR "[INFO] Write bedfile: TRUE\n" if ($bed);
+print STDERR "[INFO] Applying regex '$regexstr' to names in '$names_file'\n" if ( $regexstr );
+print STDERR "[INFO] Write bedfile: TRUE\n" if ( $bed );
 
-## detect system LANG
-# my $sys_lang = `echo $ENV{LANG}`; chomp($sys_lang);
-# if ($sys_lang !~ m/^C$/) {
-#   print STDERR "[INFO] Detected locale '$sys_lang', setting to 'C' for grep speedup\n";
-#   `export LC_ALL=C`;
-#   # $ENV{'LC_ALL'} = 'C';
-# }
-
-(my $locationsfile = $infile) =~ s/HGT_results.+/HGT_locations.txt/;
-(my $summaryfile = $infile) =~ s/HGT_results.+/HGT_locations.scaffold_summary.txt/;
-(my $genesfile = $infile) =~ s/HGT_results.+/HGT_locations.HGT_linked.genelist.txt/;
-(my $oversummaryfile = $infile) =~ s/HGT_results.+/HGT_locations.overall_summary.txt/;
-(my $heavyfile = $infile) =~ s/HGT_results.+/HGT_locations.heavy.txt/;
-(my $warningsfile = $infile) =~ s/HGT_results.+/HGT_locations.warnings.txt/;
-(my $bedfile = $infile) =~ s/HGT_results.+/HGT_locations.bed/ if ($bed);
-my ($namesfilesize,%orphans,%locations,%hgt_results,%scaffolds,%names_map,%protein_hash,%protein_hash_map);
-my $regexvar = qr/$regexstr/ if ($regexstr);
+(my $locations_file = $in_file) =~ s/HGT_results.+/HGT_locations.txt/;
+(my $summary_file = $in_file) =~ s/HGT_results.+/HGT_locations.scaffold_summary.txt/;
+(my $genes_file = $in_file) =~ s/HGT_results.+/HGT_locations.HGT_linked.genelist.txt/;
+(my $oversummary_file = $in_file) =~ s/HGT_results.+/HGT_locations.overall_summary.txt/;
+(my $heavy_file = $in_file) =~ s/HGT_results.+/HGT_locations.heavy.txt/;
+(my $warnings_file = $in_file) =~ s/HGT_results.+/HGT_locations.warnings.txt/;
+(my $bed_file = $in_file) =~ s/HGT_results.+/HGT_locations.bed/ if ($bed);
+my ($names_filesize,%orphans,%locations,%hgt_results,%scaffolds,%names_map,%protein_hash,%protein_hash_map);
+my $regexvar = qr/$regexstr/ if ($regexstr); ## this should store the command line argument as compiled regexp
 my $n=1;
 
-##################### parse CDS entries from GFF into memory
+## parse CDS entries from GFF into memory
 my $GFF_fh;
 my @GFF_array;
-# my %GFF_hash;
-if ($gff_file =~ m/gz$/) {
+if ($gff_file =~ m/gz$/) { ## can handle gzipped
   print STDERR "[INFO] Parsing gzipped '$gff_file' GFF file...\n";
   open ($GFF_fh, "zcat $gff_file | grep -F CDS |") or die "$!\n"; ## pulls out CDS lines ONLY!
-  # while (<$GFF_fh>) {
-  #   chomp;
-  #   $GFF_hash{$_} = $_;
-  # }
   chomp (@GFF_array = <$GFF_fh>); ## read into array
   close $GFF_fh;
 } else {
   print STDERR "[INFO] Parsing '$gff_file' GFF file...\n";
   open ($GFF_fh, "grep -F CDS $gff_file |") or die "$!\n"; ## pulls out CDS lines ONLY!
-  # while (<$GFF_fh>) {
-  #   chomp;
-  #   $GFF_hash{$_} = $_;
-  # }
   chomp (@GFF_array = <$GFF_fh>); ## read into array
   close $GFF_fh;
 }
@@ -126,21 +110,21 @@ if ($gff_file =~ m/gz$/) {
 print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
 
 ## grep protein names from GFF and get coords of CDS:
-if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.gz)$/) ) { ## autodetect if names are coming from fasta
+if ( ($names_file =~ m/(fa|faa|fasta)$/) or ($names_file =~ m/(fa.gz|faa.gz|fasta.gz)$/) ) { ## autodetect if names are coming from fasta
 
   my $FAA;
   ## handle gzipped:
-  if ($namesfile =~ m/gz$/) {
+  if ($names_file =~ m/gz$/) {
     ## get filesize:
-    chomp ($namesfilesize = `zgrep -c ">" $namesfile`);
-    open ($FAA, "zcat $namesfile |") or die "[ERROR] Cannot open $namesfile: $!\n";
-    print STDERR "[INFO] Proteins names file is from gzipped fasta (".commify($namesfilesize)." sequences)\n";
-    print STDERR "[WARN] File '$namesfile' is gzipped, but decompressing first will be much faster\n";
+    chomp ($names_filesize = `zgrep -c ">" $names_file`);
+    open ($FAA, "zcat $names_file |") or die "[ERROR] Cannot open $names_file: $!\n";
+    print STDERR "[INFO] Proteins names file is from gzipped fasta (".commify($names_filesize)." sequences)\n";
+    print STDERR "[WARN] File '$names_file' is gzipped, but decompressing first will be much faster\n";
   } else {
     ## get filesize:
-    chomp ($namesfilesize = `grep -c ">" $namesfile`);
-    open ($FAA, $namesfile) or die "[ERROR] Cannot open $namesfile: $!\n";
-    print STDERR "[INFO] Proteins names file is from fasta (".commify($namesfilesize)." sequences)\n";
+    chomp ($names_filesize = `grep -c ">" $names_file`);
+    open ($FAA, $names_file) or die "[ERROR] Cannot open $names_file: $!\n";
+    print STDERR "[INFO] Proteins names file is from fasta (".commify($names_filesize)." sequences)\n";
   }
   print STDERR "[INFO] Applying regex 's/$regexstr//' to fasta headers...\n" if ($regexstr);
 
@@ -150,9 +134,9 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
       $line =~ s/^>//; ## trim ">"
       $line =~ s/\s.*//; ## trim anything after 1st whitespace
       my $gene = $line;
-      $gene =~ s/$regexvar//ig if ($regexstr); ##apply regex if specified
+      $gene =~ $regexvar if ($regexstr); ##apply regex if specified
       $protein_hash_map{$gene} = $line; ##map old name (val) to new REGEXP name (key)
-      print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
+      print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$names_filesize)."\%)"; $|=1;
       my ($start,$end,$introns) = (1e+12,0,-1); ##this will work so long as no start coord is ever >=1Tb!
       my ($chrom,$strand) = ("NULL","NULL");
       ## get coords of all items grepped by $gene
@@ -173,13 +157,15 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
                        };
       }
 
-      ## get indices
+      ## dynamically shrink @GFF_array so search should get faster as parsing progresses?
+      ## first get indices...
       my @to_splice = indexes { m/\Q$gene\E/ } @GFF_array;
       ## and splice them out of @GFF_array
       # print STDOUT "Length of \@GFF_array: ".scalar(@GFF_array)."\n";
       # print STDOUT "Deleting indices @to_splice\n";
-      splice (@GFF_array, $to_splice[0], scalar(@to_splice));
+      splice (@GFF_array, $to_splice[0], scalar(@to_splice)); ## this should be OK, as CDS will always be consecutive in GFF
 
+      ## old way of grepping directly from GFF using system grep
       # my $G;
       # if ($gff_file =~ m/gz$/) {
       #   open ($G, "zcat $gff_file | LC_ALL=C grep -F CDS | LC_ALL=C grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
@@ -204,6 +190,7 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
       #                  };
       # }
       # close $G;
+
       unless (exists($locations{$gene}{chrom})) { ##all genes should have a chrom...
         print STDERR "\n[WARN] Nothing found for gene $gene in GFF $gff_file!\n";
         $orphans{$gene} = ();
@@ -220,10 +207,10 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
 
 } else {
   ## get filesize:
-  $namesfilesize = `wc -l $namesfile`;
-  $namesfilesize =~ s/\s.+\n//;
+  $names_filesize = `wc -l $names_file`;
+  $names_filesize =~ s/\s.+\n//;
 
-  open (my $NAMES, $namesfile) or die "[ERROR] Cannot open $namesfile: $!\n";
+  open (my $NAMES, $names_file) or die "[ERROR] Cannot open $names_file: $!\n";
   # print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
 
   ## iterate through genes in namesfile:
@@ -238,7 +225,7 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
     } else {
       $gene = $F[0];
     }
-    print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$namesfilesize)."\%)"; $|=1;
+    print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$names_filesize)."\%)"; $|=1;
     my ($start,$end,$introns) = (1e+12,0,-1); ##this will work so long as no start coord is ever >=1Tb!
     my ($chrom,$strand) = ("NULL","NULL");
     ## get coords of all items grepped by $gene
@@ -258,6 +245,13 @@ if ( ($namesfile =~ m/(fa|faa|fasta)$/) or ($namesfile =~ m/(fa.gz|faa.gz|fasta.
                       'introns' => $introns
                      };
     }
+    ## dynamically shrink @GFF_array so search should get faster as parsing progresses?
+    ## get indices
+    my @to_splice = indexes { m/\Q$gene\E/ } @GFF_array;
+    ## and splice them out of @GFF_array
+    splice (@GFF_array, $to_splice[0], scalar(@to_splice)); ## this should be OK, as CDS will always be consecutive in GFF
+
+    ## old way of grepping directly from GFF using system grep
     # open (my $G, "LC_ALL=C grep -F CDS $gff_file | LC_ALL=C grep -F \Q$gene\E |") or die "$!\n"; ##will return GFF lines matching "CDS" && $gene
     # while (<$G>) {
     #   chomp;
@@ -295,7 +289,7 @@ print STDERR "\n";
 ## print orphans to warnings file:
 if (scalar(keys %orphans) > 0) {
   print STDERR "[WARN] Orphans found! ".scalar(keys %orphans)." gene names not in GFF\n";
-  open (my $WARN, ">$warningsfile") or die "[ERROR] Cannot open file $warningsfile: $!\n";
+  open (my $WARN, ">$warnings_file") or die "[ERROR] Cannot open file $warnings_file: $!\n";
   print $WARN "Following gene names not found in $gff_file (".scalar(keys %orphans)." genes):\n";
   foreach (nsort keys %orphans) {
     print $WARN "$_\n";
@@ -306,10 +300,10 @@ if (scalar(keys %orphans) > 0) {
 ## parse HGT_results file:
 print STDERR "[INFO] Parsing HGT_results file...";
 my $RESULTS;
-if ($infile =~ m/gz$/) { ## can handle gzipped
-  open ($RESULTS, "zcat $infile |") or die "[ERROR] Cannot open $infile: $!\n";
+if ($in_file =~ m/gz$/) { ## can handle gzipped
+  open ($RESULTS, "zcat $in_file |") or die "[ERROR] Cannot open $in_file: $!\n";
 } else {
-  open ($RESULTS, $infile) or die "[ERROR] Cannot open $infile: $!\n";
+  open ($RESULTS, $in_file) or die "[ERROR] Cannot open $in_file: $!\n";
 }
 while (<$RESULTS>) {
   chomp;
@@ -333,7 +327,7 @@ while (<$RESULTS>) {
   ## apply regex to protein ID in $F[0] if specifed:
   my $protein_id; ## we want this to map to GFF IDs
   if ($regexstr) {
-    ($protein_id = $F[0]) =~ s/$regexvar//ig; ## apply regex
+    ($protein_id = $F[0]) =~ $regexvar; ## apply regex
   } elsif ($mapping == 1) {
     $protein_id = $names_map{$F[0]}; ## inherit GFF ID
   } else {
@@ -355,11 +349,11 @@ print STDERR " found ".commify(scalar(keys %hgt_results))." queries\n";
 print STDERR "[INFO] Evaluating results...\n"; $n=1;
 
 ## iterate through pseudo-GFF:
-open (my $LOC, ">$locationsfile") or die "[ERROR] Cannot open file $locationsfile: $!\n";
-open (my $SUM, ">$summaryfile") or die "[ERROR] Cannot open file $summaryfile: $!\n";
-open (my $GENE, ">$genesfile") or die "[ERROR] Cannot open file $genesfile: $!\n";
-open (my $HEV, ">$heavyfile") or die "[ERROR] Cannot open file $heavyfile: $!\n";
-open (my $BED, ">$bedfile") or die "[ERROR] Cannot open file $bedfile: $!\n" if ($bed);
+open (my $LOC, ">$locations_file") or die "[ERROR] Cannot open file $locations_file: $!\n";
+open (my $SUM, ">$summary_file") or die "[ERROR] Cannot open file $summary_file: $!\n";
+open (my $GENE, ">$genes_file") or die "[ERROR] Cannot open file $genes_file: $!\n";
+open (my $HEV, ">$heavy_file") or die "[ERROR] Cannot open file $heavy_file: $!\n";
+open (my $BED, ">$bed_file") or die "[ERROR] Cannot open file $bed_file: $!\n" if ($bed);
 #print $LOC "## HGT_locations\n##".`date`."\n";
 print $LOC join ("\t", "#SCAFFOLD","START","END","GENE","SCORE","STRAND","INTRONS","hU","EVIDENCE","TAXONOMY","\n");
 print $SUM join ("\t", "#SCAFFOLD","NUMGENES","UNASSIGNED","GOOD_INGRP","INTERMEDIATE","GOOD_OUTGRP","PROPORTION_OUTGRP","IS_LINKED","\n");
@@ -368,8 +362,6 @@ my ($good_outgrp_total,$good_ingrp_total,$intermediate_total,$na_total,$introniz
 
 ## iterate across scaffolds:
 foreach my $chrom (nsort keys %scaffolds) {
-  #print STDERR "\r[INFO] Working on scaffold \#$n: $chrom (".percentage($n,scalar(keys %scaffolds))."\%)"; $|=1;
-  #print $LOC "## Scaffold \#$n: $chrom\n";
 
   ## sort by start coord within the %locations hash:
   my ($good_outgrp,$good_ingrp,$intermediate,$na,$is_linked) = (0,0,0,0,0);
@@ -377,7 +369,7 @@ foreach my $chrom (nsort keys %scaffolds) {
   foreach my $gene ( sort {$locations{$a}{start}<=>$locations{$b}{start}} @{$scaffolds{$chrom}} ) {
     ## evaluate if protein name was not found in the GFF (if protein file and GFF dont match up exactly):
     # unless (exists($locations{$gene}{chrom})) {
-    #   open (my $WARN, ">$warningsfile") or die "[ERROR] Cannot open file $warningsfile: $!\n";
+    #   open (my $WARN, ">$warnings_file") or die "[ERROR] Cannot open file $warnings_file: $!\n";
     #   print $WARN join ("\t", $gene,"No chrom found in GFF $gff_file","\n");
     #   next GENE; ##skip to next gene
     # }
@@ -435,24 +427,23 @@ close $HEV;
 close $BED if ($bed);
 
 print STDERR "\n";
-#print STDERR "[RESULT] Number of good INGROUP genes: ".commify($good_ingrp_total)."\n";
-#print STDERR "[RESULT] Number of good OUTGROUP genes (HGT candidates): ".commify($good_outgrp_total)."\n";
-#print STDERR "[RESULT] Number of genes with intermediate score: ".commify($intermediate_total)."\n";
-#print STDERR "[RESULT] Number of genes with no assignment (no-hitters or hit-to-skippers): ".commify($na_total)."\n";
 print STDERR "[RESULT] Bad scaffolds: ".colored(commify($is_heavy), 'green')."\n";
 print STDERR "[RESULT] Genes on bad scaffolds: ".colored(commify($num_genes_on_heavy_total), 'green')." (total); ".colored(commify($num_genes_on_heavy_HGT), 'green')." (HGT candidates)\n";
 print STDERR "[RESULT] HGTc with intron: ".colored(commify($intronized), 'green bold')."\n";
 print STDERR "[RESULT] HGTc linked to ingroup gene: ".colored(commify($linked_total), 'green bold underscore')."\n";
 print STDERR "\n[INFO] Finished on ".`date`."\n";
 
-open (my $OVER, ">$oversummaryfile") or die "[ERROR] Cannot open file $oversummaryfile: $!\n";
-print $OVER "[INFO] Infile: $infile\n";
+open (my $OVER, ">$oversummary_file") or die "[ERROR] Cannot open file $oversummary_file: $!\n";
+print $OVER "[INFO] Infile: $in_file\n";
 print $OVER "[INFO] GFF file: $gff_file\n";
-print $OVER "[INFO] Proteins names file: $namesfile\n";
-#print $OVER "[RESULT] Number of good INGROUP genes: ".commify($good_ingrp_total)."\n";
-#print $OVER "[RESULT] Number of good OUTGROUP genes (HGT candidates): ".commify($good_outgrp_total)."\n";
-#print $OVER "[RESULT] Number of genes with intermediate score: ".commify($intermediate_total)."\n";
-#print $OVER "[RESULT] Number of genes with no assignment (no-hitters or hit-to-skippers): ".commify($na_total)."\n";
+print $OVER "[INFO] Protein ID file: $names_file\n";
+print $OVER "[INFO] Protein ID file: '$names_file'\n";
+print $OVER "[INFO] hU threshold to determine strong evidence for OUTGROUP: >= ".colored($outgrp_threshold, 'yellow')."\n";
+print $OVER "[INFO] hU threshold to determine strong evidence for INGROUP: <= ".colored($ingrp_threshold, 'yellow')."\n";
+print $OVER "[INFO] CHS threshold to determine strong evidence for OUTGROUP: >= ".colored("$CHS_threshold\%", 'yellow')."\n";
+print $OVER "[INFO] Proportion of genes >= hU threshold to find contaminant scaffolds: ".colored("$heavy\%", 'yellow')."\n";
+print $OVER "[INFO] Applying regex '$regexstr' to names in '$names_file'\n" if ( $regexstr );
+print $OVER "[INFO] Write bedfile: TRUE\n" if ( $bed );
 print $OVER "[RESULT] Bad scaffolds: ".commify($is_heavy)."\n";
 print $OVER "[RESULT] Genes on bad scaffolds: ".commify($num_genes_on_heavy_total)." (total); ".commify($num_genes_on_heavy_HGT)." (HGT candidates)\n";
 print $OVER "[RESULT] HGTc with intron: ".commify($intronized)."\n";
