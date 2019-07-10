@@ -157,6 +157,8 @@ if ( ($names_file =~ m/(fa|faa|fasta)$/) or ($names_file =~ m/(fa.gz|faa.gz|fast
                        };
       }
 
+      print STDOUT Dumper (%locations);
+
       ## dynamically shrink @GFF_array so search should get faster as parsing progresses?
       ## first get indices...
       my @to_splice = indexes { m/\Q$gene\E/ } @GFF_array;
