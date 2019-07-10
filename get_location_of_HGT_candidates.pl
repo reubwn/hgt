@@ -134,13 +134,14 @@ if ( ($names_file =~ m/(fa|faa|fasta)$/) or ($names_file =~ m/(fa.gz|faa.gz|fast
       $line =~ s/^>//; ## trim ">"
       $line =~ s/\s.*//; ## trim anything after 1st whitespace
       my $gene = $line;
-      $gene =~ $regexvar if ($regexstr); ##apply regex if specified
-      $protein_hash_map{$gene} = $line; ##map old name (val) to new REGEXP name (key)
+      $gene =~ $regexvar if ($regexstr); ## apply regex if specified
+      $protein_hash_map{$gene} = $line; ## map old name (val) to new REGEXP name (key)
       print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$names_filesize)."\%)"; $|=1;
-      my ($start,$end,$introns) = (1e+12,0,-1); ##this will work so long as no start coord is ever >=1Tb!
+      my ($start,$end,$introns) = (1e+12,0,-1); ## this will work so long as no start coord is ever >=1Tb!
       my ($chrom,$strand) = ("NULL","NULL");
       ## get coords of all items grepped by $gene
       foreach ( grep { m/\Q$gene\E/ } @GFF_array ) {
+        print STDOUT "\nI found: $_\n";
         chomp;
         my @F = split (/\s+/, $_);
         $start = $F[3] if $F[3] < $start; ##then get ONLY the 1st
@@ -157,7 +158,7 @@ if ( ($names_file =~ m/(fa|faa|fasta)$/) or ($names_file =~ m/(fa.gz|faa.gz|fast
                        };
       }
 
-      print STDOUT Dumper (%locations);
+      print STDOUT Dumper (%locations) if ( $verbose );
 
       ## dynamically shrink @GFF_array so search should get faster as parsing progresses?
       ## first get indices...
