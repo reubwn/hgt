@@ -18,7 +18,7 @@ SYNOPSIS
   specifying the location on each chromosome of HGT candidates.
 
 OPTIONS:
-  -i|--in     [FILE] : HGT_results.txt file (supports gzipped) [required]
+  -i|--in     [FILE] : HGT_results.txt file [required]
   -g|--gff    [FILE] : GFF file (supports gzipped) [required]
   -n|--names  [FILE] : names of proteins in GFF file (see below) (supports gzipped) [required]
   -r|--regex  [STR]  : optional regex to apply to seq headers if -n is a fasta file
@@ -82,6 +82,22 @@ print STDERR "[INFO] Proportion of genes >= hU threshold to find contaminant sca
 print STDERR "[INFO] Applying regex '$regexstr' to names in '$names_file'\n" if ( $regexstr );
 print STDERR "[INFO] Write bedfile: TRUE\n" if ( $bed );
 
+## decompress gzipped input files if necessary
+my ($gff_is_gz, $names_is_gz) = (0,0);
+if ($gff_file =~ m/gz$/) {
+  print STDERR "[INFO] Gunzipping '$gff_file' ";
+  $gff_file = decompress $gff_file; ## $in_file inherits new filename with '.gz' extension removed
+  print STDERR "to '$gff_file'\n";
+  $gff_is_gz = 1;
+}
+if ($names_file =~ m/gz$/) {
+  print STDERR "[INFO] Gunzipping '$names_file' ";
+  $names_file = decompress $names_file; ## $in_file inherits new filename with '.gz' extension removed
+  print STDERR "to '$names_file'\n";
+  $names_is_gz = 1;
+}
+
+## create output filenames
 (my $locations_file = $in_file) =~ s/HGT_results.+/HGT_locations.txt/;
 (my $summary_file = $in_file) =~ s/HGT_results.+/HGT_locations.scaffold_summary.txt/;
 (my $genes_file = $in_file) =~ s/HGT_results.+/HGT_locations.HGT_linked.genelist.txt/;
@@ -94,41 +110,23 @@ my $regexvar = qr/$regexstr/ if ($regexstr); ## this should store the command li
 my $n=1;
 
 ## parse CDS entries from GFF into memory
-my $GFF_fh;
-my @GFF_array;
-if ($gff_file =~ m/gz$/) { ## can handle gzipped
-  print STDERR "[INFO] Parsing gzipped '$gff_file' GFF file...\n";
-  open ($GFF_fh, "zcat $gff_file | grep -F CDS |") or die "$!\n"; ## pulls out CDS lines ONLY!
-  chomp (@GFF_array = <$GFF_fh>); ## read into array
-  close $GFF_fh;
-} else {
-  print STDERR "[INFO] Parsing '$gff_file' GFF file...\n";
-  open ($GFF_fh, "grep -F CDS $gff_file |") or die "$!\n"; ## pulls out CDS lines ONLY!
-  chomp (@GFF_array = <$GFF_fh>); ## read into array
-  close $GFF_fh;
-}
-
-print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
+my ($GFF_fh, @GFF_array);
+print STDERR "[INFO] Parsing '$gff_file' GFF file...\n";
+open ($GFF_fh, "grep -F CDS $gff_file |") or die "$!\n"; ## pulls out CDS lines ONLY!
+chomp (@GFF_array = <$GFF_fh>); ## read into array
+close $GFF_fh;
 
 ## grep protein names from GFF and get coords of CDS:
+print STDERR "[INFO] Getting genomic coordinates of proteins from GFF file...\n";
 if ( ($names_file =~ m/(fa|faa|fasta)$/) or ($names_file =~ m/(fa.gz|faa.gz|fasta.gz)$/) ) { ## autodetect if names are coming from fasta
 
   my $FAA;
-  ## handle gzipped:
-  if ($names_file =~ m/gz$/) {
-    ## get filesize:
-    chomp ($names_filesize = `zgrep -c ">" $names_file`);
-    open ($FAA, "zcat $names_file |") or die "[ERROR] Cannot open $names_file: $!\n";
-    print STDERR "[INFO] Proteins names file is from gzipped fasta (".commify($names_filesize)." sequences)\n";
-    print STDERR "[WARN] File '$names_file' is gzipped, but decompressing first will be much faster\n";
-  } else {
-    ## get filesize:
-    chomp ($names_filesize = `grep -c ">" $names_file`);
-    open ($FAA, $names_file) or die "[ERROR] Cannot open $names_file: $!\n";
-    print STDERR "[INFO] Proteins names file is from fasta (".commify($names_filesize)." sequences)\n";
-  }
-  print STDERR "[INFO] Applying regex 's/$regexstr//' to fasta headers...\n" if ($regexstr);
+  ## get filesize:
+  chomp ($names_filesize = `grep -c ">" $names_file`);
+  open ($FAA, $names_file) or die "[ERROR] Cannot open $names_file: $!\n";
+  print STDERR "[INFO] Proteins names file is from fasta (".commify($names_filesize)." sequences)\n";
 
+  print STDERR "[INFO] Applying regex 's/$regexstr//' to fasta headers...\n" if ($regexstr);
   while (my $line = <$FAA>) {
     if ($line =~ m/^>/) {
       chomp $line;
@@ -305,11 +303,8 @@ if (scalar(keys %orphans) > 0) {
 ## parse HGT_results file:
 print STDERR "[INFO] Parsing HGT_results file...";
 my $RESULTS;
-if ($in_file =~ m/gz$/) { ## can handle gzipped
-  open ($RESULTS, "zcat $in_file |") or die "[ERROR] Cannot open $in_file: $!\n";
-} else {
-  open ($RESULTS, $in_file) or die "[ERROR] Cannot open $in_file: $!\n";
-}
+open ($RESULTS, $in_file) or die "[ERROR] Cannot open $in_file: $!\n";
+
 while (<$RESULTS>) {
   chomp;
   next if /^\#/;
@@ -456,6 +451,10 @@ print $OVER "[RESULT] HGTc linked: ".commify($linked_total)."\n";
 print $OVER "[INFO] Finished on ".`date`."\n";
 close $OVER;
 
+## gzip input files if that's how they came
+`gzip $gff_file` if ($gff_is_gz == 1);
+`gzip $names_file` if ($names_file == 1);
+
 ################################################################################ SUBS
 
 sub percentage {
@@ -472,6 +471,13 @@ sub commify {
     my $text = reverse $_[0];
     $text =~ s/(\d\d\d)(?=\d)(?!\d*\.)/$1,/g;
     return scalar reverse $text;
+}
+
+sub decompress {
+  my $in_file = $_[0];
+  my $out_file = $in_file =~ s/\.gz//r;
+  gunzip $in_file => $out_file or die "[ERROR] Gunzip '$in_file' failed: $GunzipError\n";
+  return $out_file;
 }
 
 __END__
