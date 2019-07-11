@@ -428,7 +428,7 @@ close $BED if ($bed);
 
 ## gzip input files if that's how they came
 `gzip $gff_file` if ($gff_is_gz == 1);
-`gzip $names_file` if ($names_file == 1);
+`gzip $names_file` if ($names_is_gz == 1);
 
 print STDERR "\n";
 print STDERR "[RESULT] Failed scaffolds: ".colored(commify($is_heavy), 'green')."\n";
