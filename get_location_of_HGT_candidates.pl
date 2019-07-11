@@ -92,7 +92,7 @@ if ($gff_file =~ m/gz$/) {
 }
 if ($names_file =~ m/gz$/) {
   print STDERR "[INFO] Gunzipping '$names_file' ";
-  $names_file = decompress $names_file; ## $in_file inherits new filename with '.gz' extension removed
+  $names_file = decompress ($names_file); ## $in_file inherits new filename with '.gz' extension removed
   print STDERR "to '$names_file'\n";
   $names_is_gz = 1;
 }
@@ -426,6 +426,10 @@ close $SUM;
 close $HEV;
 close $BED if ($bed);
 
+## gzip input files if that's how they came
+`gzip $gff_file` if ($gff_is_gz == 1);
+`gzip $names_file` if ($names_file == 1);
+
 print STDERR "\n";
 print STDERR "[RESULT] Bad scaffolds: ".colored(commify($is_heavy), 'green')."\n";
 print STDERR "[RESULT] Genes on bad scaffolds: ".colored(commify($num_genes_on_heavy_total), 'green')." (total); ".colored(commify($num_genes_on_heavy_HGT), 'green')." (HGT candidates)\n";
@@ -451,9 +455,6 @@ print $OVER "[RESULT] HGTc linked: ".commify($linked_total)."\n";
 print $OVER "[INFO] Finished on ".`date`."\n";
 close $OVER;
 
-## gzip input files if that's how they came
-`gzip $gff_file` if ($gff_is_gz == 1);
-`gzip $names_file` if ($names_file == 1);
 
 ################################################################################ SUBS
 
