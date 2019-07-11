@@ -431,9 +431,9 @@ close $BED if ($bed);
 `gzip $names_file` if ($names_file == 1);
 
 print STDERR "\n";
-print STDERR "[RESULT] Bad scaffolds: ".colored(commify($is_heavy), 'green')."\n";
-print STDERR "[RESULT] Genes on bad scaffolds: ".colored(commify($num_genes_on_heavy_total), 'green')." (total); ".colored(commify($num_genes_on_heavy_HGT), 'green')." (HGT candidates)\n";
-print STDERR "[RESULT] HGTc with intron: ".colored(commify($intronized), 'green bold')."\n";
+print STDERR "[RESULT] Failed scaffolds: ".colored(commify($is_heavy), 'green')."\n";
+print STDERR "[RESULT] Genes on failed scaffolds: ".colored(commify($num_genes_on_heavy_total), 'green')." (total); ".colored(commify($num_genes_on_heavy_HGT), 'green')." (HGT candidates)\n";
+print STDERR "[RESULT] HGTc with introns: ".colored(commify($intronized), 'green bold')."\n";
 print STDERR "[RESULT] HGTc linked to ingroup gene: ".colored(commify($linked_total), 'green bold underscore')."\n";
 print STDERR "\n[INFO] Finished on ".`date`."\n";
 
@@ -448,10 +448,10 @@ print $OVER "[INFO] CHS threshold to determine strong evidence for OUTGROUP: >= 
 print $OVER "[INFO] Proportion of genes >= hU threshold to find contaminant scaffolds: ".colored("$heavy\%", 'yellow')."\n";
 print $OVER "[INFO] Applying regex '$regexstr' to names in '$names_file'\n" if ( $regexstr );
 print $OVER "[INFO] Write bedfile: TRUE\n" if ( $bed );
-print $OVER "[RESULT] Bad scaffolds: ".commify($is_heavy)."\n";
-print $OVER "[RESULT] Genes on bad scaffolds: ".commify($num_genes_on_heavy_total)." (total); ".commify($num_genes_on_heavy_HGT)." (HGT candidates)\n";
-print $OVER "[RESULT] HGTc with intron: ".commify($intronized)."\n";
-print $OVER "[RESULT] HGTc linked: ".commify($linked_total)."\n";
+print $OVER "[RESULT] Failed scaffolds: ".colored(commify($is_heavy), 'green')."\n";
+print $OVER "[RESULT] Genes on failed scaffolds: ".colored(commify($num_genes_on_heavy_total), 'green')." (total); ".colored(commify($num_genes_on_heavy_HGT), 'green')." (HGT candidates)\n";
+print $OVER "[RESULT] HGTc with introns: ".colored(commify($intronized), 'green bold')."\n";
+print $OVER "[RESULT] HGTc linked to ingroup gene: ".colored(commify($linked_total), 'green bold underscore')."\n";
 print $OVER "[INFO] Finished on ".`date`."\n";
 close $OVER;
 
