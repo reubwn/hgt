@@ -475,9 +475,10 @@ sub commify {
 }
 
 sub decompress {
+  die "[ERROR] Cannot find gunzip!\n" if ( system ("gunzip --help &>/dev/null") != 0 );
   my $in_file = $_[0];
   my $out_file = $in_file =~ s/\.gz//r;
-  gunzip $in_file => $out_file or die "[ERROR] Gunzip '$in_file' failed: $GunzipError\n";
+  `gunzip $in_file` or die "[ERROR] Gunzip '$in_file' failed: $GunzipError\n";
   return $out_file;
 }
 
