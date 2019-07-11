@@ -86,7 +86,7 @@ print STDERR "[INFO] Write bedfile: TRUE\n" if ( $bed );
 my ($gff_is_gz, $names_is_gz) = (0,0);
 if ($gff_file =~ m/gz$/) {
   print STDERR "[INFO] Gunzipping '$gff_file' ";
-  $gff_file = decompress $gff_file; ## $in_file inherits new filename with '.gz' extension removed
+  $gff_file = decompress ($gff_file); ## $in_file inherits new filename with '.gz' extension removed
   print STDERR "to '$gff_file'\n";
   $gff_is_gz = 1;
 }
