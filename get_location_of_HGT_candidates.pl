@@ -20,7 +20,7 @@ SYNOPSIS
 OPTIONS
   -i|--in       [FILE] : *.HGT_results.txt file [required]
   -g|--gff      [FILE] : annotation file in GFF3 format (supports gzipped) [required]
-  -p|--proteins [FILE] : proteins file in fasta format (see below) (supports gzipped) [required]
+  -p|--prot     [FILE] : proteins file in fasta format (see below) (supports gzipped) [required]
   -r|--regexp   [STR]  : optional regex to apply to seq headers if -n is a fasta file
   -u|--outgrp   [INT]  : hU threshold to determine strong evidence for 'outgroup' [default>=30]
   -U|--ingrp    [INT]  : hU threshold to determine strong evidence for 'ingroup' [default<=0]
@@ -50,8 +50,8 @@ my $mapping = 0;
 GetOptions (
   'i|in=s'     => \$in_file,
   'g|gff=s'    => \$gff_file,
-  'n|names=s'  => \$proteins_file,
-  'r|regex:s'  => \$regexp_option,
+  'p|prot=s'   => \$proteins_file,
+  'r|regexp:s' => \$regexp_option,
   'u|outgrp:i' => \$outgrp_threshold,
   'U|ingrp:i'  => \$ingrp_threshold,
   'c|CHS:i'    => \$CHS_threshold,
