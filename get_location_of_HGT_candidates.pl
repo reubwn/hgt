@@ -106,9 +106,13 @@ my ($GFF_fh, @GFF_array);
 print STDERR "[INFO] Parsing '$gff_file' GFF file...\n";
 open ($GFF_fh, $gff_file) or die "$!\n";
 while (my $line = <$GFF_fh>) {
-  chomp ($line);
-  my @F = split (m/\s+/, $line);
-  push (@GFF_array, $line) if $F[2] eq "CDS"; ## push CDS entries ONLY
+  if ($line =~ m/^\#/) {
+    next;
+  } else {
+    chomp ($line);
+    my @F = split (m/\s+/, $line);
+    push (@GFF_array, $line) if $F[2] eq "CDS"; ## push CDS entries ONLY
+  }
 }
 close $GFF_fh;
 
