@@ -88,7 +88,7 @@ if ($proteins_file =~ m/gz$/) {
   print STDERR "to '$proteins_file'\n";
   $names_is_gz = 1;
 }
-chomp ($proteins_total = `grep -c ">" $proteins_file`); ## get total number of proteins
+chomp (my $proteins_total = `grep -c ">" $proteins_file`); ## get total number of proteins
 
 ## create output filenames
 (my $locations_file = $in_file) =~ s/HGT_results.+/HGT_locations.txt/;
@@ -98,7 +98,7 @@ chomp ($proteins_total = `grep -c ">" $proteins_file`); ## get total number of p
 (my $heavy_file = $in_file) =~ s/HGT_results.+/HGT_locations.heavy.txt/;
 (my $warnings_file = $in_file) =~ s/HGT_results.+/HGT_locations.warnings.txt/;
 (my $bed_file = $in_file) =~ s/HGT_results.+/HGT_locations.bed/ if ($bed);
-my ($proteins_total,%orphans,%locations,%hgt_results,%scaffolds,%names_map,%protein_hash,%protein_hash_map);
+my (%orphans,%locations,%hgt_results,%scaffolds,%names_map,%protein_hash,%protein_hash_map);
 my $regexp = qr/$regexp_option/ if ($regexp_option); ## this should store the command line argument as compiled regexp
 my $n=1;
 
