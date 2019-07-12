@@ -125,7 +125,7 @@ while (my $line = <$PROT_fh>) {
     chomp $line;
     $line =~ s/^>//; ## trim ">"
     $line =~ s/\s.*//; ## also trim anything after 1st whitespace
-    my $gene = $line =~ /$regexp/r if ($regexp_option); ## apply regex if specified
+    (my $gene = $line) =~ /$regexp/ if ($regexp_option); ## apply regex if specified
 
     print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$proteins_total)."\%)"; $|=1;
 
