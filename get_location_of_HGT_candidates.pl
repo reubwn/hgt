@@ -260,8 +260,8 @@ while (<$RESULTS_fh>) {
   };
 }
 close $RESULTS_fh;
-print STDERR " found ".commify(scalar(keys %hgt_results))." entries (".percentage(scalar(keys %hgt_results),$proteins_total)."\% total proteins)\n";
-print STDERR "[INFO] Of these, ".colored(commify($HGTc_total), 'green')." (".colored(percentage($HGTc_total,$proteins_total), 'green')."\% total proteins) passed initial thresholds for HGTc\n";
+print STDERR " found ".commify(scalar(keys %hgt_results))." entries\n";
+print STDERR "[INFO] Of these, ".colored(commify($HGTc_total), 'green')." (".colored(percentage($HGTc_total,$proteins_total), "\%", 'green')." total proteins) passed initial thresholds for HGTc\n";
 print STDERR "[INFO] Evaluating results...\n";
 
 ## iterate through pseudo-GFF:
