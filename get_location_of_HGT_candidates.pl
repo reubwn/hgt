@@ -122,10 +122,10 @@ my $PROT_fh;
 open ($PROT_fh, $proteins_file) or die "[ERROR] Cannot open $proteins_file: $!\n";
 while (my $line = <$PROT_fh>) {
   if ($line =~ m/^>/) {
-    chomp $line;
-    $line =~ s/^>//; ## trim ">"
-    $line =~ s/\s.*//; ## also trim anything after 1st whitespace
-    (my $gene = $line) =~ /$regexp/ if ($regexp_option); ## apply regex if specified
+    chomp (my $gene = $line);
+    $gene =~ s/^>//; ## trim ">"
+    $gene =~ s/\s.*//; ## also trim anything after 1st whitespace
+    $gene =~ /$regexp/ if ($regexp_option); ## apply regex if specified
 
     print STDERR "\r[INFO] Working on query \#$n: $gene (".percentage($n,$proteins_total)."\%)"; $|=1;
 
