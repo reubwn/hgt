@@ -88,6 +88,7 @@ if ($proteins_file =~ m/gz$/) {
   print STDERR "to '$proteins_file'\n";
   $names_is_gz = 1;
 }
+chomp ($proteins_total = `grep -c ">" $proteins_file`); ## get total number of proteins
 
 ## create output filenames
 (my $locations_file = $in_file) =~ s/HGT_results.+/HGT_locations.txt/;
@@ -101,10 +102,58 @@ my ($proteins_total,%orphans,%locations,%hgt_results,%scaffolds,%names_map,%prot
 my $regexp = qr/$regexp_option/ if ($regexp_option); ## this should store the command line argument as compiled regexp
 my $n=1;
 
-## parse CDS entries from GFF into memory
-my ($GFF_fh, @GFF_array);
+## parse HGT_results file:
+print STDERR "[INFO] Parsing '$in_file' HGT results file...";
+my ($RESULTS_fh, $HGTc_total);
+open ($RESULTS_fh, $in_file) or die "[ERROR] Cannot open '$in_file': $!\n";
+while (<$RESULTS_fh>) {
+  chomp;
+  next if /^\#/;
+  my @F = split (/\s+/);
+
+  ## evaluate HGT evidence.
+  ## assign a 'score' based on hU, bbsumcat and CHS,
+  ## 0: hU <= 0; bbsumcat = INGROUP; CHS >= 90 [good INGROUP gene]
+  ## 1: 30 < hU > 0 [intermediate score]
+  ## 2: hU >= 30; bbsumcat = OUTGROUP; CHS >= 90 [good HGT candidate]
+  my $HGT_evidence;
+  if ($F[3] <= $ingrp_threshold && $F[9] eq "INGROUP" && $F[10] >= $CHS_threshold) {
+    $HGT_evidence = 0; ##good INGROUP candidate
+  } elsif ($F[3] >= $outgrp_threshold && $F[9] eq "OUTGROUP" && $F[10] >= $CHS_threshold) {
+    $HGT_evidence = 2; ##good HGT candidate
+    $HGTc_total++;
+  } else {
+    $HGT_evidence = 1; ##intermediate
+  }
+  #
+  # ## apply regex to protein ID in $F[0] if specifed:
+  # my $protein_id; ## we want this to map to GFF IDs
+  # if ($regexp_option) {
+  #   ($protein_id = $F[0]) =~ $regexp; ## apply regex
+  # } elsif ($mapping == 1) {
+  #   $protein_id = $names_map{$F[0]}; ## inherit GFF ID
+  # } else {
+  #   $protein_id = $F[0]; ## do nowt
+  # }
+
+  ## build HGT_results hash:
+  $hgt_results{$F[0]} = { ##key= query; val= HoH
+    'hU'       => $F[3],
+    'AI'       => $F[6],
+    'bbsumcat' => $F[9],
+    'CHS'      => $F[10],
+    'taxonomy' => $F[11],
+    'evidence' => $HGT_evidence
+  };
+}
+close $RESULTS_fh;
+print STDERR " found ".commify(scalar(keys %hgt_results))." entries\n";
+print STDERR "[INFO] Of these, ".colored(commify($HGTc_total), 'green')." (".colored(percentage($HGTc_total,$proteins_total)."\%", 'green')." total proteins) passed initial thresholds for HGTc\n";
+
+## parse CDS entries from GFF into memory:
 print STDERR "[INFO] Parsing '$gff_file' GFF file...\n";
-open ($GFF_fh, $gff_file) or die "$!\n";
+my @GFF_array;
+open (my $GFF_fh, $gff_file) or die "$!\n";
 while (my $line = <$GFF_fh>) {
   if ($line =~ m/^\#/) {
     next;
@@ -116,14 +165,11 @@ while (my $line = <$GFF_fh>) {
 }
 close $GFF_fh;
 
-## grep protein names from GFF and get coords of CDS:
+## parse proteins file:
 print STDERR "[INFO] Parsing '$proteins_file' fasta file...\n";
-chomp ($proteins_total = `grep -c ">" $proteins_file`); ## get filesize
 print STDERR "[INFO] Number of sequences in '$proteins_file': ".commify($proteins_total)."\n";
 print STDERR "[INFO] Applying regex 's/$regexp_option//' to fasta headers...\n" if ($regexp_option);
-
-my $PROT_fh;
-open ($PROT_fh, $proteins_file) or die "[ERROR] Cannot open $proteins_file: $!\n";
+open (my $PROT_fh, $proteins_file) or die "[ERROR] Cannot open $proteins_file: $!\n";
 while (my $line = <$PROT_fh>) {
   if ($line =~ m/^>/) {
     chomp (my $gene = $line);
@@ -219,54 +265,7 @@ if (scalar(keys %orphans) > 0) {
   close $WARN;
 }
 
-## parse HGT_results file:
-print STDERR "[INFO] Parsing '$in_file' HGT results file...";
-my ($RESULTS_fh, $HGTc_total);
-open ($RESULTS_fh, $in_file) or die "[ERROR] Cannot open '$in_file': $!\n";
-while (<$RESULTS_fh>) {
-  chomp;
-  next if /^\#/;
-  my @F = split (/\s+/);
-
-  ## evaluate HGT evidence.
-  ## assign a 'score' based on hU, bbsumcat and CHS,
-  ## 0: hU <= 0; bbsumcat = INGROUP; CHS >= 90 [good INGROUP gene]
-  ## 1: 30 < hU > 0 [intermediate score]
-  ## 2: hU >= 30; bbsumcat = OUTGROUP; CHS >= 90 [good HGT candidate]
-  my $HGT_evidence;
-  if ($F[3] <= $ingrp_threshold && $F[9] eq "INGROUP" && $F[10] >= $CHS_threshold) {
-    $HGT_evidence = 0; ##good INGROUP candidate
-  } elsif ($F[3] >= $outgrp_threshold && $F[9] eq "OUTGROUP" && $F[10] >= $CHS_threshold) {
-    $HGT_evidence = 2; ##good HGT candidate
-    $HGTc_total++;
-  } else {
-    $HGT_evidence = 1; ##intermediate
-  }
-  #
-  # ## apply regex to protein ID in $F[0] if specifed:
-  # my $protein_id; ## we want this to map to GFF IDs
-  # if ($regexp_option) {
-  #   ($protein_id = $F[0]) =~ $regexp; ## apply regex
-  # } elsif ($mapping == 1) {
-  #   $protein_id = $names_map{$F[0]}; ## inherit GFF ID
-  # } else {
-  #   $protein_id = $F[0]; ## do nowt
-  # }
-
-  ## build HGT_results hash:
-  $hgt_results{$F[0]} = { ##key= query; val= HoH
-    'hU'       => $F[3],
-    'AI'       => $F[6],
-    'bbsumcat' => $F[9],
-    'CHS'      => $F[10],
-    'taxonomy' => $F[11],
-    'evidence' => $HGT_evidence
-  };
-}
-close $RESULTS_fh;
-print STDERR " found ".commify(scalar(keys %hgt_results))." entries\n";
-print STDERR "[INFO] Of these, ".colored(commify($HGTc_total), 'green')." (".colored(percentage($HGTc_total,$proteins_total)."\%", 'green')." total proteins) passed initial thresholds for HGTc\n";
-print STDERR "[INFO] Evaluating results...\n";
+print STDERR "[INFO] All done, evaluating results...\n";
 
 ## iterate through pseudo-GFF:
 open (my $LOC, ">$locations_file") or die "[ERROR] Cannot open file $locations_file: $!\n";
