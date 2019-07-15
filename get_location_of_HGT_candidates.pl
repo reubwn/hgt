@@ -184,7 +184,7 @@ while (my $line = <$PROT_fh>) {
     my ($chrom,$strand) = ("NULL","NULL");
 
     ## grep the relevant CDS entries based on value of $gene anywhere in the GFF line
-    foreach my $line ( grep { m/\Q$gene\E;|\Q$gene\E$/ } @GFF_array ) { ## assumes $gene is bounded by a ';', or nothing if EOL
+    foreach my $line ( grep { m/\QParent=$gene\E;|\QParent=$gene\E$/ } @GFF_array ) { ## assumes $gene is bounded by a ';', or nothing if EOL
       chomp ($line);
       print STDOUT "Grepped for '$gene': $line\n" if ( $debug );
 
@@ -207,7 +207,7 @@ while (my $line = <$PROT_fh>) {
 
     ## dynamically shrink @GFF_array so search should get faster as parsing progresses?
     ## first get indices...
-    my @to_splice = indexes { m/\Q$gene\E;|\Q$gene\E$/ } @GFF_array; ## assumes $gene is bounded by a ';', or nothing if EOL
+    my @to_splice = indexes { m/\QParent=$gene\E;|\QParent=$gene\E$/ } @GFF_array; ## assumes $gene is bounded by a ';', or nothing if EOL
     ## and splice them out of @GFF_array
     print STDOUT "Deleting ".scalar(@to_splice)." indices (@to_splice)\n" if ( $debug );
     print STDOUT "Length of \@GFF_array: ".scalar(@GFF_array)."\n" if ( $debug );
