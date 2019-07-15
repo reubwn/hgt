@@ -184,7 +184,7 @@ while (my $line = <$PROT_fh>) {
     my ($chrom,$strand) = ("NULL","NULL");
 
     ## grep the relevant CDS entries based on value of $gene anywhere in the GFF line
-    foreach my $line ( grep { m/\Q$gene\E\;*/ } @GFF_array ) { ## assumes $gene is bounded by a ';', or nothing if EOL
+    foreach my $line ( grep { m/\Q$gene\E;|\Q$gene\E$/ } @GFF_array ) { ## assumes $gene is bounded by a ';', or nothing if EOL
       chomp ($line);
       print STDOUT "Grepped for '$gene': $line\n" if ( $debug );
 
@@ -207,7 +207,7 @@ while (my $line = <$PROT_fh>) {
 
     ## dynamically shrink @GFF_array so search should get faster as parsing progresses?
     ## first get indices...
-    my @to_splice = indexes { m/\Q$gene\E\;*/ } @GFF_array; ## assumes $gene is bounded by a ';', or nothing if EOL
+    my @to_splice = indexes { m/\Q$gene\E;|\Q$gene\E$/ } @GFF_array; ## assumes $gene is bounded by a ';', or nothing if EOL
     ## and splice them out of @GFF_array
     print STDOUT "Deleting ".scalar(@to_splice)." indices (@to_splice)\n" if ( $debug );
     print STDOUT "Length of \@GFF_array: ".scalar(@GFF_array)."\n" if ( $debug );
@@ -330,7 +330,7 @@ foreach my $chrom (nsort keys %scaffolds) {
   if ( (percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))) > $heavy ) {
     print $HEV join ("\t", $chrom,scalar(@{$scaffolds{$chrom}}),$na,$good_ingrp,$intermediate,$good_outgrp,(percentage($good_outgrp,scalar(@{$scaffolds{$chrom}}))),$is_linked,"\n");
     $num_genes_on_heavy_total += scalar(@{$scaffolds{$chrom}});
-    $num_HGTc_on_heavy += scalar( grep { $hgt_results{$_}{evidence}==2 } @{$scaffolds{$chrom}} );
+    $num_HGTc_on_heavy += scalar( grep { $hgt_results{$_}{evidence} == 2 } @{$scaffolds{$chrom}} );
     $is_heavy++;
   }
 $n++;
