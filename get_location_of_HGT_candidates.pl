@@ -35,7 +35,7 @@ NOTES
      pair of the format 'Parent=<PROTID>', where <PROTID> is the same as the input fasta headers. If the following code snippet
      produces expected results then the script will hopefully be OK:
        export test=\`head -1 proteins.fasta | sed 's/>//'\` \\
-         && perl -lane 'if(\$F[2]eq\"CDS\"){if(/\\QParent=\$ENV{test};\\E|\\QParent=\$ENV{test}\$\\E/){print}}' annotation.gff3
+         && perl -lane 'if(\$F[2]eq\"CDS\"){if(/\\QParent=\$ENV{test};\\E|\\QParent=\$ENV{test}\\E\$/){print}}' annotation.gff3
 
 OUTPUTS
   (1) *.HGT_locations: reports gene-by-gene HGT results in pseudo-BED format; HGTc coords inherited from GFF
