@@ -30,8 +30,12 @@ OPTIONS
   -h|--help            : this help message
 
 NOTES
-  Fasta headers in <PROTEINS> must match with names in <GFF>
-  If they don't, use option '-r' to apply regexp to fasta headers
+  1. Fasta headers in <PROTEINS> must match with names in <GFF>; if they don't, use option '-r' to apply regexp to fasta headers
+  2. GFF format is notoriously 'flexible'; this script relies on each CDS entry in the GFF containing a key=value
+     pair of the format 'Parent=<PROTID>', where <PROTID> is the same as the input fasta headers. If the following code snippet:
+     `export test=`head -1 proteins.fasta | sed 's/>//'` \
+        && perl -lane 'if(\$F[2]eq\"CDS\"){if(/\QParent=\$ENV{test};\E|\QParent=\$ENV{test}$\E/){print}}' annotation.gff3`
+     produces expected results then the script will hopefully be OK.
 
 OUTPUTS
   (1) *.HGT_locations: reports gene-by-gene HGT results in pseudo-BED format; HGTc coords inherited from GFF
