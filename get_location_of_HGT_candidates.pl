@@ -368,8 +368,8 @@ print $OVER "[INFO] Applying regex '$regexp_option' to names in '$proteins_file'
 print $OVER "[INFO] Write bedfile: TRUE\n" if ( $bed );
 print $OVER "[RESULT] Failed scaffolds: ".colored(commify($is_heavy), 'green')."\n";
 print $OVER "[RESULT] Genes on failed scaffolds: ".colored(commify($num_genes_on_heavy_total), 'green')." (total); ".colored(commify($num_HGTc_on_heavy), 'green')." (HGT candidates)\n";
-print $OVER "[RESULT] HGTc with introns: ".colored(commify($intronized), 'green bold')."\n";
-print $OVER "[RESULT] HGTc linked to ingroup gene: ".colored(commify($linked_total), 'green bold underscore')."\n";
+print $OVER "[RESULT] HGTc with introns: ".colored(commify($intronized), 'green bold')." (".colored(percentage($intronized,$proteins_total)."\%", 'green bold')." total proteins)\n";
+print $OVER "[RESULT] HGTc linked to ingroup gene: ".colored(commify($linked_total), 'green bold underscore')." (".colored(percentage($linked_total,$proteins_total)."\%", 'green bold')." total proteins)\n";
 print $OVER "[INFO] Finished on ".`date`."\n";
 close $OVER;
 
