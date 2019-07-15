@@ -307,6 +307,8 @@ foreach my $chrom (nsort keys %scaffolds) {
     }
   }
 
+  print STDOUT Dumper (%good_outgrp_hash);
+
   ## sum for totals:
   $good_ingrp_total += $good_ingrp;
   $good_outgrp_total += $good_outgrp;
