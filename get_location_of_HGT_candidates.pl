@@ -44,7 +44,7 @@ OUTPUTS
   (4) *.HGT_locations.bed: BED format file of HGT candidates; useful for intersection with RNASeq mapping data
 \n";
 
-my ($in_file,$gff_file,$proteins_file,$regexp_option,$bed,$help,$debug);
+my ($in_file,$gff_file,$proteins_file,$regexp_option,$bed,$speedup,$help,$debug);
 my $outgrp_threshold = 30;
 my $ingrp_threshold = 0;
 my $CHS_threshold = 90;
@@ -61,6 +61,7 @@ GetOptions (
   'c|CHS:i'    => \$CHS_threshold,
   'y|heavy:i'  => \$heavy,
   'b|bed'      => \$bed,
+  's|speedup'  => \$speedup,
   'h|help'     => \$help,
   'd|debug'    => \$debug
 );
@@ -209,13 +210,15 @@ while (my $line = <$PROT_fh>) {
 
     print STDOUT Dumper (%locations) if ( $debug );
 
-    ## dynamically shrink @GFF_array so search should get faster as parsing progresses?
-    ## first get indices...
-    my @to_splice = indexes { m/\QParent=$gene\E;|\QParent=$gene\E$/ } @GFF_array; ## assumes $gene is bounded by a ';', or nothing if EOL
-    ## and splice them out of @GFF_array
-    print STDOUT "Deleting ".scalar(@to_splice)." indices (@to_splice)\n" if ( $debug );
-    print STDOUT "Length of \@GFF_array: ".scalar(@GFF_array)."\n" if ( $debug );
-    splice (@GFF_array, $to_splice[0], scalar(@to_splice)); ## this should be OK, as CDS will always be consecutive in GFF
+    if ( $speedup ) {
+      ## dynamically shrink @GFF_array so search should get faster as parsing progresses?
+      ## first get indices...
+      my @to_splice = indexes { m/\QParent=$gene\E;|\QParent=$gene\E$/ } @GFF_array; ## assumes $gene is bounded by a ';', or nothing if EOL
+      ## and splice them out of @GFF_array
+      print STDOUT "Deleting ".scalar(@to_splice)." indices (@to_splice)\n" if ( $debug );
+      print STDOUT "Length of \@GFF_array: ".scalar(@GFF_array)."\n" if ( $debug );
+      splice (@GFF_array, $to_splice[0], scalar(@to_splice)); ## this should be OK, as CDS will always be consecutive in GFF
+    }
 
     ## old way of grepping directly from GFF using system grep
       # my $G;
