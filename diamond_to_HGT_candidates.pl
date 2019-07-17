@@ -105,7 +105,9 @@ GetOptions (
 );
 
 die $usage if $help;
-die $usage unless (($infiles or $list) and ($path or $nodesDBfile or ($nodesfile and $namesfile and $mergedfile)));
+die "$usage\n[ERROR] Missing -i or -l argument!\n\n" unless ( $infiles || $list );
+die "$usage\n[ERROR] Missing -p or -n or -oam argument!\n\n" unless ( $path || $nodesDBfile || ($nodesfile && $namesfile && $mergedfile) );
+die "$usage\n[ERROR] Missing -f argument!\n\n" unless ( $protsfiles );
 
 ############################################## PARSE NODES
 
