@@ -223,12 +223,16 @@ if ($list) {
   if (scalar(@prots_files) == scalar(@in_files)) {
     for my $i (0 .. $#prots_files) {
       my $num_prots;
-      if ($prots_files[$i] =~ m/gz$/) { ## can grep from gzipped
-        chomp ($num_prots = `zgrep -c ">" $prots_files[$i]`);
+      if ( -f $prots_files[$i] ) {
+        if ($prots_files[$i] =~ m/gz$/) { ## can grep from gzipped
+          chomp ($num_prots = `zgrep -c ">" $prots_files[$i]`);
+        } else {
+          chomp ($num_prots = `grep -c ">" $prots_files[$i]`);
+        }
+        $prots_file_hash{$in_files[$i]} = {'file' => $prots_files[$i], 'num' => $num_prots};
       } else {
-        chomp ($num_prots = `grep -c ">" $prots_files[$i]`);
+        die "[ERROR] File $prots_files[$i] does not exist!\n";
       }
-      $prots_file_hash{$in_files[$i]} = {'file' => $prots_files[$i], 'num' => $num_prots};
     }
   } else {
     die "[ERROR] Number of hits files (".scalar(@in_files).") not equal to number of proteins files ".scalar(@prots_files)."!\n";
@@ -436,7 +440,7 @@ foreach my $in (@in_files) { ## iterate over multiple files if required
       );
 
     } elsif ($scoring eq "individual") {
-      die "[ERROR] Sorry, individual scoring not supported, please change to 'sum'\n";
+      die "[ERROR] Sorry, individual scoring not supported atm, please change to 'sum'\n";
     }
 
     print STDERR "[INFO] [$query] Decision of bestsum bitscore: '$taxid_with_highest_bitscore_category' (support = $taxid_with_highest_bitscore_category_support)\n" if $verbose;
