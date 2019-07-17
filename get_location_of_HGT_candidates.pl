@@ -17,17 +17,17 @@ SYNOPSIS
   Takes a '*.HGT_results' file and a GFF and returns '*.HGT_locations' files,
   specifying the location on each chromosome of HGT candidates.
 
-OPTIONS
-  -i|--in       [FILE] : *.HGT_results.txt file [required]
-  -g|--gff      [FILE] : annotation file in GFF3 format (supports gzipped) [required]
-  -p|--prot     [FILE] : proteins file in fasta format (see below) (supports gzipped) [required]
-  -r|--regexp   [STR]  : optional regex to apply to seq headers if -n is a fasta file
-  -u|--outgrp   [INT]  : hU threshold to determine strong evidence for 'outgroup' [default>=30]
-  -U|--ingrp    [INT]  : hU threshold to determine strong evidence for 'ingroup' [default<=0]
-  -c|--CHS      [INT]  : CHS threshold to determine strong evidence for 'outgroup' [default>=90\%]
-  -y|--heavy    [INT]  : Proportion of genes >= hU threshold to find contaminant scaffolds [default>=95\%]
-  -b|--bed             : also write bed file for HGTc
-  -h|--help            : this help message
+OPTIONS [* required]
+  -i|--in       [FILE]* : HGT_results.txt file
+  -g|--gff      [FILE]* : annotation file in GFF3 format (accepts gzipped)
+  -f|--faa      [FILE]* : proteins file in fasta format (see below) (accepts gzipped)
+  -r|--regexp   [STR]   : optional regex to apply to --faa headers
+  -u|--outgrp   [INT]   : hU threshold to determine strong evidence for 'outgroup' [default>=30]
+  -U|--ingrp    [INT]   : hU threshold to determine strong evidence for 'ingroup' [default<=0]
+  -c|--CHS      [INT]   : CHS threshold to determine strong evidence for 'outgroup' [default>=90\%]
+  -y|--heavy    [INT]   : Proportion of genes >= hU threshold to find contaminant scaffolds [default>=95\%]
+  -b|--bed              : also write bed file for HGTc
+  -h|--help             : this help message
 
 NOTES
   1. Fasta headers in <PROTEINS> must match with names in <GFF>; if they don't, use option '-r' to apply regexp to fasta headers
@@ -38,10 +38,10 @@ NOTES
          && perl -lane 'if(\$F[2]eq\"CDS\"){if(/\\QParent=\$ENV{test};\\E|\\QParent=\$ENV{test}\\E\$/){print}}' annotation.gff3
 
 OUTPUTS
-  (1) *.HGT_locations: reports gene-by-gene HGT results in pseudo-BED format; HGTc coords inherited from GFF
-  (2) *.HGT_locations.summary: reports per-scaffold summary of number of HGTc
-  (3) *.HGT_locations.heavy: reports scaffolds with a suspicously high \%HGTc (possible contaminant)
-  (4) *.HGT_locations.bed: BED format file of HGT candidates; useful for intersection with RNASeq mapping data
+  (1) <IN>.HGT_locations: reports gene-by-gene HGT results in pseudo-BED format; HGTc coords inherited from GFF
+  (2) <IN>.HGT_locations.summary: reports per-scaffold summary of number of HGTc
+  (3) <IN>.HGT_locations.heavy: reports scaffolds with a suspicously high \%HGTc (possible contaminant)
+  (4) <IN>.HGT_locations.bed: BED format file of HGT candidates; useful for intersection with RNASeq mapping data
 \n";
 
 my ($in_file,$gff_file,$proteins_file,$regexp_option,$bed,$speedup,$help,$debug);
@@ -54,7 +54,7 @@ my $mapping = 0;
 GetOptions (
   'i|in=s'     => \$in_file,
   'g|gff=s'    => \$gff_file,
-  'p|prot=s'   => \$proteins_file,
+  'f|faa=s'    => \$proteins_file,
   'r|regexp:s' => \$regexp_option,
   'u|outgrp:i' => \$outgrp_threshold,
   'U|ingrp:i'  => \$ingrp_threshold,

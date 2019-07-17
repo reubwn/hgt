@@ -45,29 +45,28 @@ NOTES
   Please supply input fasta file to get accurate proportion HGTc, as queries with no hits to UniRef90 are
   excluded from the diamond hits file
 
-OPTIONS
-  -i|--in              [FILE]   : taxified diamond/blast results file (accepts gzipped) [-i or -l required]
-  -l|--list            [FILE]   : list of diamond/blast files to analyse
-  -p|--path            [PATH]   : path to dir of taxonomy files [-p, -o/-a/-m, or -n required]
-  -o|--nodes           [FILE]   : path to nodes.dmp
-  -a|--names           [FILE]   : path to names.dmp
-  -m|--merged          [FILE]   : path to merged.dmp
-  -n|--nodesDB         [FILE]   : nodesDB.txt file from blobtools
-  -f|--fasta           [FILE]   : fasta file of protein sequences under investigation
-  -t|--taxid_ingroup   [INT]    : NCBI taxid to define 'ingroup' [default=33208 (Metazoa)]
-  -k|--taxid_skip      [INT]    : NCBI taxid to skip; hits to this taxid will not be considered
-  -s|--CHS_threshold   [FLOAT]  : Consesus Hits Support threshold [default>=90\%]
-  -u|--hU_threshold    [INT]    : hU threshold [default>=30]
-  -e|--evalue_column   [INT]    : define evalue column [default=11]
-  -b|--bitscore_column [INT]    : define bitscore column [default=12]
-  -c|--taxid_column    [INT]    : define taxid column [default=13]
-  -x|--prefix          [FILE]   : filename prefix for outfile [default=INFILE]
-  -v|--verbose                  : say more things
-  -h|--help                     : this help message
+OPTIONS [* required]
+  -i|--in              [FILE]*   : taxified diamond/blast results file (accepts gzipped)
+  -l|--list            [FILE]    : list of diamond/blast files to analyse
+  -p|--path            [PATH]*   : path to dir of taxonomy files
+  -o|--nodes           [FILE]    : path to nodes.dmp
+  -a|--names           [FILE]    : path to names.dmp
+  -m|--merged          [FILE]    : path to merged.dmp
+  -n|--nodesDB         [FILE]    : nodesDB.txt file from blobtools
+  -f|--faa             [FILE]*   : fasta file of protein sequences under investigation (accepts gzipped)
+  -t|--taxid_ingroup   [INT]     : NCBI taxid to define 'ingroup' [default=33208 (Metazoa)]
+  -k|--taxid_skip      [INT]     : NCBI taxid to skip; hits to this taxid will not be considered
+  -s|--CHS_threshold   [FLOAT]   : Consesus Hits Support threshold [default>=90\%]
+  -u|--hU_threshold    [INT]     : hU threshold [default>=30]
+  -e|--evalue_column   [INT]     : define evalue column [default=11]
+  -b|--bitscore_column [INT]     : define bitscore column [default=12]
+  -c|--taxid_column    [INT]     : define taxid column [default=13]
+  -x|--prefix          [FILE]    : filename prefix for outfile [default=INFILE]
+  -v|--verbose                   : say more things
+  -h|--help                      : this help message
 \n";
 
-my ($infiles,$nodesfile,$path,$namesfile,$mergedfile,$nodesDBfile,$protsfiles,$gff,$prefix,$outfile,$hgtcandidatesfile,$warningsfile,$header,$useai,$verbose,$debug,$help);
-my $list;
+my ($in_file,$list,$nodes_file,$path,$names_file,$merged_file,$nodesDB_file,$proteins_file,$prefix,$outfile,$hgtcandidates_file,$warnings_file,$verbose,$help,$debug);
 my $taxid_threshold = 33208; ##metazoa
 my $taxid_skip_cmd = 0; ##default is 0, not a valid NCBI taxid and should not affect the tree recursion; NB Rotifera = 10190
 my $support_threshold = 90;
@@ -78,36 +77,31 @@ my $bitscore_column = 12;
 my $taxid_column = 13;
 
 GetOptions (
-  'i|infiles:s'           => \$infiles,
+  'i|infiles:s'           => \$in_file,
   'l|list:s'              => \$list,
   'p|path:s'              => \$path,
-  'o|nodes:s'             => \$nodesfile,
-  'a|names:s'             => \$namesfile,
-  'm|merged:s'            => \$mergedfile,
-  'n|nodesDB:s'           => \$nodesDBfile,
-  'f|fasta:s'             => \$protsfiles,
-  'g|gff:s'               => \$gff,
+  'o|nodes:s'             => \$nodes_file,
+  'a|names:s'             => \$names_file,
+  'm|merged:s'            => \$merged_file,
+  'n|nodesDB:s'           => \$nodesDB_file,
+  'f|faa:s'               => \$proteins_file,
   't|taxid_threshold:i'   => \$taxid_threshold,
   'k|taxid_skip:i'        => \$taxid_skip_cmd,
   's|support_threshold:f' => \$support_threshold,
   'u|hU_threshold:i'      => \$hU_threshold,
-#  'scoring|r:s'           => \$scoring,
-#  'AI|@'                  => \$useai, ##default is HGT index
   'e|evalue_column:i'     => \$evalue_column,
   'c|taxid_column:i'      => \$taxid_column,
   'b|bitscore_column:i'   => \$bitscore_column,
-#  'd|delimiter:s'         => \$delimiter,
   'x|prefix:s'            => \$prefix,
-#  'header|H'              => \$header,
   'v|verbose'             => \$verbose,
-  'debug'                 => \$debug,
   'h|help'                => \$help,
+  'd|debug'               => \$debug
 );
 
 die $usage if $help;
-die "$usage\n[ERROR] Missing -i or -l argument!\n\n" unless ( $infiles || $list );
-die "$usage\n[ERROR] Missing -p or -n or -oam argument!\n\n" unless ( $path || $nodesDBfile || ($nodesfile && $namesfile && $mergedfile) );
-die "$usage\n[ERROR] Missing -f argument!\n\n" unless ( $protsfiles );
+die "$usage\n[ERROR] Missing -i or -l argument!\n\n" unless ( $in_file || $list );
+die "$usage\n[ERROR] Missing -p or -n or -oam argument!\n\n" unless ( $path || $nodesDB_file || ($nodes_file && $names_file && $merged_file) );
+die "$usage\n[ERROR] Missing -f argument!\n\n" unless ( $proteins_file );
 
 ############################################## PARSE NODES
 
@@ -142,9 +136,9 @@ if ($path) {
       ## this will behave as if old taxid is a child of the new one, which is OK I guess
     }
   }
-} elsif ($nodesfile && $namesfile) {
-  print STDERR "[INFO] Building taxonomy databases from '$nodesfile' and '$namesfile'...";
-  open(my $NODES, $nodesfile) or die $!;
+} elsif ($nodes_file && $names_file) {
+  print STDERR "[INFO] Building taxonomy databases from '$nodes_file' and '$names_file'...";
+  open(my $NODES, $nodes_file) or die $!;
   while (<$NODES>) {
     chomp;
     next if /\#/;
@@ -153,7 +147,7 @@ if ($path) {
     $rank_hash{$F[0]} = $F[2]; ## key= taxid; value= rank
   }
   close $NODES;
-  open (my $NAMES, $namesfile) or die $!;
+  open (my $NAMES, $names_file) or die $!;
   while (<$NAMES>) {
     chomp;
     next if /\#/;
@@ -161,8 +155,8 @@ if ($path) {
     $names_hash{$F[0]} = $F[1] if ($F[3] eq "scientific name"); ## key= taxid; value= species name
   }
   close $NAMES;
-  if ($mergedfile) {
-    open (my $MERGED, $mergedfile) or die $!;
+  if ($merged_file) {
+    open (my $MERGED, $merged_file) or die $!;
     while (<$MERGED>) {
       chomp;
       next if /\#/;
@@ -171,9 +165,9 @@ if ($path) {
       ## this will behave as if old taxid is a child of the new one, which is OK I guess
     }
   }
-} elsif ($nodesDBfile) {
-  print STDERR "[INFO] Building taxonomy databases from '$nodesDBfile'...";
-  open(my $NODES, $nodesDBfile) or die $!;
+} elsif ($nodesDB_file) {
+  print STDERR "[INFO] Building taxonomy databases from '$nodesDB_file'...";
+  open(my $NODES, $nodesDB_file) or die $!;
   while (<$NODES>) {
     chomp;
     next if /\#/;
@@ -191,7 +185,7 @@ print STDERR "[INFO] INGROUP set to '$names_hash{$taxid_threshold}'; OUTGROUP is
 
 ############################################ INFILES
 
-my @infiles;
+my @in_files;
 my %taxid_skip_hash;
 my %prots_file_hash;
 if ($list) {
@@ -200,7 +194,7 @@ if ($list) {
     chomp;
     my @F = split (/\s+/, $_);
     if ( -f $F[0] ) {
-      push (@infiles, $F[0]);
+      push (@in_files, $F[0]);
     } else {
       die "[ERROR] File $F[0] does not exist!\n";
     }
@@ -220,13 +214,13 @@ if ($list) {
     }
   }
   close $LIST;
-  print STDERR "[INFO] Number of files in '$list': ".@infiles."\n";
+  print STDERR "[INFO] Number of files in '$list': ".@in_files."\n";
 } else {
-  @infiles = split (/\s+/, $infiles); ## split infiles string
-  print STDERR "[INFO] Number of files: ".@infiles."\n";
+  @in_files = split (/\s+/, $in_file); ## split $in_file string
+  print STDERR "[INFO] Number of files: ".@in_files."\n";
   ## get number of prots in each original input file
-  my @prots_files = split (/\s+/, $protsfiles);
-  if (scalar(@prots_files) == scalar(@infiles)) {
+  my @prots_files = split (/\s+/, $proteins_file);
+  if (scalar(@prots_files) == scalar(@in_files)) {
     for my $i (0 .. $#prots_files) {
       my $num_prots;
       if ($prots_files[$i] =~ m/gz$/) { ## can grep from gzipped
@@ -234,16 +228,16 @@ if ($list) {
       } else {
         chomp ($num_prots = `grep -c ">" $prots_files[$i]`);
       }
-      $prots_file_hash{$infiles[$i]} = {'file' => $prots_files[$i], 'num' => $num_prots};
+      $prots_file_hash{$in_files[$i]} = {'file' => $prots_files[$i], 'num' => $num_prots};
     }
   } else {
-    die "[ERROR] Number of hits files (".scalar(@infiles).") not equal to number of proteins files ".scalar(@prots_files)."!\n";
+    die "[ERROR] Number of hits files (".scalar(@in_files).") not equal to number of proteins files ".scalar(@prots_files)."!\n";
   }
 }
 
 ############################################ OUTFILES
 
-foreach my $in (@infiles) { ## iterate over multiple files if required
+foreach my $in (@in_files) { ## iterate over multiple files if required
   print STDERR "[INFO] Analysing DIAMOND hits file '$in'\n";
   print STDERR "[INFO] Based on proteins in '$prots_file_hash{$in}{'file'}' (".commify($prots_file_hash{$in}{'num'})." total input queries)\n";
 
@@ -262,18 +256,18 @@ foreach my $in (@infiles) { ## iterate over multiple files if required
   ## define outfiles:
   if ($prefix) {
     $outfile = "$prefix.HGT_results.$names_hash{$taxid_threshold}.txt";
-    $hgtcandidatesfile = "$prefix.HGT_candidates.$names_hash{$taxid_threshold}.hU$hU_threshold.CHS$support_threshold.txt";
-    $warningsfile = "$prefix.HGT_warnings.txt";
+    $hgtcandidates_file = "$prefix.HGT_candidates.$names_hash{$taxid_threshold}.hU$hU_threshold.CHS$support_threshold.txt";
+    $warnings_file = "$prefix.HGT_warnings.txt";
   } else {
     $outfile = "$in.HGT_results.$names_hash{$taxid_threshold}.txt";
-    $hgtcandidatesfile = "$in.HGT_candidates.$names_hash{$taxid_threshold}.hU$hU_threshold.CHS$support_threshold.txt";
-    $warningsfile = "$in.HGT_warnings.txt";
+    $hgtcandidates_file = "$in.HGT_candidates.$names_hash{$taxid_threshold}.hU$hU_threshold.CHS$support_threshold.txt";
+    $warnings_file = "$in.HGT_warnings.txt";
   }
 
   ## open outfiles:
   open (my $OUT, ">",$outfile) or die $!;
-  open (my $HGT, ">",$hgtcandidatesfile) or die $!;
-  open (my $WARN, ">",$warningsfile) or die $!;
+  open (my $HGT, ">",$hgtcandidates_file) or die $!;
+  open (my $WARN, ">",$warnings_file) or die $!;
   my @header = (
     "#QUERY",
     "INGROUP",
@@ -288,8 +282,8 @@ foreach my $in (@infiles) { ## iterate over multiple files if required
     "CHS",
     "TAXONOMY"
   );
-  print $OUT join ("\t", @header, "\n"); #"\#query\tbestsum_bitscore\talt_bitscore\tingroup_taxname\tdecision\tsupport\tbest_ingroup_evalue\tbest_outgroup_evalue\talien_index\tbesthit_taxonomy\n" unless $header;
-  print $HGT join ("\t", @header, "\n"); #"\#query\tbestsum_bitscore\talt_bitscore\tingroup_taxname\tdecision\tsupport\tbest_ingroup_evalue\tbest_outgroup_evalue\talien_index\tbesthit_taxonomy\n" unless $header;
+  print $OUT join ("\t", @header, "\n");
+  print $HGT join ("\t", @header, "\n");
 
   ############################################## PARSE DIAMOND
 
@@ -496,7 +490,7 @@ foreach my $in (@infiles) { ## iterate over multiple files if required
 
   print STDERR "\r[INFO] Processed ".commify($processed)." queries\n";
   print STDERR "[INFO] All results are printed to '$outfile'\n";
-  print STDERR "[INFO] HGT candidates are printed to '$hgtcandidatesfile'\n";
+  print STDERR "[INFO] HGT candidates are printed to '$hgtcandidates_file'\n";
   #print STDERR "[INFO] Number of queries in unassigned/unclassified category: ".commify($unassigned)."\n" if $unassigned > 0;
   #print STDERR "[INFO] Number of queries in OUTGROUP category ('non-$names_hash{$taxid_threshold}'): ".commify($outgroup)."\n";
   #print STDERR "[INFO] Number of queries in OUTGROUP category ('non-$names_hash{$taxid_threshold}') with CHS >= $support_threshold\%: ".commify($outgroup_supported)."\n";
@@ -511,7 +505,7 @@ foreach my $in (@infiles) { ## iterate over multiple files if required
   #print STDERR "[INFO] NUMBER OF HGT CANDIDATES: ".commify(scalar(keys(%hgt_candidates)))."\n";
   print STDERR "[INFO] Finished on ".`date`."\n";
 
-}##infiles loop
+}##in_files loop
 
 ############################################ SUBS
 
