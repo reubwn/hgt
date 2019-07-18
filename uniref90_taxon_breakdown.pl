@@ -95,7 +95,7 @@ my %uniref_hash;
 while (my $line = <$IN>) {
   if ($line =~ m/^\>/) {
     ## get the NCBI:txid from fasta header
-    if (m/TaxID=(\d+)\s/) {
+    if ($line =~ m/TaxID=(\d+)\s/) {
       if ( $count ) {
         $rank_count += tax_walk_to_count_rank ($1);
       } else {
