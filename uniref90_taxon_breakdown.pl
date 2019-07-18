@@ -106,7 +106,7 @@ while (my $line = <$IN>) {
     $proteins_total++;
     ## progress
     if ($proteins_total % 1000 == 0){
-      print STDERR "\r[INFO] Processed ".commify($processed)." queries...";
+      print STDERR "\r[INFO] Processed ".commify($proteins_total)." queries...";
       $| = 1;
     }
   } else {
