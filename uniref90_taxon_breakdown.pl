@@ -81,29 +81,40 @@ if ( -f "$path/merged.dmp" ) {
 print STDERR "[INFO] Nodes parsed: ".scalar(keys %nodes_hash)."\n";
 
 ############################################## PARSE UNIREF
+print STDERR "[INFO] Parsing NCBI:txids from '$in_file'...\n";
 my ($IN, $proteins_total, $rank_count);
 if ($in_file =~ m/gz$/) {
-  open ($IN, "zcat $in_file | grep '>' |") or die "[ERROR] Cannot open UniRef file: $!\n"; ## grep the fasta headers directly
-  chomp ($proteins_total = `zgrep -c ">" $in_file`); ## get total number of proteins
+  open ($IN, "zcat $in_file |") or die "[ERROR] Cannot open UniRef file: $!\n"; ## grep the fasta headers directly
+  # chomp ($proteins_total = `zgrep -c ">" $in_file`); ## get total number of proteins
 } else {
-  open ($IN, "grep '>' $in_file |") or die "[ERROR] Cannot open UniRef file: $!\n";
-  chomp ($proteins_total = `grep -c ">" $in_file`); ## get total number of proteins
+  open ($IN, $in_file) or die "[ERROR] Cannot open UniRef file: $!\n";
+  # chomp ($proteins_total = `grep -c ">" $in_file`); ## get total number of proteins
 }
-print STDERR "[INFO] Number of sequences in '$in_file': ".commify($proteins_total)."\n";
 
 my %uniref_hash;
 while (my $line = <$IN>) {
-  ## get the NCBI:txid from fasta header
-  if (m/TaxID=(\d+)\s/) {
-    if ( $count ) {
-      $rank_count += tax_walk_to_count_rank ($1);
-    } else {
-      my $rank = tax_walk_to_rank ($1);
-      $uniref_hash{$rank}++;
+  if ($line =~ m/^\>/) {
+    ## get the NCBI:txid from fasta header
+    if (m/TaxID=(\d+)\s/) {
+      if ( $count ) {
+        $rank_count += tax_walk_to_count_rank ($1);
+      } else {
+        my $rank = tax_walk_to_rank ($1);
+        $uniref_hash{$rank}++;
+      }
     }
+    $proteins_total++;
+    ## progress
+    if ($proteins_total % 1000 == 0){
+      print STDERR "\r[INFO] Processed ".commify($processed)." queries...";
+      $| = 1;
+    }
+  } else {
+    next;
   }
 }
 close $IN;
+print STDERR "\n[INFO] Number of sequences in '$in_file': ".commify($proteins_total)."\n";
 
 if ( $count ) {
   print STDERR "[INFO] Rank was '$rank_limit'\n";
