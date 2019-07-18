@@ -147,12 +147,24 @@ sub commify {
     return scalar reverse $text;
 }
 
+## this sub checks if
+sub check_taxid_has_parent {
+  my $taxid = $_[0];
+  my $result = 0;
+  unless ($nodes_hash{$taxid}) {
+    $result = 1;
+  }
+  return $result; ## 0 = taxid exists; 1 = taxid does not exist
+}
+
 ## this sub returns the <RANK> of given taxid, up to $rank_limit
 ## built into a hash, can be used to compute distribution of ranks within database
 sub tax_walk_to_rank {
   my $taxid = $_[0];
   my $parent = $nodes_hash{$taxid};
   my $parent_rank = $rank_hash{$parent};
+  print STDERR "TaxID=$taxid; Name=$names_hash{$taxid}; Rank=$rank_hash{$taxid}; Parent=$nodes_hash{$taxid}; ParentRank=$rank_hash{$parent}\n" if ( $debug );
+
   my $result = "undef";
 
   if ($rank_hash{$taxid} =~ m/^$rank_limit$/i) { ## no need to recurse tree
@@ -196,7 +208,9 @@ sub tax_walk_to_count_rank {
       if ($rank_hash{$parent} =~ m/^$rank_limit$/i) {
         $result = 1;
         last;
-      } elsif ($parent == 1) {
+      } elsif ($parent == 1) { ## root
+        last;
+      } elsif (check_taxid_has_parent ($parent) == 1) { ## $parent does not exist
         last;
       } else { ## climb the tree
         $parent = $nodes_hash{$parent};
