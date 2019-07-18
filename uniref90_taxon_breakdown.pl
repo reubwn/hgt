@@ -107,7 +107,7 @@ while (my $line = <$IN>) {
     }
     $proteins_total++;
     ## progress
-    if ($proteins_total % 1000 == 0){
+    if ($proteins_total % 10000 == 0){
       print STDERR "\r[INFO] Processed ".commify($proteins_total)." queries...";
       $| = 1;
     }
@@ -195,22 +195,27 @@ sub tax_walk_to_count_rank {
   my $taxid = $_[0];
   my $parent = $nodes_hash{$taxid};
   my $parent_rank = $rank_hash{$parent};
-  print STDERR "TaxID=$taxid; Name=$names_hash{$taxid}; Rank=$rank_hash{$taxid}; Parent=$nodes_hash{$taxid}; ParentRank=$rank_hash{$parent}\n" if ( $debug );
-
   my $result = 0;
-  # my $result = "$taxid_rank[$taxid]:$names_hash{$taxid}";
+  ## debug
+  # print STDERR "TaxID=$taxid; Name=$names_hash{$taxid}; Rank=$rank_hash{$taxid}; Parent=$nodes_hash{$taxid}; ParentRank=$rank_hash{$parent}\n" if ( $debug );
+
+  ## check if $taxid, $parent are misformatted or if $taxid has no parent:
+  if ( ($taxid !~ m/\d+/) || ($parent !~ m/\d+/) || (check_taxid_has_parent($taxid) == 1) ) {
+    return $result;
+  }
 
   if ($rank_hash{$taxid} =~ m/^$rank_limit$/i) { ## no need to recurse tree
+    print STDERR "Found one, $taxid is under $rank_limit!\n" if ( $debug );
     $result = 1;
     last;
   } else {
     while (1) { ## else recurse tree
-      if ($rank_hash{$parent} =~ m/^$rank_limit$/i) {
-        $result = 1;
+      if (check_taxid_has_parent ($parent) == 1) { ## check if $parent has a parent
         last;
       } elsif ($parent == 1) { ## root
         last;
-      } elsif (check_taxid_has_parent ($parent) == 1) { ## $parent does not exist
+      } elsif ($rank_hash{$parent} =~ m/^$rank_limit$/i) { ## $taxid belongs under $rank_limit, so return 1
+        $result = 1;
         last;
       } else { ## climb the tree
         $parent = $nodes_hash{$parent};
