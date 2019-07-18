@@ -22,7 +22,7 @@ OPTIONS [*]
   -h|--help         : this message
 \n";
 
-my ($in_file,$path,$count,$help);
+my ($in_file,$path,$count,$help,$debug);
 my $rank_limit = "phylum";
 
 GetOptions (
@@ -31,6 +31,7 @@ GetOptions (
   'r|rank:s' => \$rank_limit,
   'c|count'  => \$count,
   'h|help'   => \$help,
+  'd|debug'  => \$debug
 );
 
 die $usage if $help;
@@ -38,7 +39,7 @@ die $usage unless ($in_file && $path);
 
 ############################################## PARSE NODES
 ## parse nodes and names:
-my (%nodes_hash, %names_hash, %rank_hash);
+my (%nodes_hash, %names_hash, %rank_hash, %rank_hash_reversed);
 print STDERR "[INFO] Building taxonomy databases from tax files in '$path'...\n";
 if ( -f "$path/nodes.dmp") {
   print STDERR "[INFO]   - $path/nodes.dmp\n";
@@ -51,7 +52,8 @@ while (<$NODES>) {
   next if /\#/;
   my @F = map { s/^\s+|\s+$//gr } split (/\|/, $_); ## split nodes.dmp file on \s+|\s+ regex
   $nodes_hash{$F[0]} = $F[1]; ## key= child taxid; value= parent taxid
-  $rank_hash{$F[0]} = $F[2]; ## key= taxid; value= rank
+  $rank_hash{$F[0]} = $F[2]; ## key= taxid; value= rank name
+  $rank_hash_reversed{$F[2]} = $F[0]; ## key= rank name; value= taxid
 }
 close $NODES;
 if ( -f "$path/names.dmp" ) {
@@ -64,7 +66,7 @@ while (<$NAMES>) {
   chomp;
   next if /\#/;
   my @F = map { s/^\s+|\s+$//gr } split (/\|/, $_);
-  $names_hash{$F[0]} = $F[1] if ($F[3] eq "scientific name"); ## key= taxid; value= species name
+  $names_hash{$F[0]} = $F[1] if ($F[3] eq "scientific name"); ## key= taxid; value= rank name
 }
 close $NAMES;
 if ( -f "$path/merged.dmp" ) {
@@ -153,12 +155,12 @@ sub tax_walk_to_rank {
   my $parent_rank = $rank_hash{$parent};
   my $result = "undef";
 
-  if ($rank_hash{$taxid} eq $rank_limit) { ## no need to recurse tree
+  if ($rank_hash{$taxid} =~ m/^$rank_limit$/i) { ## no need to recurse tree
     $result = $rank_hash{$taxid};
     last;
   } else {
     while (1) { ## else recurse tree
-      if ($parent_rank eq $rank_limit) {
+      if ($parent_rank =~ m/^$rank_limit$/i) {
         $result = $rank_hash{$parent};
         last;
       } elsif ($parent == 1) {
@@ -181,16 +183,17 @@ sub tax_walk_to_count_rank {
   my $taxid = $_[0];
   my $parent = $nodes_hash{$taxid};
   my $parent_rank = $rank_hash{$parent};
+  print STDERR "TaxID=$taxid; Rank=$rank_hash{$taxid}; Parent=$nodes_hash{$taxid}; ParentRank=$rank_hash{$parent}\n" if ( $debug );
 
   my $result = 0;
   # my $result = "$taxid_rank[$taxid]:$names_hash{$taxid}";
 
-  if ($rank_hash{$taxid} eq $rank_limit) { ## no need to recurse tree
+  if ($rank_hash{$taxid} =~ m/^$rank_limit$/i) { ## no need to recurse tree
     $result = 1;
     last;
   } else {
     while (1) { ## else recurse tree
-      if ($rank_hash{$parent} eq $rank_limit) {
+      if ($rank_hash{$parent} =~ m/^$rank_limit$/i) {
         $result = 1;
         last;
       } elsif ($parent == 1) {
