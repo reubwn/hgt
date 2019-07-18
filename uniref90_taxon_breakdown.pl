@@ -66,7 +66,7 @@ while (<$NAMES>) {
   chomp;
   next if /\#/;
   my @F = map { s/^\s+|\s+$//gr } split (/\|/, $_);
-  $names_hash{$F[0]} = $F[1] if ($F[3] eq "scientific name"); ## key= taxid; value= rank name
+  $names_hash{$F[0]} = $F[1] if ($F[3] eq "scientific name"); ## key= taxid; value= scientific name
 }
 close $NAMES;
 if ( -f "$path/merged.dmp" ) {
@@ -183,7 +183,7 @@ sub tax_walk_to_count_rank {
   my $taxid = $_[0];
   my $parent = $nodes_hash{$taxid};
   my $parent_rank = $rank_hash{$parent};
-  print STDERR "TaxID=$taxid; Rank=$rank_hash{$taxid}; Parent=$nodes_hash{$taxid}; ParentRank=$rank_hash{$parent}\n" if ( $debug );
+  print STDERR "TaxID=$taxid; Name=$names_hash{$taxid}; Rank=$rank_hash{$taxid}; Parent=$nodes_hash{$taxid}; ParentRank=$rank_hash{$parent}\n" if ( $debug );
 
   my $result = 0;
   # my $result = "$taxid_rank[$taxid]:$names_hash{$taxid}";
