@@ -192,15 +192,15 @@ Takes the .HGT_results file from above, a GFF, and a list of protein names (can 
 
 #### Notes
 
-1. The presence of introns may not be a good measure of HGT support, see [Koutsovoulos et al](http://www.pnas.org/content/113/18/5053) and this [Gist](https://gist.github.com/GDKO/bc507bc9b620e6006a44). Number of introns is inferred by counting the number of CDS with a given protein ID from the input GFF - this works in most cases but may break if this correspondence does not fit your GFF.
-2. A gene can have no information (annotated `NA`) if (a) it has no hit and thus no entry in the HGT_results file ("no-hitters"), or (b) it hits only to taxa that fall under the skipped category specified by `--taxid_skip` during the `diamond_to_HGT_candidates.pl` analysis ("hit-to-skippers"). Such genes are not considered in the current analysis - eg., if a HGT candidate is linked _only_ to hit-to-skippers it will still be counted as unlinked. This seems fair, since it is necessary to discount any association between each protein and its taxonomic annotation, and most genuine metazoan genes should have good hits to homologs across the Metazoa.
-1. Fasta headers in <PROTEINS> must match with names in <GFF>; if they don't, use option '-r' to apply regexp to fasta headers
-2. GFF format is notoriously 'flexible'; this script relies on each CDS entry in the GFF containing a key=value pair of the format 'Parent=<PROTID>', where <PROTID> is the same as the input fasta headers. If the following code snippet produces expected results then the script will hopefully be OK: 
+1. Fasta headers in `my_proteins.faa` must match with names in the corresponding GFF file; if they don't, use option `-r` to apply a regexp to fasta headers
+2. GFF format is notoriously 'flexible'; this script relies on each CDS entry in the GFF containing a key=value pair of the format 'Parent=\<PROTID\>', where \<PROTID\> is the same as the input fasta headers. If the following code snippet produces expected results then the script will hopefully be OK: 
+   ```
+   export test=`head -1 my_proteins.faa | sed 's/>//'` \
+     && perl -lane 'if($F[2]eq"CDS"){if(/\QParent=$ENV{test};\E|\QParent=$ENV{test}\E$/){print}}' annotation.gff3
+   ```
+3. The presence of introns may not be a good measure of HGT support, see [Koutsovoulos et al](http://www.pnas.org/content/113/18/5053) and this [Gist](https://gist.github.com/GDKO/bc507bc9b620e6006a44). Number of introns is inferred by counting the number of CDS with a given protein ID from the input GFF - this works in most cases but may break if this correspondence does not fit your GFF.
+4. A gene can have no information (annotated `NA`) if (a) it has no hit and thus no entry in the HGT_results file ("no-hitters"), or (b) it hits only to taxa that fall under the skipped category specified by `--taxid_skip` during the `diamond_to_HGT_candidates.pl` analysis ("hit-to-skippers"). Such genes are not considered in the current analysis - eg., if a HGT candidate is linked _only_ to hit-to-skippers it will still be counted as unlinked. This seems fair, since it is necessary to discount any association between each protein and its taxonomic annotation, and most genuine metazoan genes should have good hits to homologs across the Metazoa. But bear in mind that where you set `-k` can sometimes produce unexpected results.
 
-```
-export test=\`head -1 proteins.fasta | sed 's/>//'\` \\
-         && perl -lane 'if(\$F[2]eq\"CDS\"){if(/\\QParent=\$ENV{test};\\E|\\QParent=\$ENV{test}\\E\$/){print}}' annotation.gff3
-```
 
 ### Options
 
