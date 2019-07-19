@@ -48,13 +48,13 @@ This script analyses the output of Diamond/BLAST files and calculates 3 measures
       ```
       >> perl -lane 'if(/^>(\w+)\s.+TaxID\=(\d+)/){print "$1 $2"}' <(zcat uniref90.fasta.gz) | gzip > uniref90.fasta.taxlist.gz
       ```
-   3. Run Diamond as above:
+   3. Run Diamond:
       ```
-      >> diamond blastp --sensitive --index-chunks 1 -k 500 -e 1e-5 -p 100 -q $QUERY -d /path/to/uniref90.fasta.dmnd -a ${QUERY}.vs.uniref90.k500.1e5
+      >> diamond blastp --sensitive --index-chunks 1 -k 500 -e 1e-5 -p 32 -q my_proteins.faa.gz -d /path/to/uniref90.fasta.dmnd -a diamond_results
       ```
    4. Taxify output:
       ```
-      >> cat <(zcat /path/to/uniref90.fasta.taxlist.gz) <(diamond view -a ${QUERY}.vs.uniref90.k500.1e5.daa) \
+      >> cat <(zcat /path/to/uniref90.fasta.taxlist.gz) <(diamond view -a diamond_results.daa) \
       | perl -lane '
        if(@F==2){
          $tax{$F[0]}=$F[1];
@@ -65,7 +65,7 @@ This script analyses the output of Diamond/BLAST files and calculates 3 measures
            print join("\t",@F,"NA");
          }
        }
-      ' | gzip > ${QUERY}.vs.uniref90.k500.1e5.daa.taxid.gz
+      ' | gzip > diamond_results.daa.taxid.gz
       ```
    The taxified file has the usual 12 columns but with an additional 13th column containing the taxid of the hit protein.
 
@@ -74,36 +74,39 @@ This script analyses the output of Diamond/BLAST files and calculates 3 measures
 Type `-h` to see help and options.
 
 ```
-  -i|--in              [FILE]   : taxified diamond/blast results file (accepts gzipped)
-  -l|--list            [FILE]   : list of diamond/blast files to analyse [-i or -l required]
-  -p|--path            [PATH]   : path to dir/ containing tax files
-  -o|--nodes           [FILE]   : path to nodes.dmp
-  -a|--names           [FILE]   : path to names.dmp
-  -m|--merged          [FILE]   : path to merged.dmp
-  -n|--nodesDB         [FILE]   : nodesDB.txt file from blobtools
-  -t|--taxid_ingroup   [INT]    : NCBI taxid to define 'ingroup' [default=33208 (Metazoa)]
-  -k|--taxid_skip      [INT]    : NCBI taxid to skip; hits to this taxid will not be considered
-  -s|--CHS_threshold   [FLOAT]  : Consesus Hits Support threshold [default>=90\%]
-  -u|--hU_threshold    [INT]    : hU threshold (default>=30)
-  -e|--evalue_column   [INT]    : define evalue column [default=11]
-  -b|--bitscore_column [INT]    : define bitscore column [default=12]
-  -c|--taxid_column    [INT]    : define taxid column [default=13]
-  -d|--delimiter       [STRING] : infile delimiter (diamond (\"\\s+\") or blast (\"\\t\")) [default=diamond]
-  -x|--prefix          [FILE]   : filename prefix for outfile [default=INFILE]
-  -v|--verbose                  : say more things
-  -h|--help                     : this help message
+  OPTIONS [* required]
+  -i|--in              [FILE]*   : taxified diamond/blast results file (accepts gzipped)
+  -l|--list            [FILE]    : list of diamond/blast files to analyse
+  -p|--path            [PATH]*   : path to dir of taxonomy files
+  -o|--nodes           [FILE]    : path to nodes.dmp
+  -a|--names           [FILE]    : path to names.dmp
+  -m|--merged          [FILE]    : path to merged.dmp
+  -n|--nodesDB         [FILE]    : nodesDB.txt file from blobtools
+  -f|--faa             [FILE]*   : fasta file of protein sequences under investigation (accepts gzipped)
+  -t|--taxid_ingroup   [INT]     : NCBI taxid to define 'ingroup' [default=33208 (Metazoa)]
+  -k|--taxid_skip      [INT]     : NCBI taxid to skip; hits to this taxid will not be considered
+  -s|--CHS_threshold   [FLOAT]   : Consesus Hits Support threshold [default>=90\%]
+  -u|--hU_threshold    [INT]     : hU threshold [default>=30]
+  -e|--evalue_column   [INT]     : define evalue column [default=11]
+  -b|--bitscore_column [INT]     : define bitscore column [default=12]
+  -c|--taxid_column    [INT]     : define taxid column [default=13]
+  -x|--prefix          [FILE]    : filename prefix for outfile [default=INFILE]
+  -v|--verbose                   : say more things
+  -h|--help                      : this help message
 ```
 
 ### Usage
 
 1. Assuming you have a taxified Diamond file with the hit taxids in the 13th column, and have downloaded the NCBI taxdump files to a location specified by $TAXPATH, running the script with default thresholds is as simple as:
   ```
-  >> diamond_to_HGT_candidates.pl -i diamond_results.daa.taxid -p $TAXPATH
+  >> diamond_to_HGT_candidates.pl -i diamond_results.daa.taxid.gz -f my_proteins.faa.gz -p $TAXPATH
   ```
 2. To exclude hits to organisms that are closely related to your focal organism, use -k option (recommended); eg. if you're looking at HGT in a nematode genome:
   ```
-  >> diamond_to_HGT_candidates.pl -i diamond_results.daa.taxid -p $TAXPATH -k 6231
+  >> diamond_to_HGT_candidates.pl -i diamond_results.daa.taxid.gz -f my_proteins.faa.gz -p $TAXPATH -k 6231
   ```
+  Note: at what taxonomic level to exclude 'closely related' hits is an interesting question; I suggest to vary this parameter up and down the taxonomic tree for your focal organism to see how robust your results are.
+  
 ### Input
 
 1. `-i` flag can read single file or string of filenames whitespace delimited: `-i "file1 file2 file3"`
@@ -191,22 +194,29 @@ Takes the .HGT_results file from above, a GFF, and a list of protein names (can 
 
 1. The presence of introns may not be a good measure of HGT support, see [Koutsovoulos et al](http://www.pnas.org/content/113/18/5053) and this [Gist](https://gist.github.com/GDKO/bc507bc9b620e6006a44). Number of introns is inferred by counting the number of CDS with a given protein ID from the input GFF - this works in most cases but may break if this correspondence does not fit your GFF.
 2. A gene can have no information (annotated `NA`) if (a) it has no hit and thus no entry in the HGT_results file ("no-hitters"), or (b) it hits only to taxa that fall under the skipped category specified by `--taxid_skip` during the `diamond_to_HGT_candidates.pl` analysis ("hit-to-skippers"). Such genes are not considered in the current analysis - eg., if a HGT candidate is linked _only_ to hit-to-skippers it will still be counted as unlinked. This seems fair, since it is necessary to discount any association between each protein and its taxonomic annotation, and most genuine metazoan genes should have good hits to homologs across the Metazoa.
-3. The sequence names specified in `--names` must correspond to the protein names in HGT_results and the GFF. An optional regex can be applied to fasta headers, this will be fed into a string substitution like: `s/$REGEX//ig`.
+1. Fasta headers in <PROTEINS> must match with names in <GFF>; if they don't, use option '-r' to apply regexp to fasta headers
+2. GFF format is notoriously 'flexible'; this script relies on each CDS entry in the GFF containing a key=value pair of the format 'Parent=<PROTID>', where <PROTID> is the same as the input fasta headers. If the following code snippet produces expected results then the script will hopefully be OK: 
+
+```
+export test=\`head -1 proteins.fasta | sed 's/>//'\` \\
+         && perl -lane 'if(\$F[2]eq\"CDS\"){if(/\\QParent=\$ENV{test};\\E|\\QParent=\$ENV{test}\\E\$/){print}}' annotation.gff3
+```
 
 ### Options
 
 Type `-h` to see the options:
 ```
--i|--in     [FILE] : HGT_results.txt file [required]
--g|--gff    [FILE] : GFF file [required]
--n|--names  [FILE] : names of proteins in GFF file, can be fasta of proteins used
--r|--regex  [STR]  : optional regex to apply to seq headers if -n is a fasta file
--u|--outgrp [INT]  : threshold hU score for determining 'good' OUTGROUP (HGT) genes [default>=30]
--U|--ingrp  [INT]  : threshold hU score for determining 'good' INGROUP genes [default<=0]
--c|--CHS    [INT]  : threshold CHS score for determining 'good' OUTGROUP (HGT) genes [default>=90\%]
--y|--heavy  [INT]  : threshold for determining 'HGT heavy' scaffolds [default>=95\%]
--b|--bed           : also write bed file for 'good' HGT genes
--h|--help          : prints this help message
+OPTIONS [* required]
+  -i|--in       [FILE]* : HGT_results.txt file
+  -g|--gff      [FILE]* : annotation file in GFF3 format (accepts gzipped)
+  -f|--faa      [FILE]* : proteins file in fasta format (see below) (accepts gzipped)
+  -r|--regexp   [STR]   : optional regex to apply to --faa headers
+  -u|--outgrp   [INT]   : hU threshold to determine strong evidence for 'outgroup' [default>=30]
+  -U|--ingrp    [INT]   : hU threshold to determine strong evidence for 'ingroup' [default<=0]
+  -c|--CHS      [INT]   : CHS threshold to determine strong evidence for 'outgroup' [default>=90\%]
+  -y|--heavy    [INT]   : Proportion of genes >= hU threshold to find contaminant scaffolds [default>=95\%]
+  -b|--bed              : also write bed file for HGTc
+  -h|--help             : this help message
 ```
 
 ### Outputs
