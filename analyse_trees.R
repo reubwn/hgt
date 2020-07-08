@@ -16,7 +16,8 @@ option_list = list(
   make_option(c("-q","--query"), type="character", default=NULL, help="Value used to identify query sequence [default=%default]", metavar="character"),
   make_option(c("-d","--delim"), type="character", default="_", help="Character to delimit IN and OUT in sequence names [default=underscore]", metavar="character"),
   make_option(c("-o","--out"), type="character", default="results.tab", help="Tab delim outfile [default=%default]", metavar="character"),
-  make_option(c("-f","--pdf"), type="character", default="results.pdf", help="PDF trees outfile [default=%default]", metavar="character")
+  make_option(c("-f","--pdf"), type="character", default="results.pdf", help="PDF trees outfile [default=%default]", metavar="character"),
+  make_option(c("-v","--verbose"), action="store_true", default=FALSE, help="Print extra output [default]")
 );
 
 opt_parser = OptionParser(option_list=option_list);
@@ -42,7 +43,9 @@ colnames(results)<-results.colnames
 pdf(file=opt$pdf,width=15,height=15)
 
 for (i in (1:length(tree.files))) {
-  #cat("Treefile:", i, "\r")
+  if ( opt$verbose ) {
+    cat("Treefile", i, ":", tree.files[i], "\n")
+  }
 
   ## read tree
   tr <- read.tree(paste(opt$path,"/",tree.files[i],sep=""))
