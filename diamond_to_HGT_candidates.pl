@@ -555,6 +555,9 @@ sub tax_walk {
       } elsif ($parent == 12908) {
         $result = "unassigned"; ## taxid for "unclassified sequences"
         last;
+      } elsif ($parent == 81077) {
+        $result = "unassigned"; ## taxid for "artificial sequences"
+        last;
       } else { ## walk up the tree!
         $parent = $nodes_hash{$parent};
       }
